@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PeerJS Example</title>
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.3.1/dist/peerjs.min.js"></script>
+</head>
+<body>
+<h1>PeerJS Example</h1>
+<div>
+    <label for="remoteId">Enter Remote Peer ID:</label>
+    <input type="text" id="remoteId">
+    <button onclick="connect()">Connect</button>
+</div>
+<div>
+    <label for="message">Message:</label>
+    <input type="text" id="message">
+    <button onclick="sendMessage()">Send</button>
+</div>
+
+<div>
+    <label for="callId">Call User:</label>
+    <input type="text" id="callId">
+    <button onclick="callUser()">Call</button>
+</div>
+<div>
+    <p>Your Peer ID: <span id="ownPeerId"></span></p>
+</div>
+<div id="messages"></div>
+
+
+
+<script>
+
+    let renderVideo = (stream) => {
+        const videoEl = document.getElementById('remoteVideo');
+        if (videoEl) {
+            videoEl.srcObject = stream;
+        } else {
+            console.error('Video element not found.');
+        }
+    };
+
+
+
+    const peer = new Peer({
+        host: 'videochat-signaling-app.ue.r.appspot.com',
+        port: 443,
+        secure: true,
+        path: '/',
+    });
+
+    // Handle incoming voice/video connection
+    peer.on('call', (call) => {
+        navigator.mediaDevices.getUserMedia({video: true, audio: true})
+            .then((stream) => {
+                call.answer(stream); // Answer the call with an A/V stream.
+                call.on('stream', renderVideo);
+            })
+            .catch((err) => {
+                navigator.mediaDevices.getUserMedia({video: false, audio: true})
+                    .then((stream) => {
+                        let call = peer.call(remoteId, stream);
+                        call.on('stream', renderVideo);
+                    })
+                    .catch((err) => {
+                        console.log('Failed to get local stream ' + err);
+                    });
+                console.log('Failed to get local stream ' + err);
+            });
+    });
+
+
+    peer.on('open', function(id) {
+        console.log('My peer ID is: ' + id);
+        document.getElementById('ownPeerId').innerText = id;
+    });
+
+    peer.on('connection', function(conn) {
+        conn.on('data', function(data) {
+            console.log('Received: ' + data);
+            appendMessage('Received: ' + data);
+        });
+    });
+
+    let conn = null;
+
+    function connect() {
+        const remoteId = document.getElementById('remoteId').value;
+        conn = peer.connect(remoteId);
+
+        conn.on('open', function() {
+            console.log('Connected to: ' + remoteId);
+        });
+
+        conn.on('error', function(err) {
+            console.error(err);
+        });
+    }
+
+    function sendMessage() {
+        if (conn === null) {
+            console.error('You are not connected to any peer.');
+            return;
+        }
+
+        const message = document.getElementById('message').value;
+        appendMessage('Sent: ' + message);
+        conn.send(message);
+    }
+
+    function appendMessage(message) {
+        const messagesContainer = document.getElementById('messages');
+        const messageElement = document.createElement('div');
+        messageElement.innerText = message;
+        messagesContainer.appendChild(messageElement);
+    }
+
+    function callUser(){
+
+        const remoteId = document.getElementById('callId').value;
+
+        navigator.mediaDevices.getUserMedia({video: true, audio: true})
+            .then((stream) => {
+                let call = peer.call(remoteId, stream);
+                call.on('stream', renderVideo);
+                console.log("connected to user with video ")
+            })
+            .catch((err) => {
+
+                navigator.mediaDevices.getUserMedia({video: false, audio: true})
+                    .then((stream) => {
+                        let call = peer.call(remoteId, stream);
+                        call.on('stream', renderVideo);
+                        console.log("connected to user with audio ")
+                    })
+                    .catch((err) => {
+                        console.log('Failed to get local stream ' + err);
+                    });
+            });
+    }
+</script>
+</body>
+</html>
