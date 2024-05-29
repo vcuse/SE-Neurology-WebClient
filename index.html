@@ -26,13 +26,15 @@
     <p>Your Peer ID: <span id="ownPeerId"></span></p>
 </div>
 <div id="messages"></div>
-
+<video id="remoteVideo" autoplay></video>
 
 
 <script>
 
     let renderVideo = (stream) => {
+        const videoEl = document.getElementById('remoteVideo');
         videoEl.srcObject = stream;
+
     };
 
 
