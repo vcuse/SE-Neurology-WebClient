@@ -32,12 +32,7 @@
 <script>
 
     let renderVideo = (stream) => {
-        const videoEl = document.getElementById('remoteVideo');
-        if (videoEl) {
-            videoEl.srcObject = stream;
-        } else {
-            console.error('Video element not found.');
-        }
+        videoEl.srcObject = stream;
     };
 
 
