@@ -1,236 +1,85 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-    <title>PeerJS Example</title>
     <script src="https://cdn.jsdelivr.net/npm/peerjs@1.3.1/dist/peerjs.min.js"></script>
-    <style>
-        #videoContainer {
-            position: relative;
-            display: inline-block;
-        }
-
-        #localVideo {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            width: 30%; /* Set width to 30% of the container width */
-            height: auto; /* Let the height adjust automatically to maintain aspect ratio */
-            max-width: 320px; /* Set a maximum width to ensure the video doesn't become too large */
-            object-fit: cover; /* Maintain aspect ratio while covering the entire box */
-        }
-
-        #remoteVideo {
-            width: 720px;
-            max-width: 720px; /* Occupy the full width of its container */
-            height: auto; /* Let the height adjust automatically to maintain aspect ratio */
-            object-fit: cover; /* Maintain aspect ratio while covering the entire box */
-        }
-
-        @media screen and (max-width: 768px) {
-            /* Adjust the layout for screens smaller than 768px (e.g., tablets) */
-            #localVideo {
-                width: 40%; /* Set a different width for smaller screens */
-            }
-        }
-
-        @media screen and (max-width: 576px) {
-            /* Adjust the layout for screens smaller than 576px (e.g., smartphones) */
-            #localVideo {
-                width: 70%; /* Set a different width for even smaller screens */
-            }
-        }
-
-        #hangupBar {
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: rgba(0, 0, 0, 0.5);
-            padding: 10px;
-            display: none; /* Hide the hang-up bar by default */
-            justify-content: center;
-            align-items: center;
-            border-radius: 10px;
-            width: 90%;
-            height: 40px;
-        }
-
-        #hangupButton {
-            background-color: red;
-            color: white;
-            border: none;
-            border-radius: 10%;
-            cursor: pointer;
-        }
-    </style>
+    <!-- CSS Bootstrap Link -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="style.css">
+    <title id="title">PeerJS Example</title>
 </head>
+
 <body>
-<h1>PeerJS Example</h1>
-<div>
-    <label for="remoteId">Enter Remote Peer ID:</label>
-    <input type="text" id="remoteId">
-    <button onclick="connect()">Connect</button>
-</div>
-<div>
-    <label for="message">Message:</label>
-    <input type="text" id="message">
-    <button onclick="sendMessage()">Send</button>
+<section class="text-center py-3">
+    <h1 class="display-1">PeerJS Example</h1>
+
+    <h6>
+        <p>Your Peer ID: <span id="ownPeerId"></span></p>
+    </h6>
+
+    <div class="container">
+        <div class="row mb-2 align-items-center">
+            <label for="remoteId" class="col-sm-4 col-form-label">Enter Remote Peer ID:</label>
+            <div class="col-sm-5">
+                <input type="text" class="form-control" id="remoteId">
+            </div>
+            <div class="col-sm-3">
+                <button class="btn btn-outline-dark w-100" onclick="connect()">Connect</button>
+            </div>
+        </div>
+
+        <div class="row mb-2 align-items-center">
+            <label for="message" class="col-sm-4 col-form-label">Message:</label>
+            <div class="col-sm-5">
+                <input type="text" class="form-control" id="message">
+            </div>
+            <div class="col-sm-3">
+                <button class="btn btn-outline-dark w-100" onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+
+        <div class="row mb-2 align-items-center">
+            <label for="callId" class="col-sm-4 col-form-label">Call User:</label>
+            <div class="col-sm-5">
+                <input type="text" class="form-control" id="callId">
+            </div>
+            <div class="col-sm-3">
+                <button class="btn btn-outline-dark w-100" onclick="callUser()">Call</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div id="messages"></div>
+
+<div id="ringingPopup">
+    <h3>Ringing...</h3>
 </div>
 
-<div>
-    <label for="callId">Call User:</label>
-    <input type="text" id="callId">
-    <button onclick="callUser()">Call</button>
-</div>
-<div>
-    <p>Your Peer ID: <span id="ownPeerId"></span></p>
-</div>
-<div id="messages"></div>
 
 <div id="videoContainer">
     <video id="remoteVideo" autoplay style="position: relative;"></video>
     <div id="hangupBar">
-        <button id="hangupButton" style="display: none;" onclick="hangupCall()">Hang Up</button>
+        <button id="hangupButton" class="btn btn-outline-danger " style="display: none;" onclick="hangupCall()">Hang Up</button>
     </div>
 </div>
 
-<div id="callMenu" style="display: none;">
-    <button onclick="answerCall()">Answer</button>
-    <button onclick="declineCall()">Decline</button>
+<div id="incomingCallContainer" class="text-center" style="display: none;">
+    <h3 id="incomingCallMessage">Incoming Call</h3>
+    <div id="callMenu" class="text-center">
+        <button class="btn btn-outline-success" onclick="answerCall()">Answer</button>
+        <button class="btn btn-outline-danger" onclick="declineCall()">Decline</button>
+    </div>
 </div>
 
-<script>
 
-    const peer = new Peer({
-        host: 'videochat-signaling-app.ue.r.appspot.com',
-        port: 443,
-        secure: true,
-        path: '/',
-    });
-    let callInitiated = false; // Flag to track if a call has been initiated
-    let incomingCall = null;
-    let mediaConnection = null;
-
-    peer.on('call', (call) => {
-        incomingCall = call;
-        document.getElementById('callMenu').style.display = 'block'; // Show call menu
-        callInitiated = true; // Set the flag to true when a call is initiated
-        showHangupButton(); // Call function to show hang-up button
-    });
-
-    peer.on('open', function(id) {
-        console.log('My peer ID is: ' + id);
-        document.getElementById('ownPeerId').innerText = id;
-    });
-
-    peer.on('connection', function(conn) {
-        conn.on('data', function(data) {
-            console.log('Received: ' + data);
-            appendMessage('Received: ' + data);
-        });
-    });
-
-    let conn = null;
-
-    function connect() {
-        const remoteId = document.getElementById('remoteId').value;
-        conn = peer.connect(remoteId);
-
-        conn.on('open', function() {
-            console.log('Connected to: ' + remoteId);
-        });
-
-        conn.on('error', function(err) {
-            console.error(err);
-        });
-    }
-
-    function sendMessage() {
-        if (conn === null) {
-            console.error('You are not connected to any peer.');
-            return;
-        }
-
-        const message = document.getElementById('message').value;
-        appendMessage('Sent: ' + message);
-        conn.send(message);
-    }
-
-    function appendMessage(message) {
-        const messagesContainer = document.getElementById('messages');
-        const messageElement = document.createElement('div');
-        messageElement.innerText = message;
-        messagesContainer.appendChild(messageElement);
-    }
-
-    function callUser() {
-        const remoteId = document.getElementById('callId').value;
-
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-            .then((stream) => {
-                mediaConnection = peer.call(remoteId, stream);
-                mediaConnection.on('stream', renderVideoOrAudio);
-                console.log("Connected to user with video");
-            })
-            .catch((videoErr) => {
-                console.warn('Failed to get video stream:', videoErr);
-
-                navigator.mediaDevices.getUserMedia({ video: false, audio: true })
-                    .then((audioStream) => {
-                        mediaConnection = peer.call(remoteId, audioStream);
-                        mediaConnection.on('stream', renderVideoOrAudio);
-                        console.log("Connected to user with audio");
-                    })
-                    .catch((audioErr) => {
-                        console.error('Failed to get audio stream:', audioErr);
-                    });
-            });
-    }
-
-    function renderVideoOrAudio(stream) {
-        const videoEl = document.getElementById('remoteVideo');
-        if (stream.getVideoTracks().length > 0) {
-            videoEl.srcObject = stream; // Render video stream if available
-            showHangupButton(); // Call function to show hang-up button
-        } else {
-            // Render audio stream
-            // You can choose to display a message indicating that the call is audio-only
-            console.log("Rendering audio stream");
-        }
-    }
-
-    function answerCall() {
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-            .then((stream) => {
-                incomingCall.answer(stream); // Answer the call with an A/V stream.
-                mediaConnection = incomingCall;
-                mediaConnection.on('stream', renderVideoOrAudio);
-                document.getElementById('callMenu').style.display = 'none'; // Hide call menu after answering
-            })
-            .catch((err) => {
-                console.log('Failed to get local stream ' + err);
-            });
-    }
-
-    function declineCall() {
-        incomingCall.close();
-        document.getElementById('callMenu').style.display = 'none'; // Hide call menu after declining
-    }
-
-    function hangupCall() {
-        if (mediaConnection) {
-            mediaConnection.close();
-            document.getElementById('hangupButton').style.display = 'none'; // Hide hang-up button after hanging up
-        }
-    }
-
-    // Function to show the hang-up button only if a call has been initiated
-    function showHangupButton() {
-        if (callInitiated) {
-            document.getElementById('hangupButton').style.display = 'block';
-            document.getElementById('hangupBar').style.display = 'flex'; // Show the hang-up bar
-        }
-    }
-</script>
+<!-- JS Bootstrap Link -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        crossorigin="anonymous"></script>
+<script src="script.js"></script>
 </body>
+
 </html>
