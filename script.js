@@ -8,6 +8,7 @@
     let incomingCall = null;
     let mediaConnection = null;
     let ringingTimeout = null;
+    let muted = false;
 
     peer.on('call', (call) => {
         incomingCall = call;
@@ -79,7 +80,7 @@ function callUser() {
             mediaConnection.on('stream', renderVideoOrAudio);
             console.log("Connected to user with video");
             document.getElementById('videoContainer').style.display = 'flex'; // Show the video container
-            showHangupButton(); // Show hang-up button when calling
+            showButtons(); // Show hang-up button when calling
         })
         .catch((videoErr) => {
             console.warn('Failed to get video stream:', videoErr);
@@ -90,7 +91,7 @@ function callUser() {
                     mediaConnection.on('stream', renderVideoOrAudio);
                     console.log("Connected to user with audio");
                     document.getElementById('videoContainer').style.display = 'flex'; // Show the video container
-                    showHangupButton(); // Show hang-up button when calling
+                    showButtons(); // Show hang-up button when calling
                 })
                 .catch((audioErr) => {
                     console.error('Failed to get audio stream:', audioErr);
@@ -117,7 +118,7 @@ function callUser() {
         const videoEl = document.getElementById('remoteVideo');
         if (stream.getVideoTracks().length > 0) {
             videoEl.srcObject = stream; // Render video stream if available
-            showHangupButton(); // Call function to show hang-up button
+            showButtons(); // Call function to show hang-up button
         } else {
             // Render audio stream
             // You can choose to display a message indicating that the call is audio-only
@@ -133,7 +134,7 @@ function answerCall() {
             mediaConnection.on('stream', renderVideoOrAudio);
             document.getElementById('incomingCallContainer').style.display = 'none'; // Hide incoming call message and call menu after answering
             document.getElementById('videoContainer').style.display = 'flex'; // Show the video container
-            showHangupButton(); // Show hang-up button when answering
+            showButtons(); // Show hang-up button when answering
         })
         .catch((err) => {
             console.log('Failed to get local stream ' + err);
@@ -150,14 +151,30 @@ function hangupCall() {
         mediaConnection.close();
         document.getElementById('hangupButton').style.display = 'none'; // Hide hang-up button after hanging up
         document.getElementById('videoContainer').style.display = 'none'; // Hide the video container
-        document.getElementById('hangupBar').style.display = 'none'; // Hide the hang-up bar
+        document.getElementById('optionsBar').style.display = 'none'; // Hide the hang-up bar
     }
 }
 
-    // Function to show the hang-up button only if a call has been initiated
-function showHangupButton() {
+function muteCall(){
+    let muteButton = document.getElementById('muteButton');
+    let muteImage = document.getElementById('muteImage');
+    if(muted){
+        muted = false;
+        muteImage.src = 'icons/mic.png';
+        muteButton.title = "Mute";
+    }
+    else{
+        muted = true;
+        muteImage.src = 'icons/mic_off.png';
+        muteButton.title = "Unmute";
+    }
+}
+
+// Function to show the hang-up and mute buttons only if a call has been initiated
+function showButtons() {
     if (callInitiated) {
         document.getElementById('hangupButton').style.display = 'block';
-        document.getElementById('hangupBar').style.display = 'flex'; // Show the hang-up bar
+        document.getElementById('muteButton').style.display = 'block';
+        document.getElementById('optionsBar').style.display = 'flex'; // Show the hang-up bar
     }
 }

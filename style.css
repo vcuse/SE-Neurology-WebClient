@@ -79,8 +79,8 @@ html {
   }
 }
 
-/* Ensure hangup bar is centered with the video */
-#hangupBar {
+/* Ensure options bar is centered with the video */
+#optionsBar{
   position: absolute;
   bottom: 10px;
   left: 50%;
@@ -95,12 +95,30 @@ html {
   height: 40px;
 }
 
-#hangupButton {
-  background-color: red;
-  color: white;
+#hangupButton{
+  background-color: rgb(255, 19, 19);
+  padding: 5px;
+  margin: 10px;
   border: none;
-  border-radius: 10%;
+  border-radius: 5px;
   cursor: pointer;
+}
+
+#hangupButton:hover{
+  background-color: rgb(210, 16, 16);
+}
+
+#muteButton{
+  background-color: white;
+  padding: 5px;
+  margin: 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+#muteButton:hover{
+  background-color: rgb(171, 171, 171);
 }
 
 #remoteVideo {

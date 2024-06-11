@@ -61,8 +61,13 @@
 
 <div id="videoContainer">
     <video id="remoteVideo" autoplay style="position: relative;"></video>
-    <div id="hangupBar">
-        <button id="hangupButton" class="btn btn-outline-danger " style="display: none;" onclick="hangupCall()">Hang Up</button>
+    <div id="optionsBar">
+        <button title="Hang Up" id="hangupButton" style="display: none;" onclick="hangupCall()">
+            <img src="icons/call_end.png" width="30px">
+        </button>
+        <button title="Mute" id="muteButton" style="display: none;" onclick="muteCall()">
+            <img id="muteImage" src="icons/mic.png" width="30px">
+        </button>
     </div>
 </div>
 
@@ -73,7 +78,6 @@
         <button class="btn btn-outline-danger" onclick="declineCall()">Decline</button>
     </div>
 </div>
-
 
 <!-- JS Bootstrap Link -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
