@@ -7,7 +7,7 @@
     let callInitiated = false; // Flag to track if a call has been initiated
     let incomingCall = null;
     let mediaConnection = null;
-    let ringingTineout = null;
+    let ringingTimeout = null;
 
     peer.on('call', (call) => {
         incomingCall = call;
@@ -61,6 +61,7 @@ document.getElementById('incomingCallContainer').style.display = 'flex'; // Show
     }
 
 function callUser() {
+    callInitiated = true;
     const remoteId = document.getElementById('callId').value;
 
     // Show ringing pop-up
