@@ -84,19 +84,19 @@ function callUser() {
         })
         .catch((videoErr) => {
             console.warn('Failed to get video stream:', videoErr);
-
-            navigator.mediaDevices.getUserMedia({video: false, audio: true})
-                .then((audioStream) => {
-                    mediaConnection = peer.call(remoteId, audioStream);
-                    mediaConnection.on('stream', renderVideoOrAudio);
-                    console.log("Connected to user with audio");
-                    document.getElementById('videoContainer').style.display = 'flex'; // Show the video container
-                    showButtons(); // Show hang-up button when calling
-                })
-                .catch((audioErr) => {
-                    console.error('Failed to get audio stream:', audioErr);
-                });
         });
+
+        navigator.mediaDevices.getUserMedia({video: false, audio: true})
+            .then((audioStream) => {
+                mediaConnection = peer.call(remoteId, audioStream);
+                mediaConnection.on('stream', renderVideoOrAudio);
+                console.log("Connected to user with audio");
+                document.getElementById('videoContainer').style.display = 'flex'; // Show the video container
+                showButtons(); // Show hang-up button when calling
+            })
+            .catch((audioErr) => {
+                console.error('Failed to get audio stream:', audioErr);
+            });
 
     // Clear the timeout when the call is answered
     peer.once('call', (call) => {
