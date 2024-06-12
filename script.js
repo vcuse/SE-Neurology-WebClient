@@ -1,65 +1,66 @@
-    const peer = new Peer({
-        host: 'videochat-signaling-app.ue.r.appspot.com',
-        port: 443,
-        secure: true,
-        path: '/',
-    });
-    let callInitiated = false; // Flag to track if a call has been initiated
-    let incomingCall = null;
-    let mediaConnection = null;
-    let ringingTimeout = null;
-    let muted = false;
+const peer = new Peer({
+    host: 'videochat-signaling-app.ue.r.appspot.com',
+    port: 443,
+    secure: true,
+    path: '/',
+});
 
-    peer.on('call', (call) => {
-        incomingCall = call;
-document.getElementById('incomingCallContainer').style.display = 'flex'; // Show incoming call message and call menu
+let callInitiated = false; // Flag to track if a call has been initiated
+let incomingCall = null;
+let mediaConnection = null;
+let ringingTimeout = null;
+let localStream = null; // Store stream globally to allow muting
+
+peer.on('call', (call) => {
+    incomingCall = call;
+    document.getElementById('incomingCallContainer').style.display = 'flex'; // Show incoming call message and call menu
     callInitiated = true; // Set the flag to true when a call is initiated
 });
 
-    peer.on('open', function (id) {
-        console.log('My peer ID is: ' + id);
-        document.getElementById('ownPeerId').innerText = id;
+peer.on('open', function (id) {
+    console.log('My peer ID is: ' + id);
+    document.getElementById('ownPeerId').innerText = id;
+});
+
+peer.on('connection', function (conn) {
+    conn.on('data', function (data) {
+        console.log('Received: ' + data);
+        appendMessage('Received: ' + data);
+    });
+});
+
+let conn = null;
+
+function connect() {
+    const remoteId = document.getElementById('remoteId').value;
+    conn = peer.connect(remoteId);
+
+    conn.on('open', function () {
+        console.log('Connected to: ' + remoteId);
     });
 
-    peer.on('connection', function (conn) {
-        conn.on('data', function (data) {
-            console.log('Received: ' + data);
-            appendMessage('Received: ' + data);
-        });
+    conn.on('error', function (err) {
+        console.error(err);
     });
+}
 
-    let conn = null;
-
-    function connect() {
-        const remoteId = document.getElementById('remoteId').value;
-        conn = peer.connect(remoteId);
-
-        conn.on('open', function () {
-            console.log('Connected to: ' + remoteId);
-        });
-
-        conn.on('error', function (err) {
-            console.error(err);
-        });
+function sendMessage() {
+    if (conn === null) {
+        console.error('You are not connected to any peer.');
+        return;
     }
 
-    function sendMessage() {
-        if (conn === null) {
-            console.error('You are not connected to any peer.');
-            return;
-        }
+    const message = document.getElementById('message').value;
+    appendMessage('Sent: ' + message);
+    conn.send(message);
+}
 
-        const message = document.getElementById('message').value;
-        appendMessage('Sent: ' + message);
-        conn.send(message);
-    }
-
-    function appendMessage(message) {
-        const messagesContainer = document.getElementById('messages');
-        const messageElement = document.createElement('div');
-        messageElement.innerText = message;
-        messagesContainer.appendChild(messageElement);
-    }
+function appendMessage(message) {
+    const messagesContainer = document.getElementById('messages');
+    const messageElement = document.createElement('div');
+    messageElement.innerText = message;
+    messagesContainer.appendChild(messageElement);
+}
 
 function callUser() {
     callInitiated = true;
@@ -76,6 +77,7 @@ function callUser() {
 
     navigator.mediaDevices.getUserMedia({video: true, audio: true})
         .then((stream) => {
+            localStream = stream;
             mediaConnection = peer.call(remoteId, stream);
             mediaConnection.on('stream', renderVideoOrAudio);
             console.log("Connected to user with video");
@@ -86,17 +88,17 @@ function callUser() {
             console.warn('Failed to get video stream:', videoErr);
         });
 
-        navigator.mediaDevices.getUserMedia({video: false, audio: true})
-            .then((audioStream) => {
-                mediaConnection = peer.call(remoteId, audioStream);
-                mediaConnection.on('stream', renderVideoOrAudio);
-                console.log("Connected to user with audio");
-                document.getElementById('videoContainer').style.display = 'flex'; // Show the video container
-                showButtons(); // Show hang-up button when calling
-            })
-            .catch((audioErr) => {
-                console.error('Failed to get audio stream:', audioErr);
-            });
+    navigator.mediaDevices.getUserMedia({video: false, audio: true})
+        .then((audioStream) => {
+            mediaConnection = peer.call(remoteId, audioStream);
+            mediaConnection.on('stream', renderVideoOrAudio);
+            console.log("Connected to user with audio");
+            document.getElementById('videoContainer').style.display = 'flex'; // Show the video container
+            showButtons(); // Show hang-up button when calling
+        })
+        .catch((audioErr) => {
+            console.error('Failed to get audio stream:', audioErr);
+        });
 
     // Clear the timeout when the call is answered
     peer.once('call', (call) => {
@@ -113,22 +115,22 @@ function callUser() {
     });
 }
 
-
-    function renderVideoOrAudio(stream) {
-        const videoEl = document.getElementById('remoteVideo');
-        if (stream.getVideoTracks().length > 0) {
-            videoEl.srcObject = stream; // Render video stream if available
-            showButtons(); // Call function to show hang-up button
-        } else {
-            // Render audio stream
-            // You can choose to display a message indicating that the call is audio-only
-            console.log("Rendering audio stream");
-        }
+function renderVideoOrAudio(stream) {
+    const videoEl = document.getElementById('remoteVideo');
+    if (stream.getVideoTracks().length > 0) {
+        videoEl.srcObject = stream; // Render video stream if available
+        showButtons(); // Call function to show hang-up button
+    } else {
+        // Render audio stream
+        // You can choose to display a message indicating that the call is audio-only
+        console.log("Rendering audio stream");
     }
+}
 
 function answerCall() {
     navigator.mediaDevices.getUserMedia({video: true, audio: true})
         .then((stream) => {
+            localStream = stream;
             incomingCall.answer(stream); // Answer the call with an A/V stream.
             mediaConnection = incomingCall;
             mediaConnection.on('stream', renderVideoOrAudio);
@@ -141,10 +143,10 @@ function answerCall() {
         });
 }
 
-    function declineCall() {
-        incomingCall.close();
+function declineCall() {
+    incomingCall.close();
     document.getElementById('incomingCallContainer').style.display = 'none'; // Hide incoming call message and call menu after declining
-    }
+}
 
 function hangupCall() {
     if (mediaConnection) {
@@ -155,16 +157,17 @@ function hangupCall() {
     }
 }
 
+// Function that mutes and unmutes the user
 function muteCall(){
     let muteButton = document.getElementById('muteButton');
     let muteImage = document.getElementById('muteImage');
-    if(muted){
-        muted = false;
+    if(!localStream.getAudioTracks()[0].enabled){
+        localStream.getAudioTracks()[0].enabled = true;
         muteImage.src = 'icons/mic.png';
         muteButton.title = "Mute";
     }
     else{
-        muted = true;
+        localStream.getAudioTracks()[0].enabled = false;
         muteImage.src = 'icons/mic_off.png';
         muteButton.title = "Unmute";
     }
