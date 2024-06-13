@@ -62,7 +62,9 @@
 <div id="videoContainer">
     <video id="remoteVideo" autoplay style="position: relative;"></video>
     <div id="hangupBar">
-        <button id="hangupButton" class="btn btn-outline-danger " style="display: none;" onclick="hangupCall()">Hang Up</button>
+        <button id="hangupButton" class="btn btn-outline-danger" style="display: none;" onclick="hangupCall()">Hang Up</button>
+        <button id="muteAudioButton" class="btn btn-outline-secondary" style="display: none;" onclick="toggleMuteAudio()">Mute Audio</button>
+        <button id="muteVideoButton" class="btn btn-outline-secondary" style="display: none;" onclick="toggleMuteVideo()">Mute Video</button>
     </div>
 </div>
 
@@ -72,6 +74,16 @@
         <button class="btn btn-outline-success" onclick="answerCall()">Answer</button>
         <button class="btn btn-outline-danger" onclick="declineCall()">Decline</button>
     </div>
+</div>
+
+<div id="declinedPopup" class="popup">
+    <h3>User Declined</h3>
+    <button onclick="dismissDeclinedPopup()" class="btn btn-outline-dark">OK</button>
+</div>
+
+<div id="hungupPopup" class="popup">
+    <h3>User Hung Up</h3>
+    <button onclick="dismissHungupPopup()" class="btn btn-outline-dark">OK</button>
 </div>
 
 

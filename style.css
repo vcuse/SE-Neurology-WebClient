@@ -103,6 +103,11 @@ html {
   cursor: pointer;
 }
 
+#hangupButton, #muteAudioButton, #muteVideoButton {
+    margin: 0 10px; /* Add horizontal padding between the buttons */
+    padding: 10px 20px; /* Add padding inside the buttons */
+}
+
 #remoteVideo {
   display: block;
   max-width: 720px;
@@ -113,6 +118,29 @@ html {
 }
 
 #ringingPopup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 20px;
+    border-radius: 10px;
+    z-index: 100; /* Ensure it appears above other elements */
+    display: none; /* Hide by default */
+}
+
+#declinedPopup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 20px;
+    border-radius: 10px;
+    z-index: 100; /* Ensure it appears above other elements */
+}
+
+.popup {
     position: fixed;
     top: 50%;
     left: 50%;
