@@ -161,7 +161,19 @@ function hangupCall() {
         document.getElementById('hangupButton').style.display = 'none'; // Hide hang-up button after hanging up
         document.getElementById('videoContainer').style.display = 'none'; // Hide the video container
         document.getElementById('optionsBar').style.display = 'none'; // Hide the hang-up bar
+        stopAudioVideo();
     }
+}
+
+// Function for stopping the audio and video after user presses end call button
+function stopAudioVideo(){
+    localStream.getAudioTracks().forEach((track) => {
+        track.stop();
+    });
+
+    localStream.getVideoTracks().forEach((track) => {
+        track.stop();
+    });
 }
 
 // Function that mutes and unmutes the user
