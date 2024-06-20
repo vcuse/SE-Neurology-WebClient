@@ -75,38 +75,26 @@ function callUser() {
         document.getElementById('ringingPopup').style.display = 'none';
     }, 5000); // Change duration as needed
 
-    navigator.mediaDevices.getUserMedia({video: true, audio: true})
+    // This will filter out any devices we have, allowing for audio only chatting if needed
+    navigator.mediaDevices.enumerateDevices()
+        .then((devices) => {
+            const videoDevices = devices.filter(device => device.kind === 'videoinput');
+            const constraints = {audio: true, video: videoDevices.length > 0};
+
+            return navigator.mediaDevices.getUserMedia(constraints);
+        })
         .then((stream) => {
             localStream = stream;
             mediaConnection = peer.call(remoteId, stream);
-            mediaConnection.on('stream', renderVideoOrAudio);
-            console.log("Connected to user with video");
-            document.getElementById('videoContainer').style.display = 'flex'; // Show the video container
-            showButtons(); // Show hang-up button when calling
+            mediaConnection.on('stream', (remoteStream) => {
+                renderVideoOrAudio(remoteStream, stream);
+            });
+            document.getElementById('videoContainer').style.display = 'flex';
+            showButtons();
         })
-        .catch((videoErr) => {
-            console.warn('Failed to get video stream:', videoErr);
+        .catch((err) => {
+            console.warn('Failed to get media stream: ', err);
         });
-
-    navigator.mediaDevices.getUserMedia({video: false, audio: true})
-        .then((audioStream) => {
-            mediaConnection = peer.call(remoteId, audioStream);
-            mediaConnection.on('stream', renderVideoOrAudio);
-            console.log("Connected to user with audio");
-            document.getElementById('videoContainer').style.display = 'flex'; // Show the video container
-            showButtons(); // Show hang-up button when calling
-        })
-        .catch((audioErr) => {
-            console.error('Failed to get audio stream:', audioErr);
-        });
-
-    // Clear the timeout when the call is answered
-    peer.once('call', (call) => {
-        call.on('stream', () => {
-            clearTimeout(ringingTimeout); // Clear the timeout since the call is answered
-            document.getElementById('ringingPopup').style.display = 'none'; // Hide the pop-up
-        });
-    });
 
     // Clear the timeout when the call is declined
     peer.once('call', () => {
@@ -115,31 +103,50 @@ function callUser() {
     });
 }
 
-function renderVideoOrAudio(stream) {
+function renderVideoOrAudio(remoteStream, stream) {
     const videoEl = document.getElementById('remoteVideo');
-    if (stream.getVideoTracks().length > 0) {
-        videoEl.srcObject = stream; // Render video stream if available
-        showButtons(); // Call function to show hang-up button
-    } else {
-        // Render audio stream
-        // You can choose to display a message indicating that the call is audio-only
-        console.log("Rendering audio stream");
+    const audioEl = document.getElementById('remoteAudio');
+    if(remoteStream.getVideoTracks().length > 0){
+        videoEl.srcObject = remoteStream; // Render video stream if available
+    } 
+    else{
+        // Render audio stream only
+        audioEl.srcObject = remoteStream;
+        videoEl.src = 'palm_trees.webm';
+        videoEl.loop = true;
+        console.log("Rendering audio only stream");
     }
+
+    if(stream.getVideoTracks().length == 0){
+        videoEl.src = 'palm_trees.webm';
+        videoEl.loop = true;
+        console.log("Rendering audio only stream");
+    }
+    
+    showButtons();
 }
 
 function answerCall() {
-    navigator.mediaDevices.getUserMedia({video: true, audio: true})
+    navigator.mediaDevices.enumerateDevices()
+        .then((devices) => {
+            const videoDevices = devices.filter(device => device.kind == 'videoinput');
+            const constraints = {audio: true, video: videoDevices.length > 0};
+
+            return navigator.mediaDevices.getUserMedia(constraints);
+        })
         .then((stream) => {
             localStream = stream;
-            incomingCall.answer(stream); // Answer the call with an A/V stream.
+            incomingCall.answer(stream);
             mediaConnection = incomingCall;
-            mediaConnection.on('stream', renderVideoOrAudio);
-            document.getElementById('incomingCallContainer').style.display = 'none'; // Hide incoming call message and call menu after answering
-            document.getElementById('videoContainer').style.display = 'flex'; // Show the video container
-            showButtons(); // Show hang-up button when answering
+            mediaConnection.on('stream', (remoteStream) => {
+                renderVideoOrAudio(remoteStream, stream);
+            });
+            document.getElementById('incomingCallContainer').style.display = 'none';
+            document.getElementById('videoContainer').style.display = 'flex';
+            showButtons();
         })
         .catch((err) => {
-            console.log('Failed to get local stream ' + err);
+            console.log('Failed to get local stream: ', err);
         });
 }
 
@@ -154,7 +161,19 @@ function hangupCall() {
         document.getElementById('hangupButton').style.display = 'none'; // Hide hang-up button after hanging up
         document.getElementById('videoContainer').style.display = 'none'; // Hide the video container
         document.getElementById('optionsBar').style.display = 'none'; // Hide the hang-up bar
+        stopAudioVideo();
     }
+}
+
+// Function for stopping the audio and video after user presses end call button
+function stopAudioVideo(){
+    localStream.getAudioTracks().forEach((track) => {
+        track.stop();
+    });
+
+    localStream.getVideoTracks().forEach((track) => {
+        track.stop();
+    });
 }
 
 // Function that mutes and unmutes the user
