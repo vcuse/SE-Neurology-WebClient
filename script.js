@@ -5,11 +5,34 @@ const peer = new Peer({
     path: '/',
 });
 
+let onlineUsers = [];
+let listedUsers = [];
 let callInitiated = false; // Flag to track if a call has been initiated
 let incomingCall = null;
 let mediaConnection = null;
 let ringingTimeout = null;
 let localStream = null; // Store stream globally to allow muting
+
+// Have the web client check every 3 seconds for any users who came online or offline
+setInterval(() => {
+    fetch('https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/peers')
+    .then((response) => response.json())
+    .then((data) => { 
+        onlineUsers = data;
+        listedUsers.forEach((ID) => {
+            if(!(onlineUsers.includes(ID))){
+                removeOfflineUser(ID);
+            }
+        });
+        onlineUsers.forEach((ID) => {
+            if(!(listedUsers.includes(ID)) && ID != peer.id){
+                addOnlineUser(ID);
+            }
+        });
+        console.log(onlineUsers, listedUsers);
+    })
+    .catch((error) => console.log(error));
+}, 3000);
 
 peer.on('call', (call) => {
     incomingCall = call;
@@ -62,9 +85,8 @@ function appendMessage(message) {
     messagesContainer.appendChild(messageElement);
 }
 
-function callUser() {
+function callUser(id) {
     callInitiated = true;
-    const remoteId = document.getElementById('callId').value;
 
     // Show ringing pop-up
     document.getElementById('ringingPopup').style.display = 'block';
@@ -85,7 +107,7 @@ function callUser() {
         })
         .then((stream) => {
             localStream = stream;
-            mediaConnection = peer.call(remoteId, stream);
+            mediaConnection = peer.call(id, stream);
             mediaConnection.on('stream', (remoteStream) => {
                 renderVideoOrAudio(remoteStream, stream);
             });
@@ -129,7 +151,7 @@ function renderVideoOrAudio(remoteStream, stream) {
 function answerCall() {
     navigator.mediaDevices.enumerateDevices()
         .then((devices) => {
-            const videoDevices = devices.filter(device => device.kind == 'videoinput');
+            const videoDevices = devices.filter(device => device.kind === 'videoinput');
             const constraints = {audio: true, video: videoDevices.length > 0};
 
             return navigator.mediaDevices.getUserMedia(constraints);
@@ -198,5 +220,28 @@ function showButtons() {
         document.getElementById('hangupButton').style.display = 'block';
         document.getElementById('muteButton').style.display = 'block';
         document.getElementById('optionsBar').style.display = 'flex'; // Show the hang-up bar
+    }
+}
+
+function addOnlineUser(ID){
+    listedUsers.push(ID);
+    const nobodyOnlineIndicator = document.getElementById("nobodyOnlineIndicator");
+    if(!(nobodyOnlineIndicator.style.display == 'none')){
+        nobodyOnlineIndicator.style.display = 'none';
+    }
+    const list = document.getElementById('userList');
+    list.innerHTML += `<li id="${ID}_online">${ID}<button id="${ID}" class="onlineCallButton" onclick="callUser(this.id)">Call</button></li>`;
+}
+
+function removeOfflineUser(ID){
+    const index = listedUsers.indexOf(ID);
+    listedUsers.splice(index);
+    const removeButton = document.getElementById(ID);
+    const removeId = document.getElementById(`${ID}_online`);
+    removeButton.remove();
+    removeId.remove();
+    if(listedUsers.length === 0){
+        const nobodyOnlineIndicator = document.getElementById("nobodyOnlineIndicator");
+        nobodyOnlineIndicator.style.display = 'block';
     }
 }
