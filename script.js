@@ -19,17 +19,16 @@ setInterval(() => {
     .then((response) => response.json())
     .then((data) => { 
         onlineUsers = data;
-        listedUsers.forEach((ID) => {
-            if(!(onlineUsers.includes(ID))){
-                removeOfflineUser(ID);
-            }
-        });
         onlineUsers.forEach((ID) => {
             if(!(listedUsers.includes(ID)) && ID != peer.id){
                 addOnlineUser(ID);
             }
         });
-        console.log(onlineUsers, listedUsers);
+        listedUsers.forEach((ID) => {
+            if(!(onlineUsers.includes(ID))){
+                removeOfflineUser(ID);
+            }
+        });
     })
     .catch((error) => console.log(error));
 }, 3000);
@@ -235,7 +234,7 @@ function addOnlineUser(ID){
 
 function removeOfflineUser(ID){
     const index = listedUsers.indexOf(ID);
-    listedUsers.splice(index);
+    listedUsers.splice(index, 1);
     const removeButton = document.getElementById(ID);
     const removeId = document.getElementById(`${ID}_online`);
     removeButton.remove();
