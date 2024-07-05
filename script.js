@@ -11,6 +11,7 @@ let callInitiated = false; // Flag to track if a call has been initiated
 let incomingCall = null;
 let mediaConnection = null;
 let ringingTimeout = null;
+let conn = null;
 let localStream = null; // Store stream globally to allow muting
 
 // Have the web client check every 3 seconds for any users who came online or offline
@@ -39,7 +40,7 @@ peer.on('call', (call) => {
     callInitiated = true; // Set the flag to true when a call is initiated
 });
 
-peer.on('open', function (id) {
+peer.on('open', (id) => {
     console.log('My peer ID is: ' + id);
     document.getElementById('ownPeerId').innerText = id;
 });
@@ -49,21 +50,15 @@ peer.on('connection', function (conn) {
         console.log('Received: ' + data);
         appendMessage('Received: ' + data);
     });
+    conn.on('close', () => closeConnections());
+    conn.on('error', (err) => console.error(err));
 });
 
-let conn = null;
-
-function connect() {
-    const remoteId = document.getElementById('remoteId').value;
-    conn = peer.connect(remoteId);
-
-    conn.on('open', function () {
-        console.log('Connected to: ' + remoteId);
-    });
-
-    conn.on('error', function (err) {
-        console.error(err);
-    });
+function connect(id){
+    conn = peer.connect(id);
+    conn.on('open', () => console.log('Connected to: ' + id));
+    conn.on('close', () => closeConnections());
+    conn.on('error', (err) => console.error(err));
 }
 
 function sendMessage() {
@@ -111,7 +106,7 @@ function callUser(id) {
                 renderVideoOrAudio(remoteStream, stream);
             });
             document.getElementById('videoContainer').style.display = 'flex';
-            showButtons();
+            showCallUi();
         })
         .catch((err) => {
             console.warn('Failed to get media stream: ', err);
@@ -144,7 +139,7 @@ function renderVideoOrAudio(remoteStream, stream) {
         console.log("Rendering audio only stream");
     }
     
-    showButtons();
+    showCallUi();
 }
 
 function answerCall() {
@@ -164,7 +159,7 @@ function answerCall() {
             });
             document.getElementById('incomingCallContainer').style.display = 'none';
             document.getElementById('videoContainer').style.display = 'flex';
-            showButtons();
+            showCallUi();
         })
         .catch((err) => {
             console.log('Failed to get local stream: ', err);
@@ -176,13 +171,15 @@ function declineCall() {
     document.getElementById('incomingCallContainer').style.display = 'none'; // Hide incoming call message and call menu after declining
 }
 
-function hangupCall() {
-    if (mediaConnection) {
-        mediaConnection.close();
-        document.getElementById('hangupButton').style.display = 'none'; // Hide hang-up button after hanging up
-        document.getElementById('videoContainer').style.display = 'none'; // Hide the video container
-        document.getElementById('optionsBar').style.display = 'none'; // Hide the hang-up bar
-        stopAudioVideo();
+function closeConnections() {
+    mediaConnection.close();
+    hideCallUi();
+    for(let conns in peer.connections){
+        peer.connections[conns].forEach((conn) => {
+            if(conn.close){
+                conn.close();
+            }
+        });
     }
 }
 
@@ -214,12 +211,19 @@ function muteCall(){
 }
 
 // Function to show the hang-up and mute buttons only if a call has been initiated
-function showButtons() {
+function showCallUi() {
     if (callInitiated) {
         document.getElementById('hangupButton').style.display = 'block';
         document.getElementById('muteButton').style.display = 'block';
         document.getElementById('optionsBar').style.display = 'flex'; // Show the hang-up bar
     }
+}
+
+function hideCallUi(){
+    document.getElementById('hangupButton').style.display = 'none'; // Hide hang-up button after hanging up
+    document.getElementById('videoContainer').style.display = 'none'; // Hide the video container
+    document.getElementById('optionsBar').style.display = 'none'; // Hide the hang-up bar
+    stopAudioVideo();
 }
 
 function addOnlineUser(ID){
@@ -229,7 +233,7 @@ function addOnlineUser(ID){
         nobodyOnlineIndicator.style.display = 'none';
     }
     const list = document.getElementById('userList');
-    list.innerHTML += `<li id="${ID}_online">${ID}<button id="${ID}" class="onlineCallButton" onclick="callUser(this.id)">Call</button></li>`;
+    list.innerHTML += `<li id="${ID}_online">${ID}<button id="${ID}" class="onlineCallButton" onclick="callUser(this.id); connect(this.id)">Call</button></li>`;
 }
 
 function removeOfflineUser(ID){
