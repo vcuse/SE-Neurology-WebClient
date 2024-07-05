@@ -45,10 +45,11 @@ peer.on('open', (id) => {
     document.getElementById('ownPeerId').innerText = id;
 });
 
-peer.on('connection', function (conn) {
-    conn.on('data', function (data) {
-        console.log('Received: ' + data);
-        appendMessage('Received: ' + data);
+peer.on('connection', (connection) => {
+    conn = connection;
+    conn.on('data', (data) => {
+        const messageList = document.getElementById("messageList");
+        messageList.innerHTML += `<li>Remote User: ${data}</li>`;
     });
     conn.on('close', () => closeConnections());
     conn.on('error', (err) => console.error(err));
@@ -57,26 +58,22 @@ peer.on('connection', function (conn) {
 function connect(id){
     conn = peer.connect(id);
     conn.on('open', () => console.log('Connected to: ' + id));
+    conn.on('data', (data) => {
+        const messageList = document.getElementById("messageList");
+        messageList.innerHTML += `<li>Remote User: ${data}</li>`;
+    });
     conn.on('close', () => closeConnections());
     conn.on('error', (err) => console.error(err));
 }
 
 function sendMessage() {
-    if (conn === null) {
-        console.error('You are not connected to any peer.');
-        return;
+    const messageInput = document.getElementById('messageInput');
+    if(messageInput.value){
+        const messageList = document.getElementById("messageList");
+        messageList.innerHTML += `<li>You: ${messageInput.value}</li>`;
+        conn.send(messageInput.value);
+        messageInput.value = "";
     }
-
-    const message = document.getElementById('message').value;
-    appendMessage('Sent: ' + message);
-    conn.send(message);
-}
-
-function appendMessage(message) {
-    const messagesContainer = document.getElementById('messages');
-    const messageElement = document.createElement('div');
-    messageElement.innerText = message;
-    messagesContainer.appendChild(messageElement);
 }
 
 function callUser(id) {
@@ -172,6 +169,8 @@ function declineCall() {
 }
 
 function closeConnections() {
+    messageList = document.getElementById("messageList");
+    messageList.innerHTML = "";
     mediaConnection.close();
     hideCallUi();
     for(let conns in peer.connections){
