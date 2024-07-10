@@ -11,10 +11,10 @@ let callInitiated = false; // Flag to track if a call has been initiated
 let incomingCall = null;
 let mediaConnection = null;
 let ringingTimeout = null;
-let conn = null;
-let localStream = null; // Store stream globally to allow muting
+let dataConnection = null;
+let myStream = null; // Store stream globally to allow muting
 
-// Have the web client check every 3 seconds for any users who came online or offline
+// Have the web client check every second for any users who came online or offline
 setInterval(() => {
     fetch('http://localhost:9000/key=peerjs/peers')
     .then((response) => response.json())
@@ -32,7 +32,7 @@ setInterval(() => {
         });
     })
     .catch((error) => console.log(error));
-}, 3000);
+}, 1000);
 
 peer.on('call', (call) => {
     incomingCall = call;
@@ -46,24 +46,33 @@ peer.on('open', (id) => {
 });
 
 peer.on('connection', (connection) => {
-    conn = connection;
-    conn.on('data', (data) => {
+    dataConnection = connection;
+    dataConnection.on('open', () => console.log('Connected to: ' + dataConnection.peer));
+    dataConnection.on('data', (data) => {
         const messageList = document.getElementById("messageList");
         messageList.innerHTML += `<li>Remote User: ${data}</li>`;
     });
-    conn.on('close', () => closeConnections());
-    conn.on('error', (err) => console.error(err));
+    dataConnection.on('close', () => {
+        console.log(`Disconnected from ${dataConnection.peer}`);
+        closeConnections();
+        window.alert("Call has ended");
+    });
+    dataConnection.on('error', (err) => console.error(err));
 });
 
 function connect(id){
-    conn = peer.connect(id);
-    conn.on('open', () => console.log('Connected to: ' + id));
-    conn.on('data', (data) => {
+    dataConnection = peer.connect(id);
+    dataConnection.on('open', () => console.log(`Connected to: ${id}`));
+    dataConnection.on('data', (data) => {
         const messageList = document.getElementById("messageList");
         messageList.innerHTML += `<li>Remote User: ${data}</li>`;
     });
-    conn.on('close', () => closeConnections());
-    conn.on('error', (err) => console.error(err));
+    dataConnection.on('close', () => {
+        console.log(`Disconnected from ${id}`);
+        closeConnections();
+        window.alert("Call has ended");
+    });
+    dataConnection.on('error', (err) => console.error(err));
 }
 
 function sendMessage() {
@@ -71,7 +80,7 @@ function sendMessage() {
     if(messageInput.value){
         const messageList = document.getElementById("messageList");
         messageList.innerHTML += `<li>You: ${messageInput.value}</li>`;
-        conn.send(messageInput.value);
+        dataConnection.send(messageInput.value);
         messageInput.value = "";
     }
 }
@@ -97,10 +106,10 @@ function callUser(id) {
             return navigator.mediaDevices.getUserMedia(constraints);
         })
         .then((stream) => {
-            localStream = stream;
+            myStream = stream;
             mediaConnection = peer.call(id, stream);
             mediaConnection.on('stream', (remoteStream) => {
-                renderVideoOrAudio(remoteStream, stream);
+                renderVideoOrAudio(remoteStream);
             });
             document.getElementById('videoContainer').style.display = 'flex';
             showCallUi();
@@ -108,15 +117,9 @@ function callUser(id) {
         .catch((err) => {
             console.warn('Failed to get media stream: ', err);
         });
-
-    // Clear the timeout when the call is declined
-    peer.once('call', () => {
-        clearTimeout(ringingTimeout); // Clear the timeout since the call is declined
-        document.getElementById('ringingPopup').style.display = 'none'; // Hide the pop-up
-    });
 }
 
-function renderVideoOrAudio(remoteStream, stream) {
+function renderVideoOrAudio(remoteStream){
     const videoEl = document.getElementById('remoteVideo');
     const audioEl = document.getElementById('remoteAudio');
     if(remoteStream.getVideoTracks().length > 0){
@@ -130,12 +133,6 @@ function renderVideoOrAudio(remoteStream, stream) {
         console.log("Rendering audio only stream");
     }
 
-    if(stream.getVideoTracks().length == 0){
-        videoEl.src = 'palm_trees.webm';
-        videoEl.loop = true;
-        console.log("Rendering audio only stream");
-    }
-    
     showCallUi();
 }
 
@@ -148,11 +145,11 @@ function answerCall() {
             return navigator.mediaDevices.getUserMedia(constraints);
         })
         .then((stream) => {
-            localStream = stream;
+            myStream = stream;
             incomingCall.answer(stream);
             mediaConnection = incomingCall;
             mediaConnection.on('stream', (remoteStream) => {
-                renderVideoOrAudio(remoteStream, stream);
+                renderVideoOrAudio(remoteStream);
             });
             document.getElementById('incomingCallContainer').style.display = 'none';
             document.getElementById('videoContainer').style.display = 'flex';
@@ -163,20 +160,22 @@ function answerCall() {
         });
 }
 
-function declineCall() {
-    incomingCall.close();
+function declineCall(){
+    dataConnection.close();
     document.getElementById('incomingCallContainer').style.display = 'none'; // Hide incoming call message and call menu after declining
 }
 
-function closeConnections() {
+function closeConnections(){
+    if(mediaConnection){
+        mediaConnection.close();
+        hideCallUi();
+    }
     messageList = document.getElementById("messageList");
     messageList.innerHTML = "";
-    mediaConnection.close();
-    hideCallUi();
     for(let conns in peer.connections){
-        peer.connections[conns].forEach((conn) => {
-            if(conn.close){
-                conn.close();
+        peer.connections[conns].forEach((dataConnection) => {
+            if(dataConnection.close){
+                dataConnection.close();
             }
         });
     }
@@ -184,11 +183,11 @@ function closeConnections() {
 
 // Function for stopping the audio and video after user presses end call button
 function stopAudioVideo(){
-    localStream.getAudioTracks().forEach((track) => {
+    myStream.getAudioTracks().forEach((track) => {
         track.stop();
     });
 
-    localStream.getVideoTracks().forEach((track) => {
+    myStream.getVideoTracks().forEach((track) => {
         track.stop();
     });
 }
@@ -197,13 +196,13 @@ function stopAudioVideo(){
 function muteCall(){
     let muteButton = document.getElementById('muteButton');
     let muteImage = document.getElementById('muteImage');
-    if(!localStream.getAudioTracks()[0].enabled){
-        localStream.getAudioTracks()[0].enabled = true;
+    if(!myStream.getAudioTracks()[0].enabled){
+        myStream.getAudioTracks()[0].enabled = true;
         muteImage.src = 'icons/mic.png';
         muteButton.title = "Mute";
     }
     else{
-        localStream.getAudioTracks()[0].enabled = false;
+        myStream.getAudioTracks()[0].enabled = false;
         muteImage.src = 'icons/mic_off.png';
         muteButton.title = "Unmute";
     }
