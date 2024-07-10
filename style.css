@@ -13,7 +13,7 @@ html {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  display: flex;
+  display: none;
   flex-direction: column;
   justify-content: center;
   align-items: center;
@@ -28,7 +28,6 @@ html {
   gap: 20px; /* Add some space between the buttons */
   margin-top: 10px; /* Add space between the message and buttons */
 }
-
 
 /* Center the video container */
 #videoContainer {
@@ -45,7 +44,6 @@ html {
   background-color: rgba(0, 0, 0, 0.8); /* Add a background color to cover other elements */
 }
 
-
 #localVideo {
   position: absolute;
   bottom: 10px;
@@ -57,6 +55,7 @@ html {
 }
 
 #remoteVideo {
+  position: relative;
   display: block;
   margin: auto;
   max-width: 720px;
@@ -79,8 +78,8 @@ html {
   }
 }
 
-/* Ensure hangup bar is centered with the video */
-#hangupBar {
+/* Ensure options bar is centered with the video */
+#optionsBar{
   position: absolute;
   bottom: 10px;
   left: 50%;
@@ -95,17 +94,30 @@ html {
   height: 40px;
 }
 
-#hangupButton {
-  background-color: red;
-  color: white;
+#hangupButton{
+  background-color: rgb(255, 19, 19);
+  padding: 5px;
+  margin: 10px;
   border: none;
-  border-radius: 10%;
+  border-radius: 5px;
   cursor: pointer;
 }
 
-#hangupButton, #muteAudioButton, #muteVideoButton {
-    margin: 0 10px; /* Add horizontal padding between the buttons */
-    padding: 10px 20px; /* Add padding inside the buttons */
+#hangupButton:hover{
+  background-color: rgb(210, 16, 16);
+}
+
+#muteButton{
+  background-color: white;
+  padding: 5px;
+  margin: 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+#muteButton:hover{
+  background-color: rgb(171, 171, 171);
 }
 
 #remoteVideo {
@@ -129,25 +141,50 @@ html {
     display: none; /* Hide by default */
 }
 
-#declinedPopup {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: rgba(255, 255, 255, 0.9);
-    padding: 20px;
-    border-radius: 10px;
-    z-index: 100; /* Ensure it appears above other elements */
+#userList{
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  margin: auto;
+  overflow: auto;
+  max-width: 425px;
+  max-height: 250px;
+  background-color: rgb(255, 251, 0);
+  border: 2px solid;
+  border-radius: 10px;
 }
 
-.popup {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: rgba(255, 255, 255, 0.9);
-    padding: 20px;
-    border-radius: 10px;
-    z-index: 100; /* Ensure it appears above other elements */
-    display: none; /* Hide by default */
+#userList li{
+  padding-bottom: 10px;
+}
+
+button{
+  border: none;
+  border-radius: 10px;
+  background-color: rgb(0, 174, 255);
+  color: white;
+  margin-top: 5px;
+  margin-left: 10px;
+}
+
+#messageContainer{
+  flex-direction: column;
+  align-content: end;
+  overflow: auto;
+  height: 225px;
+  margin-bottom: 50px;
+  width: 500px;
+  background-color: hsl(0, 0%, 50%);
+  border: 2px solid;
+  border-radius: 10px;
+}
+
+#messageInput{
+  width: 400px;
+  border: none;
+  border-radius: 5px;
+}
+
+#messageList li{
+  list-style-type: none;
 }

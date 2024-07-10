@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html>
-
 <head>
     <script src="https://cdn.jsdelivr.net/npm/peerjs@1.3.1/dist/peerjs.min.js"></script>
     <!-- CSS Bootstrap Link -->
@@ -8,67 +7,51 @@
           integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="style.css">
-    <title id="title">PeerJS Example</title>
+    <title id="title">Neurology Project</title>
 </head>
 
 <body>
 <section class="text-center py-3">
-    <h1 class="display-1">PeerJS Example</h1>
-
+    <h1 class="display-1">Hello, user!</h1>
     <h6>
         <p>Your Peer ID: <span id="ownPeerId"></span></p>
     </h6>
-
-    <div class="container">
-        <div class="row mb-2 align-items-center">
-            <label for="remoteId" class="col-sm-4 col-form-label">Enter Remote Peer ID:</label>
-            <div class="col-sm-5">
-                <input type="text" class="form-control" id="remoteId">
-            </div>
-            <div class="col-sm-3">
-                <button class="btn btn-outline-dark w-100" onclick="connect()">Connect</button>
-            </div>
-        </div>
-
-        <div class="row mb-2 align-items-center">
-            <label for="message" class="col-sm-4 col-form-label">Message:</label>
-            <div class="col-sm-5">
-                <input type="text" class="form-control" id="message">
-            </div>
-            <div class="col-sm-3">
-                <button class="btn btn-outline-dark w-100" onclick="sendMessage()">Send</button>
-            </div>
-        </div>
-
-        <div class="row mb-2 align-items-center">
-            <label for="callId" class="col-sm-4 col-form-label">Call User:</label>
-            <div class="col-sm-5">
-                <input type="text" class="form-control" id="callId">
-            </div>
-            <div class="col-sm-3">
-                <button class="btn btn-outline-dark w-100" onclick="callUser()">Call</button>
-            </div>
+        <div>
+            <h3>Online Now:</h3>
+            <ul id="userList">
+                <p id="nobodyOnlineIndicator">Hmmmm, nobody's here right now!</p>
+            </ul>
         </div>
     </div>
 </section>
-
-<div id="messages"></div>
 
 <div id="ringingPopup">
     <h3>Ringing...</h3>
 </div>
 
-
 <div id="videoContainer">
-    <video id="remoteVideo" autoplay style="position: relative;"></video>
-    <div id="hangupBar">
-        <button id="hangupButton" class="btn btn-outline-danger" style="display: none;" onclick="hangupCall()">Hang Up</button>
-        <button id="muteAudioButton" class="btn btn-outline-secondary" style="display: none;" onclick="toggleMuteAudio()">Mute Audio</button>
-        <button id="muteVideoButton" class="btn btn-outline-secondary" style="display: none;" onclick="toggleMuteVideo()">Mute Video</button>
+    <video id="remoteVideo" autoplay></video>
+    <audio id="remoteAudio" autoplay></audio>
+
+    <div id="messageContainer">
+        <ul id="messageList"></ul>
+        <div id="inputMessageContainer">
+            <input id="messageInput" placeholder="Type a message">
+            <button id="sendMessageBtn" onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+    
+    <div id="optionsBar">
+        <button title="Hang Up" id="hangupButton" onclick="closeConnections()">
+            <img src="icons/call_end.png" width="30px">
+        </button>
+        <button title="Mute" id="muteButton" onclick="muteCall()">
+            <img id="muteImage" src="icons/mic.png" width="30px">
+        </button>
     </div>
 </div>
 
-<div id="incomingCallContainer" class="text-center" style="display: none;">
+<div id="incomingCallContainer" class="text-center">
     <h3 id="incomingCallMessage">Incoming Call</h3>
     <div id="callMenu" class="text-center">
         <button class="btn btn-outline-success" onclick="answerCall()">Answer</button>
@@ -76,22 +59,10 @@
     </div>
 </div>
 
-<div id="declinedPopup" class="popup">
-    <h3>User Declined</h3>
-    <button onclick="dismissDeclinedPopup()" class="btn btn-outline-dark">OK</button>
-</div>
-
-<div id="hungupPopup" class="popup">
-    <h3>User Hung Up</h3>
-    <button onclick="dismissHungupPopup()" class="btn btn-outline-dark">OK</button>
-</div>
-
-
 <!-- JS Bootstrap Link -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
         crossorigin="anonymous"></script>
 <script src="script.js"></script>
 </body>
-
 </html>

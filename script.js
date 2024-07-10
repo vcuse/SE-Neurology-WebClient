@@ -1,19 +1,38 @@
-// Global Vars
 const peer = new Peer({
     host: 'videochat-signaling-app.ue.r.appspot.com',
     port: 443,
     secure: true,
     path: '/',
 });
-let callInitiated = false;
+
+let onlineUsers = [];
+let listedUsers = [];
+let callInitiated = false; // Flag to track if a call has been initiated
 let incomingCall = null;
 let mediaConnection = null;
 let ringingTimeout = null;
-let localStream = null;
-let isAudioMuted = false;
-let isVideoMuted = false;
-let isCaller = false;
+let conn = null;
+let localStream = null; // Store stream globally to allow muting
 
+// Have the web client check every 3 seconds for any users who came online or offline
+setInterval(() => {
+    fetch('https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/peers')
+    .then((response) => response.json())
+    .then((data) => { 
+        onlineUsers = data;
+        onlineUsers.forEach((ID) => {
+            if(!(listedUsers.includes(ID)) && ID != peer.id){
+                addOnlineUser(ID);
+            }
+        });
+        listedUsers.forEach((ID) => {
+            if(!(onlineUsers.includes(ID))){
+                removeOfflineUser(ID);
+            }
+        });
+    })
+    .catch((error) => console.log(error));
+}, 3000);
 
 peer.on('call', (call) => {
     incomingCall = call;
@@ -21,62 +40,44 @@ peer.on('call', (call) => {
     callInitiated = true; // Set the flag to true when a call is initiated
 });
 
-peer.on('open', function(id) {
+peer.on('open', (id) => {
     console.log('My peer ID is: ' + id);
     document.getElementById('ownPeerId').innerText = id;
 });
 
-peer.on('connection', function(conn) {
-    conn.on('data', function(data) {
-        console.log('Received: ' + data);
-        appendMessage('Received: ' + data);
-    });
-});
-
-// Handle data connection for declined calls
-peer.on('connection', (conn) => {
+peer.on('connection', (connection) => {
+    conn = connection;
     conn.on('data', (data) => {
-        if (data === 'declined') {
-            // showDeclinedPopup();
-        }
+        const messageList = document.getElementById("messageList");
+        messageList.innerHTML += `<li>Remote User: ${data}</li>`;
     });
+    conn.on('close', () => closeConnections());
+    conn.on('error', (err) => console.error(err));
 });
 
-let conn = null;
-
-function connect() {
-    const remoteId = document.getElementById('remoteId').value;
-    conn = peer.connect(remoteId);
-
-    conn.on('open', function() {
-        console.log('Connected to: ' + remoteId);
+function connect(id){
+    conn = peer.connect(id);
+    conn.on('open', () => console.log('Connected to: ' + id));
+    conn.on('data', (data) => {
+        const messageList = document.getElementById("messageList");
+        messageList.innerHTML += `<li>Remote User: ${data}</li>`;
     });
-
-    conn.on('error', function(err) {
-        console.error(err);
-    });
+    conn.on('close', () => closeConnections());
+    conn.on('error', (err) => console.error(err));
 }
 
 function sendMessage() {
-    if (conn === null) {
-        console.error('You are not connected to any peer.');
-        return;
+    const messageInput = document.getElementById('messageInput');
+    if(messageInput.value){
+        const messageList = document.getElementById("messageList");
+        messageList.innerHTML += `<li>You: ${messageInput.value}</li>`;
+        conn.send(messageInput.value);
+        messageInput.value = "";
     }
-
-    const message = document.getElementById('message').value;
-    appendMessage('Sent: ' + message);
-    conn.send(message);
 }
 
-function appendMessage(message) {
-    const messagesContainer = document.getElementById('messages');
-    const messageElement = document.createElement('div');
-    messageElement.innerText = message;
-    messagesContainer.appendChild(messageElement);
-}
-
-function callUser() {
-    const remoteId = document.getElementById('callId').value;
+function callUser(id) {
+    callInitiated = true;
 
     // Show ringing pop-up
     document.getElementById('ringingPopup').style.display = 'block';
@@ -87,190 +88,162 @@ function callUser() {
         document.getElementById('ringingPopup').style.display = 'none';
     }, 5000); // Change duration as needed
 
-    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+    // This will filter out any devices we have, allowing for audio only chatting if needed
+    navigator.mediaDevices.enumerateDevices()
+        .then((devices) => {
+            const videoDevices = devices.filter(device => device.kind === 'videoinput');
+            const constraints = {audio: true, video: videoDevices.length > 0};
+
+            return navigator.mediaDevices.getUserMedia(constraints);
+        })
         .then((stream) => {
             localStream = stream;
-            mediaConnection = peer.call(remoteId, stream);
-            mediaConnection.on('stream', renderVideoOrAudio);
-            mediaConnection.on('close', () => handleCallEnd(false));
-            mediaConnection.on('error', handleCallError);
-            console.log("Connected to user with video");
-            document.getElementById('videoContainer').style.display = 'flex'; // Show the video container
-            callInitiated = true;
-            isCaller = true;
-            showHangupButton(); // Show hang-up button when calling
-            showMuteButtons(); // Show mute buttons when calling
+            mediaConnection = peer.call(id, stream);
+            mediaConnection.on('stream', (remoteStream) => {
+                renderVideoOrAudio(remoteStream, stream);
+            });
+            document.getElementById('videoContainer').style.display = 'flex';
+            showCallUi();
         })
-        .catch((videoErr) => {
-            console.warn('Failed to get video stream:', videoErr);
-
-            navigator.mediaDevices.getUserMedia({ video: false, audio: true })
-                .then((audioStream) => {
-                    localStream = audioStream;
-                    mediaConnection = peer.call(remoteId, audioStream);
-                    mediaConnection.on('stream', renderVideoOrAudio);
-                    mediaConnection.on('close', () => handleCallEnd(false));
-                    mediaConnection.on('error', handleCallError);
-                    console.log("Connected to user with audio");
-                    document.getElementById('videoContainer').style.display = 'flex'; // Show the video container
-                    callInitiated = true;
-                    isCaller = true;
-                    showHangupButton(); // Show hang-up button when calling
-                    showMuteButtons(); // Show mute buttons when calling
-                })
-                .catch((audioErr) => {
-                    console.error('Failed to get audio stream:', audioErr);
-                });
+        .catch((err) => {
+            console.warn('Failed to get media stream: ', err);
         });
 
-    // Handle the case where the call is declined
-    mediaConnection.on('error', (err) => {
-        if (err.type === 'peer-unavailable') {
-            document.getElementById('ringingPopup').style.display = 'none'; // Hide the pop-up
-            // showDeclinedPopup(); // Show the "User Declined" popup
-        }
+    // Clear the timeout when the call is declined
+    peer.once('call', () => {
+        clearTimeout(ringingTimeout); // Clear the timeout since the call is declined
+        document.getElementById('ringingPopup').style.display = 'none'; // Hide the pop-up
     });
 }
 
-
-
-// Show hang-up button and mute buttons
-function showHangupButton() {
-    document.getElementById('hangupButton').style.display = 'block';
-    document.getElementById('hangupBar').style.display = 'flex'; // Show the hang-up bar
-}
-
-function showMuteButtons() {
-    document.getElementById('muteAudioButton').style.display = 'block';
-    document.getElementById('muteVideoButton').style.display = 'block';
-}
-
-// Toggle mute audio
-function toggleMuteAudio() {
-    if (localStream) {
-        isAudioMuted = !isAudioMuted;
-        localStream.getAudioTracks()[0].enabled = !isAudioMuted;
-        document.getElementById('muteAudioButton').innerText = isAudioMuted ? 'Unmute Audio' : 'Mute Audio';
-    }
-}
-
-// Toggle mute video
-function toggleMuteVideo() {
-    if (localStream) {
-        isVideoMuted = !isVideoMuted;
-        localStream.getVideoTracks()[0].enabled = !isVideoMuted;
-        document.getElementById('muteVideoButton').innerText = isVideoMuted ? 'Unmute Video' : 'Mute Video';
-    }
-}
-
-
-// Handle call end
-function handleCallEnd(hungUpByOther) {
-    document.getElementById('hangupButton').style.display = 'none'; // Hide hang-up button after hanging up
-    document.getElementById('videoContainer').style.display = 'none'; // Hide the video container
-    document.getElementById('hangupBar').style.display = 'none'; // Hide the hang-up bar
-    document.getElementById('muteAudioButton').style.display = 'none';
-    document.getElementById('muteVideoButton').style.display = 'none';
-
-    clearLocalStream();
-}
-
-// Handle call errors (including declined calls)
-function handleCallError(err) {
-    if (err.type === 'peer-unavailable') {
-        document.getElementById('ringingPopup').style.display = 'none'; // Hide the pop-up
-    }
-}
-
-
-// Show "User Declined" popup
-function showDeclinedPopup() {
-    document.getElementById('declinedPopup').style.display = 'block';
-}
-
-// Dismiss "User Declined" popup
-function dismissDeclinedPopup() {
-    document.getElementById('declinedPopup').style.display = 'none';
-    clearLocalStream();
-}
-
-// Show "User Hung Up" popup
-function showHungupPopup() {
-    document.getElementById('hungupPopup').style.display = 'block';
-}
-
-// Dismiss "User Hung Up" popup
-function dismissHungupPopup() {
-    document.getElementById('hungupPopup').style.display = 'none';
-    clearLocalStream();
-}
-
-// Clear local stream
-function clearLocalStream() {
-    if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-        localStream = null;
-    }
-}
-
-
-function renderVideoOrAudio(stream) {
+function renderVideoOrAudio(remoteStream, stream) {
     const videoEl = document.getElementById('remoteVideo');
-    if (stream.getVideoTracks().length > 0) {
-        videoEl.srcObject = stream; // Render video stream if available
-        showHangupButton(); // Call function to show hang-up button
-    } else {
-        // Render audio stream
-        // You can choose to display a message indicating that the call is audio-only
-        console.log("Rendering audio stream");
+    const audioEl = document.getElementById('remoteAudio');
+    if(remoteStream.getVideoTracks().length > 0){
+        videoEl.srcObject = remoteStream; // Render video stream if available
+    } 
+    else{
+        // Render audio stream only
+        audioEl.srcObject = remoteStream;
+        videoEl.src = 'palm_trees.webm';
+        videoEl.loop = true;
+        console.log("Rendering audio only stream");
     }
+
+    if(stream.getVideoTracks().length == 0){
+        videoEl.src = 'palm_trees.webm';
+        videoEl.loop = true;
+        console.log("Rendering audio only stream");
+    }
+    
+    showCallUi();
 }
 
-// Answer an incoming call
 function answerCall() {
-    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+    navigator.mediaDevices.enumerateDevices()
+        .then((devices) => {
+            const videoDevices = devices.filter(device => device.kind === 'videoinput');
+            const constraints = {audio: true, video: videoDevices.length > 0};
+
+            return navigator.mediaDevices.getUserMedia(constraints);
+        })
         .then((stream) => {
             localStream = stream;
-            incomingCall.answer(stream); // Answer the call with an A/V stream.
+            incomingCall.answer(stream);
             mediaConnection = incomingCall;
-            mediaConnection.on('stream', renderVideoOrAudio);
-            mediaConnection.on('close', () => handleCallEnd(false));
-            mediaConnection.on('error', handleCallError);
-            document.getElementById('incomingCallContainer').style.display = 'none'; // Hide incoming call message and call menu after answering
-            document.getElementById('videoContainer').style.display = 'flex'; // Show the video container
-            callInitiated = true;
-            isCaller = false;
-            showHangupButton(); // Show hang-up button when answering
-            showMuteButtons(); // Show mute buttons when answering
+            mediaConnection.on('stream', (remoteStream) => {
+                renderVideoOrAudio(remoteStream, stream);
+            });
+            document.getElementById('incomingCallContainer').style.display = 'none';
+            document.getElementById('videoContainer').style.display = 'flex';
+            showCallUi();
         })
         .catch((err) => {
-            console.log('Failed to get local stream ' + err);
+            console.log('Failed to get local stream: ', err);
         });
 }
 
-// Decline an incoming call
 function declineCall() {
-    if (incomingCall) {
-        incomingCall.close();
-        document.getElementById('incomingCallContainer').style.display = 'none'; // Hide incoming call message and call menu after declining
-        // Notify the caller that the call was declined
-        peer.connect(incomingCall.peer).send('declined');
-        incomingCall = null;
+    incomingCall.close();
+    document.getElementById('incomingCallContainer').style.display = 'none'; // Hide incoming call message and call menu after declining
+}
+
+function closeConnections() {
+    messageList = document.getElementById("messageList");
+    messageList.innerHTML = "";
+    mediaConnection.close();
+    hideCallUi();
+    for(let conns in peer.connections){
+        peer.connections[conns].forEach((conn) => {
+            if(conn.close){
+                conn.close();
+            }
+        });
     }
 }
 
-// Hang up the call
-function hangupCall() {
-    if (mediaConnection) {
-        mediaConnection.close();
-        handleCallEnd(true);
+// Function for stopping the audio and video after user presses end call button
+function stopAudioVideo(){
+    localStream.getAudioTracks().forEach((track) => {
+        track.stop();
+    });
+
+    localStream.getVideoTracks().forEach((track) => {
+        track.stop();
+    });
+}
+
+// Function that mutes and unmutes the user
+function muteCall(){
+    let muteButton = document.getElementById('muteButton');
+    let muteImage = document.getElementById('muteImage');
+    if(!localStream.getAudioTracks()[0].enabled){
+        localStream.getAudioTracks()[0].enabled = true;
+        muteImage.src = 'icons/mic.png';
+        muteButton.title = "Mute";
+    }
+    else{
+        localStream.getAudioTracks()[0].enabled = false;
+        muteImage.src = 'icons/mic_off.png';
+        muteButton.title = "Unmute";
     }
 }
 
-// Function to show the hang-up button only if a call has been initiated
-function showHangupButton() {
+// Function to show the hang-up and mute buttons only if a call has been initiated
+function showCallUi() {
     if (callInitiated) {
         document.getElementById('hangupButton').style.display = 'block';
-        document.getElementById('hangupBar').style.display = 'flex'; // Show the hang-up bar
+        document.getElementById('muteButton').style.display = 'block';
+        document.getElementById('optionsBar').style.display = 'flex'; // Show the hang-up bar
+    }
+}
+
+function hideCallUi(){
+    document.getElementById('hangupButton').style.display = 'none'; // Hide hang-up button after hanging up
+    document.getElementById('videoContainer').style.display = 'none'; // Hide the video container
+    document.getElementById('optionsBar').style.display = 'none'; // Hide the hang-up bar
+    stopAudioVideo();
+}
+
+function addOnlineUser(ID){
+    listedUsers.push(ID);
+    const nobodyOnlineIndicator = document.getElementById("nobodyOnlineIndicator");
+    if(!(nobodyOnlineIndicator.style.display == 'none')){
+        nobodyOnlineIndicator.style.display = 'none';
+    }
+    const list = document.getElementById('userList');
+    list.innerHTML += `<li id="${ID}_online">${ID}<button id="${ID}" class="onlineCallButton" onclick="callUser(this.id); connect(this.id)">Call</button></li>`;
+}
+
+function removeOfflineUser(ID){
+    const index = listedUsers.indexOf(ID);
+    listedUsers.splice(index, 1);
+    const removeButton = document.getElementById(ID);
+    const removeId = document.getElementById(`${ID}_online`);
+    removeButton.remove();
+    removeId.remove();
+    if(listedUsers.length === 0){
+        const nobodyOnlineIndicator = document.getElementById("nobodyOnlineIndicator");
+        nobodyOnlineIndicator.style.display = 'block';
     }
 }
