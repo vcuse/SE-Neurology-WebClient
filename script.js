@@ -1,4 +1,5 @@
 // Create our peer
+// TEST COMMENT
 const peer = new Peer({
     host: 'localhost',
     port: 9000,
