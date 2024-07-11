@@ -42,7 +42,7 @@
     </div>
     
     <div id="optionsBar">
-        <button title="Hang Up" id="hangupButton" onclick="closeConnections()">
+        <button title="Hang Up" id="hangupButton" onclick="sendSignal(0)">
             <img src="icons/call_end.png" width="30px">
         </button>
         <button title="Mute" id="muteButton" onclick="muteCall()">
@@ -55,7 +55,7 @@
     <h3 id="incomingCallMessage">Incoming Call</h3>
     <div id="callMenu" class="text-center">
         <button class="btn btn-outline-success" onclick="answerCall()">Answer</button>
-        <button class="btn btn-outline-danger" onclick="declineCall()">Decline</button>
+        <button class="btn btn-outline-danger" onclick="sendSignal(1)">Decline</button>
     </div>
 </div>
 

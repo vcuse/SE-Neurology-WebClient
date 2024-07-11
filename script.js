@@ -1,3 +1,4 @@
+// Create our peer
 const peer = new Peer({
     host: 'localhost',
     port: 9000,
@@ -5,20 +6,30 @@ const peer = new Peer({
     path: '/',
 });
 
+/**
+ * Here we have two lists that store different types of data
+ * The onlineUsers list contains the users fetched from the server
+ * The listedUsers list contains the users listed on the web client
+ * I have included both to properly update the listedUsers
+*/
 let onlineUsers = [];
 let listedUsers = [];
+const SIGNALS = ["ENDED", "DECLINED"]; // Signals we can send to the remote user to have certain actions execute (update list as needed)
+
 let callInitiated = false; // Flag to track if a call has been initiated
-let incomingCall = null;
-let mediaConnection = null;
-let ringingTimeout = null;
-let dataConnection = null;
-let myStream = null; // Store stream globally to allow muting
+let incomingCall; // A media connection that comes from a remote user
+let mediaConnection; // A media connection we send to a remote user
+let ringingTimeout; // Used to have ther ringing popup active for a set amount of time
+let dataConnection; // The data connection that is established with the remote user
+let myStream; // Our stream that is sent to the remote user
 
 // Have the web client check every second for any users who came online or offline
 setInterval(() => {
+    // Here, we fetch the data from the server and store it as a JSON file
     fetch('http://localhost:9000/key=peerjs/peers')
     .then((response) => response.json())
-    .then((data) => { 
+    .then((data) => {
+        // We use the data to update the user lists
         onlineUsers = data;
         onlineUsers.forEach((ID) => {
             if(!(listedUsers.includes(ID)) && ID != peer.id){
@@ -34,47 +45,48 @@ setInterval(() => {
     .catch((error) => console.log(error));
 }, 1000);
 
+// This is executed when a peer receives a call
 peer.on('call', (call) => {
     incomingCall = call;
     document.getElementById('incomingCallContainer').style.display = 'flex'; // Show incoming call message and call menu
-    callInitiated = true; // Set the flag to true when a call is initiated
+    callInitiated = true;
 });
 
+// This is executed when a peer goes online into the server
 peer.on('open', (id) => {
     console.log('My peer ID is: ' + id);
     document.getElementById('ownPeerId').innerText = id;
 });
 
+// This is executed when a REMOTE peer establishes a data connection to this peer
 peer.on('connection', (connection) => {
     dataConnection = connection;
     dataConnection.on('open', () => console.log('Connected to: ' + dataConnection.peer));
     dataConnection.on('data', (data) => {
-        const messageList = document.getElementById("messageList");
-        messageList.innerHTML += `<li>Remote User: ${data}</li>`;
+        handleData(data);
     });
     dataConnection.on('close', () => {
         console.log(`Disconnected from ${dataConnection.peer}`);
         closeConnections();
-        window.alert("Call has ended");
     });
     dataConnection.on('error', (err) => console.error(err));
 });
 
+// Function called when we establish a connection with a remote peer
 function connect(id){
     dataConnection = peer.connect(id);
     dataConnection.on('open', () => console.log(`Connected to: ${id}`));
     dataConnection.on('data', (data) => {
-        const messageList = document.getElementById("messageList");
-        messageList.innerHTML += `<li>Remote User: ${data}</li>`;
+        handleData(data);
     });
     dataConnection.on('close', () => {
         console.log(`Disconnected from ${id}`);
         closeConnections();
-        window.alert("Call has ended");
     });
     dataConnection.on('error', (err) => console.error(err));
 }
 
+// Function called when we send a message to a remote peer
 function sendMessage() {
     const messageInput = document.getElementById('messageInput');
     if(messageInput.value){
@@ -85,6 +97,7 @@ function sendMessage() {
     }
 }
 
+// Function called when we call a user
 function callUser(id) {
     callInitiated = true;
 
@@ -119,6 +132,7 @@ function callUser(id) {
         });
 }
 
+// Function used to render the video or audio on our side
 function renderVideoOrAudio(remoteStream){
     const videoEl = document.getElementById('remoteVideo');
     const audioEl = document.getElementById('remoteAudio');
@@ -136,6 +150,7 @@ function renderVideoOrAudio(remoteStream){
     showCallUi();
 }
 
+// Function called when we receive a call and answer it. Similar actions from callUser() are performed 
 function answerCall() {
     navigator.mediaDevices.enumerateDevices()
         .then((devices) => {
@@ -160,18 +175,39 @@ function answerCall() {
         });
 }
 
-function declineCall(){
-    dataConnection.close();
-    document.getElementById('incomingCallContainer').style.display = 'none'; // Hide incoming call message and call menu after declining
+// Function used to send a signal to the remote user
+function sendSignal(index){
+    dataConnection.send([SIGNALS[index]]);
 }
 
+// Function for handling data. This can be messages or signals
+function handleData(data){
+    if(data[0] === SIGNALS[1]){
+        closeConnections();
+        window.alert("Call was declined");
+    }
+    else if(data[0] === SIGNALS[0]){
+        closeConnections();
+        window.alert("Call was ended by remote user");
+    }
+    else{
+        const messageList = document.getElementById("messageList");
+        messageList.innerHTML += `<li>Remote User: ${data}</li>`;
+    }
+}
+
+// Function used to close all connections with a peer. This necessary in order to properly update the ui
 function closeConnections(){
+    if(dataConnection){
+        dataConnection.close();
+    }
     if(mediaConnection){
         mediaConnection.close();
         hideCallUi();
     }
     messageList = document.getElementById("messageList");
     messageList.innerHTML = "";
+    document.getElementById('incomingCallContainer').style.display = 'none';
     for(let conns in peer.connections){
         peer.connections[conns].forEach((dataConnection) => {
             if(dataConnection.close){
@@ -217,6 +253,7 @@ function showCallUi() {
     }
 }
 
+// Function for hiding the in-call ui
 function hideCallUi(){
     document.getElementById('hangupButton').style.display = 'none'; // Hide hang-up button after hanging up
     document.getElementById('videoContainer').style.display = 'none'; // Hide the video container
@@ -224,6 +261,7 @@ function hideCallUi(){
     stopAudioVideo();
 }
 
+// Function for adding a user to the listedUsers list
 function addOnlineUser(ID){
     listedUsers.push(ID);
     const nobodyOnlineIndicator = document.getElementById("nobodyOnlineIndicator");
@@ -234,6 +272,7 @@ function addOnlineUser(ID){
     list.innerHTML += `<li id="${ID}_online">${ID}<button id="${ID}" class="onlineCallButton" onclick="callUser(this.id); connect(this.id)">Call</button></li>`;
 }
 
+// Function for removing a user from the listedUsers list
 function removeOfflineUser(ID){
     const index = listedUsers.indexOf(ID);
     listedUsers.splice(index, 1);
