@@ -95,6 +95,7 @@ function sendMessage() {
         messageList.innerHTML += `<li>You: ${messageInput.value}</li>`;
         dataConnection.send(messageInput.value);
         messageInput.value = "";
+        messageList.scrollTop = messageList.scrollHeight - messageList.clientHeight;
     }
 }
 
@@ -206,6 +207,7 @@ function handleData(data){
     else{
         const messageList = document.getElementById("messageList");
         messageList.innerHTML += `<li>Remote User: ${data}</li>`;
+        messageList.scrollTop = messageList.scrollHeight - messageList.clientHeight;
     }
 }
 
