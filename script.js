@@ -1,5 +1,4 @@
 // Create our peer
-// TEST COMMENT
 const peer = new Peer({
     host: 'localhost',
     port: 9000,
@@ -15,6 +14,7 @@ const peer = new Peer({
 */
 let onlineUsers = [];
 let listedUsers = [];
+
 const SIGNALS = ["ENDED", "DECLINED"]; // Signals we can send to the remote user to have certain actions execute (update list as needed)
 
 let callInitiated = false; // Flag to track if a call has been initiated
@@ -95,6 +95,7 @@ function sendMessage() {
         messageList.innerHTML += `<li>You: ${messageInput.value}</li>`;
         dataConnection.send(messageInput.value);
         messageInput.value = "";
+        messageList.scrollTop = messageList.scrollHeight - messageList.clientHeight;
     }
 }
 
@@ -123,6 +124,12 @@ function callUser(id) {
             myStream = stream;
             mediaConnection = peer.call(id, stream);
             mediaConnection.on('stream', (remoteStream) => {
+                 // See if user presses enter to send a message
+                document.addEventListener("keydown", event => {
+                    if(event.key === "Enter"){
+                        sendMessage();
+                    }
+                });
                 renderVideoOrAudio(remoteStream);
             });
             document.getElementById('videoContainer').style.display = 'flex';
@@ -165,6 +172,12 @@ function answerCall() {
             incomingCall.answer(stream);
             mediaConnection = incomingCall;
             mediaConnection.on('stream', (remoteStream) => {
+                // See if user presses enter to send a message
+                document.addEventListener("keydown", event => {
+                    if(event.key === "Enter"){
+                        sendMessage();
+                    }
+                });
                 renderVideoOrAudio(remoteStream);
             });
             document.getElementById('incomingCallContainer').style.display = 'none';
@@ -194,6 +207,7 @@ function handleData(data){
     else{
         const messageList = document.getElementById("messageList");
         messageList.innerHTML += `<li>Remote User: ${data}</li>`;
+        messageList.scrollTop = messageList.scrollHeight - messageList.clientHeight;
     }
 }
 
