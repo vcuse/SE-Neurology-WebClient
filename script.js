@@ -10,7 +10,6 @@ let listedUsers = [];
 let callInitiated = false; // Flag to track if a call has been initiated
 let incomingCall = null;
 let mediaConnection = null;
-let ringingTimeout = null;
 let conn = null;
 let localStream = null; // Store stream globally to allow muting
 
@@ -82,12 +81,7 @@ function callUser(id) {
     // Show ringing pop-up
     document.getElementById('ringingPopup').style.display = 'block';
 
-    // Set a timeout to hide the pop-up after a certain duration
-    ringingTimeout = setTimeout(() => {
-        // Hide ringing pop-up after 5 seconds (adjust as needed)
-        document.getElementById('ringingPopup').style.display = 'none';
-    }, 5000); // Change duration as needed
-
+    
     // This will filter out any devices we have, allowing for audio only chatting if needed
     navigator.mediaDevices.enumerateDevices()
         .then((devices) => {
@@ -102,18 +96,11 @@ function callUser(id) {
             mediaConnection.on('stream', (remoteStream) => {
                 renderVideoOrAudio(remoteStream, stream);
             });
-            document.getElementById('videoContainer').style.display = 'flex';
-            showCallUi();
         })
         .catch((err) => {
             console.warn('Failed to get media stream: ', err);
         });
 
-    // Clear the timeout when the call is declined
-    peer.once('call', () => {
-        clearTimeout(ringingTimeout); // Clear the timeout since the call is declined
-        document.getElementById('ringingPopup').style.display = 'none'; // Hide the pop-up
-    });
 }
 
 function renderVideoOrAudio(remoteStream, stream) {
@@ -139,6 +126,7 @@ function renderVideoOrAudio(remoteStream, stream) {
     showCallUi();
 }
 
+
 function answerCall() {
     navigator.mediaDevices.enumerateDevices()
         .then((devices) => {
@@ -154,14 +142,12 @@ function answerCall() {
             mediaConnection.on('stream', (remoteStream) => {
                 renderVideoOrAudio(remoteStream, stream);
             });
-            document.getElementById('incomingCallContainer').style.display = 'none';
-            document.getElementById('videoContainer').style.display = 'flex';
-            showCallUi();
         })
         .catch((err) => {
             console.log('Failed to get local stream: ', err);
         });
 }
+        
 
 function declineCall() {
     incomingCall.close();
@@ -180,6 +166,22 @@ function closeConnections() {
             }
         });
     }
+}
+
+function declinedConnection() {
+    navigator.mediaDevices.enumerateDevices()
+        .then((devices) => {
+            const videoDevices = devices.filter(device => device.kind === 'videoinput');
+            const constraints = {audio: true, video: videoDevices.length > 0};
+
+            return navigator.mediaDevices.getUserMedia(constraints);
+        })
+        document.getElementById('declinedPopup').style.display = 'block';
+}
+
+function closeDeclinedPopup() {
+    document.getElementById('declinedPopup').style.display = 'none';
+
 }
 
 // Function for stopping the audio and video after user presses end call button
@@ -215,6 +217,9 @@ function showCallUi() {
         document.getElementById('hangupButton').style.display = 'block';
         document.getElementById('muteButton').style.display = 'block';
         document.getElementById('optionsBar').style.display = 'flex'; // Show the hang-up bar
+        document.getElementById('ringingPopup').style.display = 'none';
+        document.getElementById('videoContainer').style.display = 'flex';
+        document.getElementById('incomingCallContainer').style.display = 'none';
     }
 }
 
