@@ -170,7 +170,6 @@ button{
 #messageContainer{
   flex-direction: column;
   align-content: end;
-  overflow: auto;
   height: 225px;
   margin-bottom: 50px;
   width: 500px;
@@ -183,6 +182,11 @@ button{
   width: 400px;
   border: none;
   border-radius: 5px;
+}
+
+#messageList{
+  overflow: auto;
+  height: 170px;
 }
 
 #messageList li{
