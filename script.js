@@ -1,8 +1,8 @@
 // Create our peer
 const peer = new Peer({
-    host: 'localhost',
-    port: 9000,
-    secure: false,
+    host: 'videochat-signaling-app.ue.r.appspot.com',
+    port: 443,
+    secure: true,
     path: '/',
 });
 
@@ -27,7 +27,7 @@ let myStream; // Our stream that is sent to the remote user
 // Have the web client check every second for any users who came online or offline
 setInterval(() => {
     // Here, we fetch the data from the server and store it as a JSON file
-    fetch('http://localhost:9000/key=peerjs/peers')
+    fetch('https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/peers')
     .then((response) => response.json())
     .then((data) => {
         // We use the data to update the user lists
