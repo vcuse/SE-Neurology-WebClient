@@ -12,12 +12,14 @@ const peer = new Peer({
  * The listedUsers list contains the users listed on the web client
  * I have included both to properly update the listedUsers
 */
+
 let onlineUsers = [];
 let listedUsers = [];
 
 const SIGNALS = ["ENDED", "DECLINED"]; // Signals we can send to the remote user to have certain actions execute (update list as needed)
 
 let callInitiated = false; // Flag to track if a call has been initiated
+
 let incomingCall; // A media connection that comes from a remote user
 let mediaConnection; // A media connection we send to a remote user
 let ringingTimeout; // Used to have ther ringing popup active for a set amount of time
@@ -26,8 +28,10 @@ let myStream; // Our stream that is sent to the remote user
 
 // Have the web client check every second for any users who came online or offline
 setInterval(() => {
+
     // Here, we fetch the data from the server and store it as a JSON file
     fetch('https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/peers')
+
     .then((response) => response.json())
     .then((data) => {
         // We use the data to update the user lists
@@ -106,12 +110,7 @@ function callUser(id) {
     // Show ringing pop-up
     document.getElementById('ringingPopup').style.display = 'block';
 
-    // Set a timeout to hide the pop-up after a certain duration
-    ringingTimeout = setTimeout(() => {
-        // Hide ringing pop-up after 5 seconds (adjust as needed)
-        document.getElementById('ringingPopup').style.display = 'none';
-    }, 5000); // Change duration as needed
-
+    
     // This will filter out any devices we have, allowing for audio only chatting if needed
     navigator.mediaDevices.enumerateDevices()
         .then((devices) => {
@@ -132,12 +131,11 @@ function callUser(id) {
                 });
                 renderVideoOrAudio(remoteStream);
             });
-            document.getElementById('videoContainer').style.display = 'flex';
-            showCallUi();
         })
         .catch((err) => {
             console.warn('Failed to get media stream: ', err);
         });
+
 }
 
 // Function used to render the video or audio on our side
@@ -158,7 +156,9 @@ function renderVideoOrAudio(remoteStream){
     showCallUi();
 }
 
+
 // Function called when we receive a call and answer it. Similar actions from callUser() are performed 
+
 function answerCall() {
     navigator.mediaDevices.enumerateDevices()
         .then((devices) => {
@@ -180,14 +180,12 @@ function answerCall() {
                 });
                 renderVideoOrAudio(remoteStream);
             });
-            document.getElementById('incomingCallContainer').style.display = 'none';
-            document.getElementById('videoContainer').style.display = 'flex';
-            showCallUi();
         })
         .catch((err) => {
             console.log('Failed to get local stream: ', err);
         });
 }
+        
 
 // Function used to send a signal to the remote user
 function sendSignal(index){
@@ -232,6 +230,22 @@ function closeConnections(){
     }
 }
 
+function declinedConnection() {
+    navigator.mediaDevices.enumerateDevices()
+        .then((devices) => {
+            const videoDevices = devices.filter(device => device.kind === 'videoinput');
+            const constraints = {audio: true, video: videoDevices.length > 0};
+
+            return navigator.mediaDevices.getUserMedia(constraints);
+        })
+        document.getElementById('declinedPopup').style.display = 'block';
+}
+
+function closeDeclinedPopup() {
+    document.getElementById('declinedPopup').style.display = 'none';
+
+}
+
 // Function for stopping the audio and video after user presses end call button
 function stopAudioVideo(){
     myStream.getAudioTracks().forEach((track) => {
@@ -265,6 +279,9 @@ function showCallUi() {
         document.getElementById('hangupButton').style.display = 'block';
         document.getElementById('muteButton').style.display = 'block';
         document.getElementById('optionsBar').style.display = 'flex'; // Show the hang-up bar
+        document.getElementById('ringingPopup').style.display = 'none';
+        document.getElementById('videoContainer').style.display = 'flex';
+        document.getElementById('incomingCallContainer').style.display = 'none';
     }
 }
 
