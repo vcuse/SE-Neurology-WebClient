@@ -4,6 +4,7 @@ const peer = new Peer({
     port: 443,
     secure: true,
     path: '/',
+    debug: 3
 });
 
 /**
