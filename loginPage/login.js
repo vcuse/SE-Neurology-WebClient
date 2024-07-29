@@ -18,7 +18,7 @@ function submit(){
         .then((result) => {
             window.alert(result);
             if(result === "ACCESS GRANTED"){
-                window.location.href = "../index.html";
+                window.location.href = "../index.html?username=" + encodeURIComponent(username);
             }
         })
         .catch((err) => console.log(err));
