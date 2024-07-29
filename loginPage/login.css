@@ -1,0 +1,38 @@
+body{
+    background-color: hsl(202, 100%, 50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+h1{
+    color: hsl(0, 0%, 100%);
+    font-size: 5rem;
+}
+
+#container{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: none;
+    font-size: 1.5rem;
+    font-family: monospace;
+}
+
+input{
+    margin: 10px;
+    font-size: 1.5rem;
+    font-family: monospace;
+}
+
+#submitBtn{
+    background-color: hsl(120, 100%, 50%);
+    font-family: monospace;
+    font-size: 1.5rem;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+}
+#submitBtn:hover{
+    background-color: hsl(120, 100%, 80%);
+}
