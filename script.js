@@ -110,7 +110,6 @@ function callUser(id) {
     // Show ringing pop-up
     document.getElementById('ringingPopup').style.display = 'block';
 
-    
     // This will filter out any devices we have, allowing for audio only chatting if needed
     navigator.mediaDevices.enumerateDevices()
         .then((devices) => {
@@ -156,9 +155,7 @@ function renderVideoOrAudio(remoteStream){
     showCallUi();
 }
 
-
 // Function called when we receive a call and answer it. Similar actions from callUser() are performed 
-
 function answerCall() {
     navigator.mediaDevices.enumerateDevices()
         .then((devices) => {
@@ -186,7 +183,6 @@ function answerCall() {
         });
 }
         
-
 // Function used to send a signal to the remote user
 function sendSignal(index){
     dataConnection.send([SIGNALS[index]]);
@@ -195,6 +191,7 @@ function sendSignal(index){
 // Function for handling data. This can be messages or signals
 function handleData(data){
     if(data[0] === SIGNALS[1]){
+        document.getElementById('ringingPopup').style.display = 'none';
         closeConnections();
         window.alert("Call was declined");
     }
@@ -228,22 +225,6 @@ function closeConnections(){
             }
         });
     }
-}
-
-function declinedConnection() {
-    navigator.mediaDevices.enumerateDevices()
-        .then((devices) => {
-            const videoDevices = devices.filter(device => device.kind === 'videoinput');
-            const constraints = {audio: true, video: videoDevices.length > 0};
-
-            return navigator.mediaDevices.getUserMedia(constraints);
-        })
-        document.getElementById('declinedPopup').style.display = 'block';
-}
-
-function closeDeclinedPopup() {
-    document.getElementById('declinedPopup').style.display = 'none';
-
 }
 
 // Function for stopping the audio and video after user presses end call button
