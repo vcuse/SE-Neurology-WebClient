@@ -10,6 +10,10 @@ h1{
     font-size: 5rem;
 }
 
+h3{
+    color: hsl(0, 0%, 100%);
+}
+
 #container{
     display: flex;
     flex-direction: column;
@@ -25,7 +29,7 @@ input{
     font-family: monospace;
 }
 
-#submitBtn{
+button{
     background-color: hsl(120, 100%, 50%);
     font-family: monospace;
     font-size: 1.5rem;
@@ -33,6 +37,6 @@ input{
     border-radius: 10px;
     cursor: pointer;
 }
-#submitBtn:hover{
+button:hover{
     background-color: hsl(120, 100%, 80%);
 }
