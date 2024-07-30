@@ -1,3 +1,10 @@
+window.onload = () => {
+    let url = document.location.href
+    const params = url.split('?');
+    username = params[1].split('=')[1];
+    document.getElementById('display').textContent = `Hello, ${username}!`;
+}
+
 // Create our peer
 const peer = new Peer({
     host: 'videochat-signaling-app.ue.r.appspot.com',
@@ -12,7 +19,6 @@ const peer = new Peer({
  * The listedUsers list contains the users listed on the web client
  * I have included both to properly update the listedUsers
 */
-
 let onlineUsers = [];
 let listedUsers = [];
 
