@@ -45,11 +45,8 @@ function create(){
         })
         .then((response) => response.text())
         .then((result) => {
-            if(result === "TAKEN"){
-                window.alert("Username is already in use.");
-            }
-            else{
-                window.alert("Account successfully created.");
+            window.alert(result);
+            if(result.includes('created')){
                 window.location.href = "../index.html?username=" + encodeURIComponent(username);
             }
         })
