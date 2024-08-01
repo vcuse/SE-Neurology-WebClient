@@ -1,18 +1,3 @@
-window.onload = () => {
-    let url = document.location.href
-    const params = url.split('?');
-    username = params[1].split('=')[1];
-    document.getElementById('display').textContent = `Hello, ${username}!`;
-}
-
-// Create our peer
-const peer = new Peer({
-    host: 'videochat-signaling-app.ue.r.appspot.com',
-    port: 443,
-    secure: true,
-    path: '/',
-});
-
 /**
  * Here we have two lists that store different types of data
  * The onlineUsers list contains the users fetched from the server
@@ -31,6 +16,32 @@ let mediaConnection; // A media connection we send to a remote user
 let ringingTimeout; // Used to have ther ringing popup active for a set amount of time
 let dataConnection; // The data connection that is established with the remote user
 let myStream; // Our stream that is sent to the remote user
+
+window.onload = () => {
+    const username = getUsername();
+    document.getElementById('display').textContent = `Hello, ${username}!`;
+}
+
+window.onbeforeunload = (event) => {
+    event.preventDefault();
+    peer.disconnect();
+}
+
+// Function for getting the username of whoever is logged in currently
+function getUsername(){
+    let url = document.location.href;
+    const params = url.split('?');
+    const username = params[1].split('=')[1];
+    return username;
+}
+
+// Create our peer
+const peer = new Peer({
+    host: 'videochat-signaling-app.ue.r.appspot.com',
+    port: 443,
+    secure: true,
+    path: '/',
+});
 
 // Have the web client check every second for any users who came online or offline
 setInterval(() => {
@@ -65,8 +76,34 @@ peer.on('call', (call) => {
 
 // This is executed when a peer goes online into the server
 peer.on('open', (id) => {
-    console.log('My peer ID is: ' + id);
     document.getElementById('ownPeerId').innerText = id;
+    const data = {username: getUsername(), id: peer.id};
+    fetch("http://localhost:9000/key=peerjs/post", {
+        method: "POST",
+        body: JSON.stringify(data),
+        headers: {
+            'Content-Type': 'application/json',
+            'Action': 'online'
+        },
+    })
+    .then((response) => response.text())
+    .then((result) => {
+        console.log(result);
+    })
+    .catch((err) => console.log(err));
+});
+
+// This is executed when a peer goes offline from the server
+peer.on('disconnected', () => {
+    const data = { username: getUsername() };
+    fetch("http://localhost:9000/key=peerjs/post", {
+        method: "POST",
+        body: JSON.stringify(data),
+        headers: {
+            'Content-Type': 'application/json',
+            'Action': 'offline'
+        },
+    })
 });
 
 // This is executed when a REMOTE peer establishes a data connection to this peer
