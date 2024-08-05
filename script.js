@@ -37,9 +37,9 @@ function getUsername(){
 
 // Create our peer
 const peer = new Peer({
-    host: 'videochat-signaling-app.ue.r.appspot.com',
-    port: 443,
-    secure: true,
+    host: 'localhost',
+    port: 9000,
+    secure: false,
     path: '/',
 });
 
@@ -47,7 +47,7 @@ const peer = new Peer({
 setInterval(() => {
 
     // Here, we fetch the data from the server and store it as a JSON file
-    fetch('https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/peers')
+    fetch('http://localhost:9000/key=peerjs/peers')
 
     .then((response) => response.json())
     .then((data) => {
@@ -91,19 +91,6 @@ peer.on('open', (id) => {
         console.log(result);
     })
     .catch((err) => console.log(err));
-});
-
-// This is executed when a peer goes offline from the server
-peer.on('disconnected', () => {
-    const data = { username: getUsername() };
-    fetch("http://localhost:9000/key=peerjs/post", {
-        method: "POST",
-        body: JSON.stringify(data),
-        headers: {
-            'Content-Type': 'application/json',
-            'Action': 'offline'
-        },
-    })
 });
 
 // This is executed when a REMOTE peer establishes a data connection to this peer
@@ -177,7 +164,6 @@ function callUser(id) {
         .catch((err) => {
             console.warn('Failed to get media stream: ', err);
         });
-
 }
 
 // Function used to render the video or audio on our side
