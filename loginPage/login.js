@@ -7,7 +7,7 @@ function submit(){
     }
     else{
         const data = {username: username, password: password};
-        fetch("http://localhost:9000/key=peerjs/post", {
+        fetch("https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/post", {
             method: "POST",
             body: JSON.stringify(data),
             headers: {
@@ -35,7 +35,7 @@ function create(){
     }
     else{
         const data = {username: username, password: password};
-        fetch("http://localhost:9000/key=peerjs/post", {
+        fetch("https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/post", {
             method: "POST",
             body: JSON.stringify(data),
             headers: {
