@@ -22,11 +22,6 @@ window.onload = () => {
     document.getElementById('display').textContent = `Hello, ${username}!`;
 }
 
-window.onbeforeunload = (event) => {
-    event.preventDefault();
-    peer.disconnect();
-}
-
 // Function for getting the username of whoever is logged in currently
 function getUsername(){
     let url = document.location.href;
@@ -37,9 +32,9 @@ function getUsername(){
 
 // Create our peer
 const peer = new Peer({
-    host: 'localhost',
-    port: 9000,
-    secure: false,
+    host: 'videochat-signaling-app.ue.r.appspot.com',
+    port: 443,
+    secure: true,
     path: '/',
 });
 
@@ -47,7 +42,7 @@ const peer = new Peer({
 setInterval(() => {
 
     // Here, we fetch the data from the server and store it as a JSON file
-    fetch('http://localhost:9000/key=peerjs/peers')
+    fetch('https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/peers')
 
     .then((response) => response.json())
     .then((data) => {
@@ -78,7 +73,7 @@ peer.on('call', (call) => {
 peer.on('open', (id) => {
     document.getElementById('ownPeerId').innerText = id;
     const data = {username: getUsername(), id: peer.id};
-    fetch("http://localhost:9000/key=peerjs/post", {
+    fetch("https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/post", {
         method: "POST",
         body: JSON.stringify(data),
         headers: {
