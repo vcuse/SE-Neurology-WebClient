@@ -6,7 +6,6 @@ function submit(){
         window.alert("Please fill in all fields");
     }
     else{
-        fetch("https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/post", {
         const data = { username: username, password: password };
             method: "POST",
             body: JSON.stringify(data),
@@ -37,7 +36,6 @@ function create(){
         window.alert("Please fill in all fields");
     }
     else{
-        fetch("https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/post", {
         const data = { username: username, password: password };
             method: "POST",
             body: JSON.stringify(data),
