@@ -17,7 +17,7 @@ function submit(){
         })
         .then((response) => response.text())
         .then((result) => {
-            if(!(result === 'Invalid username or password')){
+            if(!(result === 'Invalid username or password' || result === 'No more than one active session per user is allowed')){
                 window.alert('Login success');
                 window.location.href = "../index.html?username=" + encodeURIComponent(username);
             }
