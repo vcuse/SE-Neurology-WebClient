@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import authService from '../services/authService';
 
 type LoginProps = {
-  onLogin: (role: 'doctor' | 'patient', credentials: { email: string; password: string }) => void;
+  onLogin: (role: 'doctor' | 'specialist', credentials: { email: string; password: string }) => void;
 };
 
 const Container = styled.div<{ isDoctor: boolean }>`
@@ -95,8 +96,13 @@ const LoginPage: React.FC<LoginProps> = ({ onLogin }) => {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const role = isDoctor ? 'doctor' : 'patient';
-    onLogin(role, { email, password });
+    const role = isDoctor ? 'doctor' : 'specialist';
+    const result = authService.login(email, password, role);
+    if (result.success) {
+      onLogin(role, { email, password });
+    } else {
+      setError(result.message);
+    }
   };
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -110,7 +116,7 @@ const LoginPage: React.FC<LoginProps> = ({ onLogin }) => {
   return (
     <Container isDoctor={isDoctor}>
       <LoginBubble>
-        <Title>{isDoctor ? 'Doctor Login' : 'Patient Login'}</Title>
+        <Title>{isDoctor ? 'Doctor Login' : 'Specialist Login'}</Title>
         <form onSubmit={handleSubmit}>
           <Input
             type="email"
@@ -135,7 +141,7 @@ const LoginPage: React.FC<LoginProps> = ({ onLogin }) => {
           </Button>
         </form>
         <ToggleButton onClick={handleToggle} isDoctor={isDoctor}>
-          {isDoctor ? 'I am a Patient' : 'I am a Doctor'}
+          {isDoctor ? 'I am a Specialist' : 'I am a Doctor'}
         </ToggleButton>
       </LoginBubble>
     </Container>
@@ -143,3 +149,8 @@ const LoginPage: React.FC<LoginProps> = ({ onLogin }) => {
 };
 
 export default LoginPage;
+
+function setError(message: string | undefined) {
+  throw new Error('Function not implemented.');
+}
+
