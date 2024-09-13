@@ -1,194 +1,240 @@
-html {
-  height: 100%;
+:root {
+  --primary-color: #007bff;
+  --secondary-color: #6c757d;
+  --background-color: #000;
+  --text-color: #fff;
+  --accent-color: #28a745;
+  --danger-color: #dc3545;
+  --font-family: 'Dongle', sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--background-color);
+  color: var(--text-color);
+  font-family: var(--font-family);
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.main-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 90%;
+  max-width: 800px;
+  padding: 20px;
+  background-color: rgba(0, 0, 0, 0.8);
+  border: 1px solid var(--text-color);
+  border-radius: 10px;
+}
+
+section {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+section h1 {
+  font-size: 3rem;
+  margin-bottom: 10px;
+}
+
+section p {
+  font-size: 1.2rem;
+}
+
+section div {
   width: 100%;
+  margin-top: 20px;
 }
 
-#title {
-  position: absolute;
+section h3 {
+  margin-bottom: 15px;
 }
 
-/* Center the incoming call container */
+#userList {
+  list-style-type: none;
+  padding: 10px;
+  max-height: 250px;
+  overflow-y: auto;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--text-color);
+  border-radius: 10px;
+}
+
+#userList li {
+  padding: 10px;
+  border-bottom: 1px solid var(--secondary-color);
+}
+
+#nobodyOnlineIndicator {
+  text-align: center;
+  color: var(--secondary-color);
+}
+
 #incomingCallContainer {
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.9);
+  padding: 30px;
+  border-radius: 10px;
+  z-index: 10;
   display: none;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  z-index: 10; /* Ensure it appears above other elements */
 }
 
-/* Ensure call menu buttons are centered and spaced out */
-#callMenu {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 20px; /* Add some space between the buttons */
-  margin-top: 10px; /* Add space between the message and buttons */
+#incomingCallContainer h3 {
+  margin-bottom: 20px;
 }
 
-/* Center the video container */
+#callMenu button {
+  width: 120px;
+  margin: 0 10px;
+}
+
+#ringingPopup {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: var(--accent-color);
+  color: var(--text-color);
+  padding: 15px;
+  border-radius: 10px;
+  z-index: 10;
+  display: none;
+}
+
 #videoContainer {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  display: none; /* Hide by default */
+  display: none;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
-  z-index: 20; /* Ensure it appears above other elements */
-  background-color: rgba(0, 0, 0, 0.8); /* Add a background color to cover other elements */
-}
-
-#localVideo {
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
-  width: 30%; /* Set width to 30% of the container width */
-  height: auto; /* Let the height adjust automatically to maintain aspect ratio */
-  max-width: 320px; /* Set a maximum width to ensure the video doesn't become too large */
-  object-fit: cover; /* Maintain aspect ratio while covering the entire box */
+  z-index: 20;
+  background-color: rgba(0, 0, 0, 0.95);
+  padding-top: 20px;
 }
 
 #remoteVideo {
-  position: relative;
-  display: block;
-  margin: auto;
-  max-width: 720px;
-  width: 100%;
-  height: auto;
+  max-width: 90%;
+  max-height: 60vh;
+  border-radius: 10px;
+  margin-bottom: 20px;
   object-fit: cover;
 }
 
-@media screen and (max-width: 768px) {
-  /* Adjust the layout for screens smaller than 768px (e.g., tablets) */
-  #localVideo {
-      width: 40%; /* Set a different width for smaller screens */
-  }
-}
-
-@media screen and (max-width: 576px) {
-  /* Adjust the layout for screens smaller than 576px (e.g., smartphones) */
-  #localVideo {
-      width: 70%; /* Set a different width for even smaller screens */
-  }
-}
-
-/* Ensure options bar is centered with the video */
-#optionsBar{
-  position: absolute;
-  bottom: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: rgba(0, 0, 0, 0.5);
-  padding: 10px;
-  display: none; /* Hide the hang-up bar by default */
-  justify-content: center;
-  align-items: center;
-  border-radius: 10px;
+#messageContainer {
   width: 90%;
-  height: 40px;
-}
-
-#hangupButton{
-  background-color: rgb(255, 19, 19);
-  padding: 5px;
-  margin: 10px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-#hangupButton:hover{
-  background-color: rgb(210, 16, 16);
-}
-
-#muteButton{
-  background-color: white;
-  padding: 5px;
-  margin: 10px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-#muteButton:hover{
-  background-color: rgb(171, 171, 171);
-}
-
-#remoteVideo {
-  display: block;
-  max-width: 720px;
-  width: 100%;
-  height: auto;
-  object-fit: cover;
-  max-height: 90vh; /* Ensure the video doesn't exceed the viewport height */
-}
-
-#ringingPopup {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: rgba(255, 255, 255, 0.9);
-    padding: 20px;
-    border-radius: 10px;
-    z-index: 100; /* Ensure it appears above other elements */
-    display: none; /* Hide by default */
-}
-
-#userList{
+  max-width: 600px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--text-color);
+  border-radius: 10px;
   display: flex;
-  align-items: flex-start;
   flex-direction: column;
-  margin: auto;
-  overflow: auto;
-  max-width: 425px;
-  max-height: 250px;
-  background-color: rgb(255, 251, 0);
-  border: 2px solid;
-  border-radius: 10px;
+  margin-bottom: 20px;
 }
 
-#userList li{
-  padding-bottom: 10px;
+#messageList {
+  list-style-type: none;
+  padding: 10px;
+  overflow-y: auto;
+  max-height: 200px;
+  flex-grow: 1;
 }
 
-button{
-  border: none;
-  border-radius: 10px;
-  background-color: rgb(0, 174, 255);
-  color: white;
-  margin-top: 5px;
-  margin-left: 10px;
+#messageList li {
+  margin-bottom: 10px;
+  color: var(--text-color);
 }
 
-#messageContainer{
-  flex-direction: column;
-  align-content: end;
-  height: 225px;
-  margin-bottom: 50px;
-  width: 500px;
-  background-color: hsl(0, 0%, 50%);
-  border: 2px solid;
-  border-radius: 10px;
+#inputMessageContainer {
+  display: flex;
+  padding: 10px;
+  border-top: 1px solid var(--secondary-color);
 }
 
-#messageInput{
-  width: 400px;
+#messageInput {
+  flex-grow: 1;
+  padding: 10px;
   border: none;
   border-radius: 5px;
+  margin-right: 10px;
+  background-color: rgba(255, 255, 255, 0.2);
+  color: var(--text-color);
 }
 
-#messageList{
-  overflow: auto;
-  height: 170px;
+#sendMessageBtn {
+  padding: 10px 20px;
+  background-color: var(--primary-color);
+  color: var(--text-color);
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
 }
 
-#messageList li{
-  list-style-type: none;
+#sendMessageBtn:hover {
+  background-color: #0056b3; /* Darker blue */
+}
+
+#optionsBar {
+  position: absolute;
+  bottom: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+#optionsBar button {
+  background-color: rgba(0, 0, 0, 0.7);
+  border: none;
+  color: var(--text-color);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 10px;
+  border-radius: 50%;
+}
+
+#hangupButton {
+  background-color: var(--danger-color);
+}
+
+#muteButton {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+#muteButton img {
+  width: 24px;
+  height: 24px;
+}
+
+@media (max-width: 768px) {
+  #remoteVideo {
+      max-height: 40vh;
+  }
+
+  #messageContainer {
+      width: 100%;
+  }
+}
+
+@media (max-width: 576px) {
+  section h1 {
+      font-size: 2rem;
+  }
+
+  #optionsBar button {
+      font-size: 1.2rem;
+  }
 }

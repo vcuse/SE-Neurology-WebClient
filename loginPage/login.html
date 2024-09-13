@@ -2,22 +2,26 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Page</title>
+    <title>Login Page with Flow Field Background</title>
     <link rel="stylesheet" href="login.css">
 </head>
 <body>
-    <h1>Welcome</h1>
-    <h3>To sign in, enter your credentials and press "login". To create an account, enter new credentials and press "Create".</h3>
-    <div id="container">
-        <label>Username:</label>
-        <input id="username">
+    <canvas id="background-canvas"></canvas>
 
-        <label>Password:</label>
+    <div id="container">
+        <h1> Teleportal Login</h1>
+        <label for="username">Username:</label>
+        <input id="username" type="text">
+
+        <label for="password">Password:</label>
         <input type="password" id="password">
+
         <button onclick="submit()">Login</button>
-        <button style="margin: 10px" onclick="create()">Create</button>
+
+        <a href="#" onclick="create()">Create Account</a>
     </div>
+
     <script src="login.js"></script>
+    <script src="background.js"></script>
 </body>
 </html>
