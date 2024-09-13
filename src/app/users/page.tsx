@@ -1,5 +1,5 @@
 import React from 'react';
-import UserList from '../../components/UserList';
+import UserList from '@/components/UserList';
 
 async function getUsers() {
   const res = await fetch('https://jsonplaceholder.typicode.com/users', { cache: 'no-store' });
