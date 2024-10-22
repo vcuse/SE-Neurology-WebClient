@@ -52,6 +52,7 @@ export default function LoginPage() {
         className="absolute inset-0 w-full h-full"
         style={{ filter: 'blur(8px)' }}
       />
+      <div className="absolute inset-0 bg-black opacity-40 z-[0]"></div>
       <Card className="w-full max-w-md z-10">
         <CardHeader>
           <CardTitle className="text-2xl">Login</CardTitle>
