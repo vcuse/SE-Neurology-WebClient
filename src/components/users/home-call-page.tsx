@@ -21,6 +21,17 @@ export function HomeCallPage() {
   const [isIncomingCall, setIsIncomingCall] = useState(false);
   const [callerId, setCallerId] = useState("");
 
+  const [isCallActive, setIsCallActive] = useState(false);
+  const [isCallOnHold, setIsCallOnHold] = useState(false);
+
+  const [activeTab, setActiveTab] = useState<'home' | 'strokeScale' | 'files' | 'activeCall'>('home');
+
+  const tabs = [
+    { name: 'Home', key: 'home' },
+    { name: 'Stroke Scale', key: 'strokeScale' },
+    { name: 'Files', key: 'files' },
+  ];
+
   // Define the peer reference
   const peerRef = useRef<Peer | null>(null);
 
@@ -93,6 +104,8 @@ export function HomeCallPage() {
         setMyStream(stream);
         const call = peer.call(peerId, stream);
         setMediaConnection(call);
+        setIsCallActive(true);
+        setActiveTab('activeCall');
 
         call.on("stream", (remoteStream) => {
           const videoElement = videoEl.current;
@@ -103,7 +116,7 @@ export function HomeCallPage() {
 
         call.on("close", () => {
           console.log("Call ended");
-          // Handle UI updates or cleanup
+          endCall();
         });
       });
     }
@@ -114,6 +127,9 @@ export function HomeCallPage() {
       navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
         setMyStream(stream);
         incomingCall.answer(stream);
+        setMediaConnection(incomingCall);
+        setIsCallActive(true);
+        setActiveTab('activeCall');
 
         incomingCall.on("stream", (remoteStream) => {
           const videoElement = videoEl.current;
@@ -124,7 +140,7 @@ export function HomeCallPage() {
 
         incomingCall.on("close", () => {
           console.log("Call ended");
-          // Handle UI updates or cleanup
+          endCall();
         });
       });
     }
@@ -136,6 +152,32 @@ export function HomeCallPage() {
       incomingCall.close();
     }
     setIsIncomingCall(false);
+  };
+
+  const endCall = () => {
+    if (mediaConnection) {
+      mediaConnection.close();
+    }
+    if (myStream) {
+      myStream.getTracks().forEach((track) => track.stop());
+    }
+    setIsCallActive(false);
+    setActiveTab('home');
+    setMediaConnection(null);
+    setMyStream(null);
+  };
+
+  const holdCall = () => {
+    if (myStream) {
+      myStream.getTracks().forEach((track) => {
+        if (isCallOnHold) {
+          track.enabled = true;
+        } else {
+          track.enabled = false;
+        }
+      });
+      setIsCallOnHold(!isCallOnHold);
+    }
   };
 
   return (
@@ -153,40 +195,91 @@ export function HomeCallPage() {
           </div>
         </div>
       )}
-      <h1 className="text-2xl font-bold mb-6">Home Call Page</h1>
-      <Card className="mb-6">
-        <CardContent className="pt-6">
-          <div className="text-center">
-            <div className="text-lg font-semibold mb-2">Your Peer ID:</div>
-            <div className="text-sm bg-muted p-2 rounded-md overflow-x-auto">
-              <code>{currentPeerId}</code>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      {isLoading && <div className="text-center">Loading peer IDs...</div>}
-      {error && <div className="text-red-500 mb-4">{error}</div>}
-      <div className="grid grid-cols-1 gap-4">
-        {peerIds.map((peerId) => (
-          <Card key={peerId} className="flex flex-row items-center">
-            <CardContent className="py-4 flex-grow">
-              <div className="text-sm font-medium">Peer ID:</div>
-              <div className="text-xs text-muted-foreground break-all">
-                {peerId}
+
+      {/* Tab Selector */}
+      <div className="mb-4">
+        <div className="flex border-b">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              className={`px-4 py-2 -mb-px border-b-2 ${
+                activeTab === tab.key ? 'border-blue-500 font-medium' : 'border-transparent'
+              }`}
+              onClick={() => setActiveTab(tab.key as any)}
+            >
+              {tab.name}
+            </button>
+          ))}
+          {isCallActive && (
+            <button
+              className={`px-4 py-2 -mb-px border-b-2 ${
+                activeTab === 'activeCall' ? 'border-blue-500 font-medium' : 'border-transparent'
+              }`}
+              onClick={() => setActiveTab('activeCall')}
+            >
+              Active Call
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'home' && (
+        <div>
+          {/* Home Tab Content */}
+          <h1 className="text-2xl font-bold mb-6">Home Call Page</h1>
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <div className="text-lg font-semibold mb-2">Your Peer ID:</div>
+                <div className="text-sm bg-muted p-2 rounded-md overflow-x-auto">
+                  <code>{currentPeerId}</code>
+                </div>
               </div>
             </CardContent>
-            <CardFooter className="p-4">
-              <Button onClick={() => handleCall(peerId)} size="sm">
-                <PhoneCall className="mr-2 h-4 w-4" /> Call
-              </Button>
-            </CardFooter>
           </Card>
-        ))}
-      </div>
-      {/* Video Container */}
-      {(myStream || mediaConnection) && (
+          {isLoading && <div className="text-center">Loading peer IDs...</div>}
+          {error && <div className="text-red-500 mb-4">{error}</div>}
+          <div className="grid grid-cols-1 gap-4">
+            {peerIds.map((peerId) => (
+              <Card key={peerId} className="flex flex-row items-center">
+                <CardContent className="py-4 flex-grow">
+                  <div className="text-sm font-medium">Peer ID:</div>
+                  <div className="text-xs text-muted-foreground break-all">
+                    {peerId}
+                  </div>
+                </CardContent>
+                <CardFooter className="p-4">
+                  <Button onClick={() => handleCall(peerId)} size="sm">
+                    <PhoneCall className="mr-2 h-4 w-4" /> Call
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'strokeScale' && (
+        <div>
+          {/* Stroke Scale Tab Content */}
+          <h1 className="text-2xl font-bold mb-6">Stroke Scale</h1>
+          {/* Add your Stroke Scale content here */}
+        </div>
+      )}
+
+      {activeTab === 'files' && (
+        <div>
+          {/* Files Tab Content */}
+          <h1 className="text-2xl font-bold mb-6">Files</h1>
+          {/* Add your Files content here */}
+        </div>
+      )}
+
+      {activeTab === 'activeCall' && (
         <div className="mt-6">
-          <h2 className="text-xl font-bold mb-4">Video Call</h2>
+          {/* Active Call Content */}
+          <h2 className="text-xl font-bold mb-4">Active Call</h2>
           <video
             ref={videoEl}
             autoPlay
@@ -194,6 +287,14 @@ export function HomeCallPage() {
             className="w-full h-auto border"
             muted
           ></video>
+          <div className="flex mt-4 space-x-4">
+            <Button onClick={endCall} variant="destructive">
+              End Call
+            </Button>
+            <Button onClick={holdCall}>
+              {isCallOnHold ? 'Resume Call' : 'Hold Call'}
+            </Button>
+          </div>
         </div>
       )}
     </div>
