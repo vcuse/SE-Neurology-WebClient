@@ -5,6 +5,7 @@ import Peer, { DataConnection, MediaConnection } from "peerjs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { PhoneCall } from "lucide-react";
+import PerlinNoiseBackground from '@/components/ui/perlinNoiseBackground';
 
 export function HomeCallPage() {
   const [currentPeerId, setCurrentPeerId] = useState("");
@@ -182,6 +183,12 @@ export function HomeCallPage() {
 
   return (
     <div className="container mx-auto p-4">
+      {/*Here's where you remove the perlin background if it's too messy looking*/}
+      <PerlinNoiseBackground
+        className="absolute inset-0 w-full h-full"
+        style={{ filter: 'blur(30px)', zIndex: -5}}
+      />
+      <div className="absolute inset-0 bg-white opacity-60 z-[-4]"></div>
       {isIncomingCall && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white p-6 rounded-md text-center">

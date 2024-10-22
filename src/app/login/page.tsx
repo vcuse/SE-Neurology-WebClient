@@ -1,137 +1,54 @@
-'use client'
+'use client';
 
-import { useState, useEffect, useRef } from 'react'
-import { useRouter } from "next/navigation"
-import { createNoise2D } from 'simplex-noise'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import PerlinNoiseBackground from '@/components/ui/perlinNoiseBackground';
 
 export default function LoginPage() {
-  const [username, setUsername] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const lastFrameTimeRef = useRef(0)
-  const FPS = 30 // Limit to 30 FPS
-  const frameInterval = 1000 / FPS
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    const noise2D = createNoise2D()
-    let animationFrameId: number
-
-    const resize = () => {
-      // Reduce resolution to 1/4 of screen size
-      canvas.width = Math.floor(window.innerWidth / 4)
-      canvas.height = Math.floor(window.innerHeight / 4)
-      canvas.style.width = '100%'
-      canvas.style.height = '100%'
-    }
-
-    const animate = (timestamp: number) => {
-      // Throttle frame rate
-      if (timestamp - lastFrameTimeRef.current < frameInterval) {
-        animationFrameId = requestAnimationFrame(animate)
-        return
-      }
-      lastFrameTimeRef.current = timestamp
-
-      const imageData = ctx.createImageData(canvas.width, canvas.height)
-      const data = imageData.data
-      const time = Date.now() * 0.0001
-      
-      // Process fewer pixels with larger steps
-      for (let i = 0; i < data.length; i += 4) {
-        const x = (i / 4) % canvas.width
-        const y = Math.floor((i / 4) / canvas.width)
-        
-        const nx = x / canvas.width - 0.5
-        const ny = y / canvas.height - 0.5
-        
-        const noise = noise2D(nx + time, ny + time)
-        const value = (noise + 1) * 0.5 * 255
-        
-        data[i] = value     // red
-        data[i + 1] = value // green
-        data[i + 2] = value // blue
-        data[i + 3] = 255   // alpha
-      }
-
-      ctx.putImageData(imageData, 0, 0)
-      animationFrameId = requestAnimationFrame(animate)
-    }
-
-    resize()
-    animationFrameId = requestAnimationFrame(animate)
-
-    const debouncedResize = debounce(resize, 250)
-    window.addEventListener('resize', debouncedResize)
-
-    return () => {
-      window.removeEventListener('resize', debouncedResize)
-      cancelAnimationFrame(animationFrameId)
-    }
-  }, [])
-
-  // Debounce helper function
-  function debounce(func: Function, wait: number) {
-    let timeout: NodeJS.Timeout
-    return function executedFunction(...args: any[]) {
-      const later = () => {
-        clearTimeout(timeout)
-        func(...args)
-      }
-      clearTimeout(timeout)
-      timeout = setTimeout(later, wait)
-    }
-  }
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent, action: 'login' | 'create') => {
-    e.preventDefault()
-    setError("")
-    setIsLoading(true)
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
 
     if (!username || !password) {
-      setError("Please fill in all fields")
-      setIsLoading(false)
-      return
+      setError('Please fill in all fields');
+      setIsLoading(false);
+      return;
     }
 
     try {
-      // Simulate a brief loading state
-      await new Promise(resolve => setTimeout(resolve, 500))
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       if (action === 'login') {
         // Set login cookie
-        document.cookie = "isLoggedIn=true; path=/"
-        console.log('Login success')
-        router.push(`/users?username=${encodeURIComponent(username)}`)
+        document.cookie = 'isLoggedIn=true; path=/';
+        console.log('Login success');
+        router.push(`/users?username=${encodeURIComponent(username)}`);
       } else {
-        // Simulate account creation
-        setError("Account created successfully. You may now log in")
+        setError('Account created successfully. You may now log in');
       }
     } catch (err) {
-      console.error('Error:', err)
-      setError("An error occurred. Please try again.")
+      console.error('Error:', err);
+      setError('An error occurred. Please try again.');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center relative">
-      <canvas
-        ref={canvasRef}
+      <PerlinNoiseBackground
         className="absolute inset-0 w-full h-full"
         style={{ filter: 'blur(8px)' }}
       />
@@ -174,11 +91,11 @@ export default function LoginPage() {
               <Button className="w-full" type="submit" disabled={isLoading}>
                 {isLoading ? 'Signing In...' : 'Sign In'}
               </Button>
-              <Button 
-                className="w-full" 
-                type="button" 
+              <Button
+                className="w-full"
+                type="button"
                 variant="outline"
-                onClick={(e) => handleSubmit(e, 'create')} 
+                onClick={(e) => handleSubmit(e, 'create')}
                 disabled={isLoading}
               >
                 {isLoading ? 'Creating...' : 'Create Account'}
@@ -188,5 +105,5 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
