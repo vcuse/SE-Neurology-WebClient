@@ -1,14 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from "next/navigation"
+import { createNoise2D } from 'simplex-noise'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Lock, User } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { cookies } from 'next/headers'
 
 export default function LoginPage() {
   const [username, setUsername] = useState("")
@@ -16,6 +15,86 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const lastFrameTimeRef = useRef(0)
+  const FPS = 30 // Limit to 30 FPS
+  const frameInterval = 1000 / FPS
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const noise2D = createNoise2D()
+    let animationFrameId: number
+
+    const resize = () => {
+      // Reduce resolution to 1/4 of screen size
+      canvas.width = Math.floor(window.innerWidth / 4)
+      canvas.height = Math.floor(window.innerHeight / 4)
+      canvas.style.width = '100%'
+      canvas.style.height = '100%'
+    }
+
+    const animate = (timestamp: number) => {
+      // Throttle frame rate
+      if (timestamp - lastFrameTimeRef.current < frameInterval) {
+        animationFrameId = requestAnimationFrame(animate)
+        return
+      }
+      lastFrameTimeRef.current = timestamp
+
+      const imageData = ctx.createImageData(canvas.width, canvas.height)
+      const data = imageData.data
+      const time = Date.now() * 0.0001
+      
+      // Process fewer pixels with larger steps
+      for (let i = 0; i < data.length; i += 4) {
+        const x = (i / 4) % canvas.width
+        const y = Math.floor((i / 4) / canvas.width)
+        
+        const nx = x / canvas.width - 0.5
+        const ny = y / canvas.height - 0.5
+        
+        const noise = noise2D(nx + time, ny + time)
+        const value = (noise + 1) * 0.5 * 255
+        
+        data[i] = value     // red
+        data[i + 1] = value // green
+        data[i + 2] = value // blue
+        data[i + 3] = 255   // alpha
+      }
+
+      ctx.putImageData(imageData, 0, 0)
+      animationFrameId = requestAnimationFrame(animate)
+    }
+
+    resize()
+    animationFrameId = requestAnimationFrame(animate)
+
+    const debouncedResize = debounce(resize, 250)
+    window.addEventListener('resize', debouncedResize)
+
+    return () => {
+      window.removeEventListener('resize', debouncedResize)
+      cancelAnimationFrame(animationFrameId)
+    }
+  }, [])
+
+  // Debounce helper function
+  function debounce(func: Function, wait: number) {
+    let timeout: NodeJS.Timeout
+    return function executedFunction(...args: any[]) {
+      const later = () => {
+        clearTimeout(timeout)
+        func(...args)
+      }
+      clearTimeout(timeout)
+      timeout = setTimeout(later, wait)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent, action: 'login' | 'create') => {
     e.preventDefault()
@@ -50,59 +129,58 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-100 to-white flex items-center justify-center">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Login or Create Account</CardTitle>
-          <CardDescription className="text-center">
-            Enter your credentials to access or create your account
-          </CardDescription>
+    <div className="min-h-screen flex items-center justify-center relative">
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 w-full h-full"
+        style={{ filter: 'blur(8px)' }}
+      />
+      <Card className="w-full max-w-md z-10">
+        <CardHeader>
+          <CardTitle className="text-2xl">Login</CardTitle>
+          <CardDescription>Enter your credentials to access your account</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={(e) => handleSubmit(e, 'login')}>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <Input
-                    id="username"
-                    placeholder="Enter your username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="pl-10"
-                    required
-                    disabled={isLoading}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10"
-                    required
-                    disabled={isLoading}
-                  />
-                </div>
-              </div>
+          <form onSubmit={(e) => handleSubmit(e, 'login')} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                placeholder="Enter your username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={isLoading}
+              />
             </div>
             {error && (
-              <Alert variant="destructive" className="mt-4">
+              <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            <div className="flex justify-between mt-6">
-              <Button type="submit" disabled={isLoading}>
+            <div className="space-y-2">
+              <Button className="w-full" type="submit" disabled={isLoading}>
                 {isLoading ? 'Signing In...' : 'Sign In'}
               </Button>
-              <Button type="button" onClick={(e) => handleSubmit(e, 'create')} disabled={isLoading}>
+              <Button 
+                className="w-full" 
+                type="button" 
+                variant="outline"
+                onClick={(e) => handleSubmit(e, 'create')} 
+                disabled={isLoading}
+              >
                 {isLoading ? 'Creating...' : 'Create Account'}
               </Button>
             </div>
