@@ -1,21 +1,42 @@
-import React from 'react';
-import UserList from '../../components/UserList';
+"use client"
 
-async function getUsers() {
-  const res = await fetch('https://jsonplaceholder.typicode.com/users', { cache: 'no-store' });
-  if (!res.ok) {
-    throw new Error('Failed to fetch users');
-  }
-  return res.json();
-}
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import HomeCallPage from "@/components/users/home-call-page";
+import StrokeScaleForm from "@/components/stroke-scale/stroke-scale-form";
+import { Button } from "@/components/ui/button";
 
-export default async function UsersPage() {
-  const users = await getUsers();
+const UserPage = () => {
+  const router = useRouter();
+  const [showStrokeScale, setShowStrokeScale] = useState(false);
+
+  const handleLogout = () => {
+    document.cookie = "isLoggedIn=false; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    router.push('/login');
+  };
 
   return (
-    <div className="container mx-auto py-10">
-      <h1 className="text-2xl font-bold mb-5">Users</h1>
-      <UserList initialUsers={users} />
+    <div>
+      <Button onClick={handleLogout} className="absolute top-4 right-4">
+        Logout
+      </Button>
+      
+      <Button 
+        onClick={() => setShowStrokeScale(true)}
+        className="absolute top-4 right-24"
+      >
+        Open Stroke Scale
+      </Button>
+
+      {showStrokeScale && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4">
+          <StrokeScaleForm onClose={() => setShowStrokeScale(false)} />
+        </div>
+      )}
+
+      <HomeCallPage />
     </div>
   );
-}
+};
+
+export default UserPage;

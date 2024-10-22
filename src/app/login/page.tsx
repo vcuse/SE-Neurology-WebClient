@@ -1,90 +1,192 @@
-"use client";
+'use client'
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef } from 'react'
+import { useRouter } from "next/navigation"
+import { createNoise2D } from 'simplex-noise'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
-// Define the possible user types
-type UserType = 'Doctor' | 'Specialist';
+export default function LoginPage() {
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const lastFrameTimeRef = useRef(0)
+  const FPS = 30 // Limit to 30 FPS
+  const frameInterval = 1000 / FPS
 
-const LoginPage = () => {
-  const [userType, setUserType] = useState<UserType>('Doctor'); // Explicitly typed
-  const [credentials, setCredentials] = useState({ email: '', password: '' });
-  const [error, setError] = useState('');
-  const router = useRouter(); // Correct usage of the useRouter hook in a client component
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
 
-  // Mock login credentials
-  const mockLogins: Record<UserType, { email: string; password: string }> = {
-    Doctor: { email: 'doctor', password: 'doctor' },
-    Specialist: { email: 'specialist', password: 'specialist' },
-  };
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
 
-  const handleLogin = () => {
-    const mockUser = mockLogins[userType]; // Safe access using explicit typing
+    const noise2D = createNoise2D()
+    let animationFrameId: number
 
-    if (
-      credentials.email === mockUser.email &&
-      credentials.password === mockUser.password
-    ) {
-      // Redirect to the appropriate dashboard
-      if (userType === 'Doctor') {
-        router.push('/doctor-dashboard');
-      } else {
-        router.push('/specialist-dashboard');
-      }
-    } else {
-      // Show error message if credentials are incorrect
-      setError('Invalid email or password. Please try again.');
+    const resize = () => {
+      // Reduce resolution to 1/4 of screen size
+      canvas.width = Math.floor(window.innerWidth / 4)
+      canvas.height = Math.floor(window.innerHeight / 4)
+      canvas.style.width = '100%'
+      canvas.style.height = '100%'
     }
-  };
 
-  const toggleUserType = () => {
-    setUserType(userType === 'Doctor' ? 'Specialist' : 'Doctor');
-    setError(''); // Clear any previous error when toggling user type
-  };
+    const animate = (timestamp: number) => {
+      // Throttle frame rate
+      if (timestamp - lastFrameTimeRef.current < frameInterval) {
+        animationFrameId = requestAnimationFrame(animate)
+        return
+      }
+      lastFrameTimeRef.current = timestamp
+
+      const imageData = ctx.createImageData(canvas.width, canvas.height)
+      const data = imageData.data
+      const time = Date.now() * 0.0001
+      
+      // Process fewer pixels with larger steps
+      for (let i = 0; i < data.length; i += 4) {
+        const x = (i / 4) % canvas.width
+        const y = Math.floor((i / 4) / canvas.width)
+        
+        const nx = x / canvas.width - 0.5
+        const ny = y / canvas.height - 0.5
+        
+        const noise = noise2D(nx + time, ny + time)
+        const value = (noise + 1) * 0.5 * 255
+        
+        data[i] = value     // red
+        data[i + 1] = value // green
+        data[i + 2] = value // blue
+        data[i + 3] = 255   // alpha
+      }
+
+      ctx.putImageData(imageData, 0, 0)
+      animationFrameId = requestAnimationFrame(animate)
+    }
+
+    resize()
+    animationFrameId = requestAnimationFrame(animate)
+
+    const debouncedResize = debounce(resize, 250)
+    window.addEventListener('resize', debouncedResize)
+
+    return () => {
+      window.removeEventListener('resize', debouncedResize)
+      cancelAnimationFrame(animationFrameId)
+    }
+  }, [])
+
+  // Debounce helper function
+  function debounce(func: Function, wait: number) {
+    let timeout: NodeJS.Timeout
+    return function executedFunction(...args: any[]) {
+      const later = () => {
+        clearTimeout(timeout)
+        func(...args)
+      }
+      clearTimeout(timeout)
+      timeout = setTimeout(later, wait)
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent, action: 'login' | 'create') => {
+    e.preventDefault()
+    setError("")
+    setIsLoading(true)
+
+    if (!username || !password) {
+      setError("Please fill in all fields")
+      setIsLoading(false)
+      return
+    }
+
+    try {
+      // Simulate a brief loading state
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      if (action === 'login') {
+        // Set login cookie
+        document.cookie = "isLoggedIn=true; path=/"
+        console.log('Login success')
+        router.push(`/users?username=${encodeURIComponent(username)}`)
+      } else {
+        // Simulate account creation
+        setError("Account created successfully. You may now log in")
+      }
+    } catch (err) {
+      console.error('Error:', err)
+      setError("An error occurred. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="w-full max-w-md p-8 space-y-6 bg-white rounded shadow-md">
-        <h2 className="text-2xl font-bold text-center text-gray-700">
-          {userType} Login
-        </h2>
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        <div className="space-y-4">
-          <input
-            type="email"
-            placeholder="Email"
-            className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            onChange={(e) =>
-              setCredentials({ ...credentials, email: e.target.value })
-            }
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            onChange={(e) =>
-              setCredentials({ ...credentials, password: e.target.value })
-            }
-          />
-          <button
-            onClick={handleLogin}
-            className="w-full py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-600"
-          >
-            Sign In
-          </button>
-          <p className="text-center text-sm text-gray-500">
-            {userType === 'Doctor' ? 'Need Specialist Login?' : 'Need Doctor Login?'}{' '}
-            <span
-              onClick={toggleUserType}
-              className="font-medium text-blue-500 cursor-pointer hover:underline"
-            >
-              Click here
-            </span>
-          </p>
-        </div>
-      </div>
+    <div className="min-h-screen flex items-center justify-center relative">
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 w-full h-full"
+        style={{ filter: 'blur(8px)' }}
+      />
+      <Card className="w-full max-w-md z-10">
+        <CardHeader>
+          <CardTitle className="text-2xl">Login</CardTitle>
+          <CardDescription>Enter your credentials to access your account</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={(e) => handleSubmit(e, 'login')} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                placeholder="Enter your username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+            </div>
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            <div className="space-y-2">
+              <Button className="w-full" type="submit" disabled={isLoading}>
+                {isLoading ? 'Signing In...' : 'Sign In'}
+              </Button>
+              <Button 
+                className="w-full" 
+                type="button" 
+                variant="outline"
+                onClick={(e) => handleSubmit(e, 'create')} 
+                disabled={isLoading}
+              >
+                {isLoading ? 'Creating...' : 'Create Account'}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
-  );
-};
-
-export default LoginPage;
+  )
+}
