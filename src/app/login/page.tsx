@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Lock, User } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { cookies } from 'next/headers'
 
 export default function LoginPage() {
   const [username, setUsername] = useState("")
@@ -28,38 +29,20 @@ export default function LoginPage() {
     }
 
     try {
-      const data = { username, password }
-      const response = await fetch("https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/post", {
-        method: "POST",
-        body: JSON.stringify(data),
-        headers: {
-          'Content-Type': 'application/json',
-          'Action': action
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const result = await response.text()
+      // Simulate a brief loading state
+      await new Promise(resolve => setTimeout(resolve, 500))
 
       if (action === 'login') {
-        if (result === 'Invalid username or password' || result === 'No more than one active session per user is allowed') {
-          setError(result)
-        } else {
-          console.log('Login success')
-          router.push(`/users?username=${encodeURIComponent(username)}`)
-        }
+        // Set login cookie
+        document.cookie = "isLoggedIn=true; path=/"
+        console.log('Login success')
+        router.push(`/users?username=${encodeURIComponent(username)}`)
       } else {
-        if (result === 'Account already in use') {
-          setError(result)
-        } else {
-          setError(`${result}. You may now log in`)
-        }
+        // Simulate account creation
+        setError("Account created successfully. You may now log in")
       }
     } catch (err) {
-      console.error('Error during login/create account:', err)
+      console.error('Error:', err)
       setError("An error occurred. Please try again.")
     } finally {
       setIsLoading(false)
