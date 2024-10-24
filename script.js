@@ -32,7 +32,7 @@ function getUsername(){
 
 // Create our peer
 const peer = new Peer({
-    host: 'videochat-signaling-app.ue.r.appspot.com',
+    host: 'devbranch-server-dot-videochat-signaling-app.ue.r.appspot.com',
     port: 443,
     secure: true,
     path: '/',
@@ -42,7 +42,7 @@ const peer = new Peer({
 setInterval(() => {
 
     // Here, we fetch the data from the server and store it as a JSON file
-    fetch('https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/peers')
+    fetch('https://devbranch-server-dot-videochat-signaling-app.ue.r.appspot.com/key=peerjs/peers')
 
     .then((response) => response.json())
     .then((data) => {
@@ -73,7 +73,7 @@ peer.on('call', (call) => {
 peer.on('open', (id) => {
     document.getElementById('ownPeerId').innerText = id;
     const data = {username: getUsername(), id: peer.id};
-    fetch("https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/post", {
+    fetch("https://devbranch-server-dot-videochat-signaling-app.ue.r.appspot.com/key=peerjs/post", {
         method: "POST",
         body: JSON.stringify(data),
         headers: {
