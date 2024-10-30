@@ -21,25 +21,25 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
-      - name: Install dependencies with legacy peer deps
-        run: npm install --legacy-peer-deps
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: "lts/*"
-          cache: npm
+          cache: yarn
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
+
+      - name: Install dependencies with Yarn and ignore peer deps
+        run: yarn install --ignore-peer-deps
 
       - name: Build with Next.js for /dev deployment
         run: |
           echo "Building Next.js site with /dev basePath..."
           echo "module.exports = { basePath: '/dev' };" > next.config.js  # Set the basePath
-          npx next build
-          npx next export
+          yarn next build
+          yarn next export
 
       - name: Move files to /dev directory
         run: |
