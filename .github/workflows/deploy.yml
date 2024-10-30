@@ -21,16 +21,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "lts/*"
-          cache: npm
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-
+      
       - name: Install dependencies and generate package-lock.json if missing
         run: |
           if [ ! -f package-lock.json ]; then
@@ -41,6 +32,16 @@ jobs:
             npm ci  # Install dependencies from the existing lock file
           fi
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          cache: npm
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+     
       - name: Build with Next.js for /dev deployment
         run: |
           echo "Building Next.js site with /dev basePath..."
