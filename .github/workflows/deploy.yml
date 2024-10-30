@@ -11,7 +11,67 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+      - name: Checname: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
       - name: Checkout the code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        run: |
+          npm install
+
+      - name: Build the site for main or dev
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            npm run build  # command for main branch
+          elif [ "${{ github.ref }}" == "refs/heads/dev" ]; then
+            npm run dev  # command for dev branch
+          fi
+
+      - name: Deploy main branch to root
+        if: github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p .temp-deployment
+          cp -R public/* .temp-deployment/  # Adjust 'public' to your build output folder
+          git config --global user.email "ferrufinoda2@vcu.edu"
+          git config --global user.name "deHank"
+          git checkout gh-pages
+          cp -R .temp-deployment/* .
+          rm -rf .temp-deployment
+          git add .
+          git commit -m "Deploy main branch to root" || echo "No changes to commit"
+          git push origin gh-pages
+
+      - name: Deploy dev branch to /dev subdirectory
+        if: github.ref == 'refs/heads/dev'
+        run: |
+          mkdir -p .temp-deployment
+          cp -R public/* .temp-deployment/  # Adjust 'public' to your build output folder
+          git config --global user.email "ferrufinoda2@vcu.edu"
+          git config --global user.name "deHank"
+          git checkout gh-pages
+          mkdir -p dev
+          cp -R .temp-deployment/* dev/
+          rm -rf .temp-deployment
+          git add .
+          git commit -m "Deploy dev branch to /dev" || echo "No changes to commit"
+          git push origin gh-pageskout the code
         uses: actions/checkout@v2
 
       - name: Set up Node.js (for static site generators, if needed)
