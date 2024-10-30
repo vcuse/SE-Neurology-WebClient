@@ -1,45 +1,67 @@
-name: Deploy to GitHub Pages
+name: Deploy Next.js site to Pages
 
 on:
   push:
-    branches:
-      - main
-      - dev
+    branches: ["dev"]
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout the code
-        uses: actions/checkout@v2
-
-
-      # Steps for dev branch deployment (needs npm and a dev server)
-      - name: Set up Node.js
-        if: github.ref == 'refs/heads/dev'
-        uses: actions/setup-node@v2
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Install dependencies with Yarn and generate yarn.lock if missing
+        run: |
+            yarn install --ignore-peer-deps
+            git config --global user.email "ferrufinoda2@vcu.edu"
+            git config --global user.name "deHank"
+            git add yarn.lock
+            git commit -m "Generate yarn.lock" || true  # Continue if no changes to commit
+            git push origin dev  # Commit the generated yarn.lock
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          node-version: '>=22'
+          node-version: "lts/*"
+          cache: yarn
 
-      - name: Install dependencies for dev branch
-        if: github.ref == 'refs/heads/dev'
-        run: |
-          npm install --legacy-peer-deps
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+          
+      - name: Build with Next.js
+        run: NEXT_SKIP_ESLINT_CHECK=true yarn next build
 
-      - name: Build and deploy dev branch to /dev subdirectory
-        if: github.ref == 'refs/heads/dev'
+      - name: Export static files
+        run: yarn next export
+
+      - name: Move files to /dev directory
         run: |
-          npm run dev  # command for dev branch
-          npm run export
-          mkdir -p .temp-deployment
-          cp -R out/* .temp-deployment/  # Adjust 'public' to your build output folder
-          git config --global user.email "ferrufinoda2@vcu.edu"
-          git config --global user.name "deHank"
-          git checkout main
-          mkdir -p dev
-          cp -R .temp-deployment/* dev/
-          rm -rf .temp-deployment
-          git add .
-          git commit -m "Deploy dev branch to /dev" || echo "No changes to commit"
-          git push origin gh-pages
+          mkdir -p ./out/dev
+          mv ./out/* ./out/dev
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./out
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
