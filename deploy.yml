@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - rewrite-nextjs
+      - dev
 
 jobs:
   build-and-deploy:
