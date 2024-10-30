@@ -41,7 +41,6 @@ jobs:
           
       - name: Build for /dev Environment
         run: |
-          echo "module.exports = { output: 'export', basePath: '/dev' };" > next.config.js
           yarn next build  # Use your framework's build command
 
       - name: Upload artifact
