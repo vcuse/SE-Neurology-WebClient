@@ -39,8 +39,10 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v4
           
-      - name: Build with Next.js
-        run: NEXT_SKIP_ESLINT_CHECK=true yarn next build
+      - name: Build for /dev Environment
+        run: |
+          echo "module.exports = { output: 'export', basePath: '/dev' };" > next.config.js
+          yarn next build  # Use your framework's build command
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
@@ -49,7 +51,7 @@ jobs:
 
   deploy:
     environment:
-      name: github-pages
+      name: github-pages-dev
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build
