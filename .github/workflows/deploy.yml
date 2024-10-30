@@ -1,10 +1,8 @@
-name: Deploy Sites to GitHub Pages
+name: Deploy Next.js site to Pages
 
 on:
   push:
-    branches:
-      - main
-      - dev
+    branches: ["dev"]
 
   workflow_dispatch:
 
@@ -18,54 +16,44 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout the code
+      - name: Checkout
         uses: actions/checkout@v4
-
-      # Steps for main branch deployment (HTML/CSS site to root)
-      - name: Deploy HTML/CSS Site to Root
-        if: github.ref == 'refs/heads/main'
+        
+      - name: Install dependencies with Yarn and generate yarn.lock if missing
         run: |
-          git config --global user.email "ferrufinoda2@vcu.edu"
-          git config --global user.name "deHank"
-          # Ensure the latest changes are present on the main branch
-          git pull origin main
-          git add .
-          git commit -m "Deploy HTML/CSS site to root" || echo "No changes to commit"
-          git push origin main
-
-      # Steps for dev branch deployment (Next.js site to /dev subdirectory)
-      - name: Set up Node.js for Dev Branch
-        if: github.ref == 'refs/heads/dev'
+            yarn install --ignore-peer-deps
+            git config --global user.email "ferrufinoda2@vcu.edu"
+            git config --global user.name "deHank"
+            git add yarn.lock
+            git commit -m "Generate yarn.lock" || true  # Continue if no changes to commit
+            git push origin dev  # Commit the generated yarn.lock
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: "lts/*"
           cache: yarn
 
-      - name: Install dependencies for Next.js site
-        if: github.ref == 'refs/heads/dev'
-        run: yarn install --ignore-peer-deps
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+          
+      - name: Build with Next.js
+        run: NEXT_SKIP_ESLINT_CHECK=true yarn next build
 
-      - name: Build Next.js Site with /dev Base Path
-        if: github.ref == 'refs/heads/dev'
-        run: |
-          echo "module.exports = { output: 'export', basePath: '/dev', images: { unoptimized: true } };" > next.config.js
-          NEXT_SKIP_ESLINT_CHECK=true yarn next build
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./out
 
-      - name: Move Next.js Site to /dev Directory
-        if: github.ref == 'refs/heads/dev'
-        run: |
-          mkdir -p .temp-deployment/dev
-          mv out/* .temp-deployment/dev
-
-      - name: Upload and Commit Dev Site to /dev Directory
-        if: github.ref == 'refs/heads/dev'
-        run: |
-          git config --global user.email "ferrufinoda2@vcu.edu"
-          git config --global user.name "deHank"
-          git add .temp-deployment/dev
-          git commit -m "Deploy Next.js site to /dev" || echo "No changes to commit"
-          git push origin main
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
