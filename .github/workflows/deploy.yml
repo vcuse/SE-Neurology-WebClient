@@ -30,7 +30,7 @@ jobs:
       - name: Build and deploy dev branch to /dev subdirectory
         if: github.ref == 'refs/heads/dev'
         run: |
-          npm run dev  # command for dev branch
+          npm run build  # command for dev branch
           npm run export
           mkdir -p .temp-deployment
           cp -R out/* .temp-deployment/  # Adjust 'public' to your build output folder
@@ -42,5 +42,5 @@ jobs:
           rm -rf .temp-deployment
           git add .
           git commit -m "Deploy dev branch to /dev" || echo "No changes to commit"
-          git push origin gh-pages
+          git push origin main
 
