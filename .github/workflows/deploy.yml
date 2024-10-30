@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - dev
 
   workflow_dispatch:
 
@@ -35,12 +34,6 @@ jobs:
           git add .
           git commit -m "Deploy HTML/CSS site to root" || true
           git push origin main
-
-      - name: Upload artifact for GitHub Pages
-        uses: actions/upload-pages-artifact@v3
-        with:
-          name: github-pages  # Explicitly name the artifact as 'github-pages'
-          path: ./out         # Ensure 'out' is the correct output directory
 
   deploy:
     environment:
