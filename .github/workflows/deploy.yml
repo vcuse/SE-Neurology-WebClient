@@ -21,16 +21,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
-      - name: Install dependencies and generate package-lock.json if missing
-        run: |
-          if [ ! -f package-lock.json ]; then
-            npm install --package-lock  # Generate package-lock.json if it doesn't exist
-            git add package-lock.json
-            git commit -m "Generate package-lock.json for deployment" || echo "No changes to commit"
-          else
-            npm ci  # Install dependencies from the existing lock file
-          fi
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -41,7 +31,9 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
-     
+      - name: Install dependencies with legacy peer deps
+        run: npm install --legacy-peer-deps
+
       - name: Build with Next.js for /dev deployment
         run: |
           echo "Building Next.js site with /dev basePath..."
