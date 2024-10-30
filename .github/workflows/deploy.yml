@@ -36,34 +36,6 @@ jobs:
           git commit -m "Deploy HTML/CSS site to root" || true
           git push origin main
 
-      # Deploy Next.js site to /dev for dev branch
-      - name: Set up Node.js for Dev Branch
-        if: github.ref == 'refs/heads/dev'
-        uses: actions/setup-node@v4
-        with:
-          node-version: "lts/*"
-          cache: yarn
-
-      - name: Install dependencies for Next.js site
-        if: github.ref == 'refs/heads/dev'
-        run: yarn install --ignore-peer-deps
-
-      - name: Configure Pages for Dev Branch
-        if: github.ref == 'refs/heads/dev'
-        uses: actions/configure-pages@v4
-
-      - name: Build Next.js Site with /dev Base Path
-        if: github.ref == 'refs/heads/dev'
-        run: |
-          echo "module.exports = { output: 'export', basePath: '/dev', images: { unoptimized: true } };" > next.config.js
-          NEXT_SKIP_ESLINT_CHECK=true yarn next build
-
-      - name: Upload artifact for Dev Site
-        if: github.ref == 'refs/heads/dev'
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./out
-
   deploy:
     environment:
       name: github-pages
