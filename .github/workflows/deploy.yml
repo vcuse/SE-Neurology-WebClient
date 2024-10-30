@@ -43,7 +43,7 @@ jobs:
         run: NEXT_SKIP_ESLINT_CHECK=true yarn next build
 
       - name: Export static files
-        run: yarn next export
+        run: yarn next build
 
       - name: Move files to /dev directory
         run: |
