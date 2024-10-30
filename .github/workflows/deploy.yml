@@ -35,6 +35,11 @@ jobs:
           git commit -m "Deploy HTML/CSS site to root" || true
           git push origin main
 
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./out
+
   deploy:
     environment:
       name: github-pages
