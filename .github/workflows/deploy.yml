@@ -21,7 +21,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
+        
+      - name: Install dependencies with Yarn and generate yarn.lock if missing
+        run: |
+            yarn install --ignore-peer-deps
+            git config --global user.email "ferrufinoda2@vcu.edu"
+            git config --global user.name "deHank"
+            git add yarn.lock
+            git commit -m "Generate yarn.lock"
+            git push origin dev  # Commit the generated yarn.lock
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -30,20 +38,7 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
-
-      - name: Install dependencies with Yarn and generate yarn.lock if missing
-        run: |
-          if [ ! -f yarn.lock ]; then
-            yarn install --ignore-peer-deps
-            git config --global user.email "your-email@example.com"
-            git config --global user.name "your-github-username"
-            git add yarn.lock
-            git commit -m "Generate yarn.lock"
-            git push origin dev  # Commit the generated yarn.lock
-          else
-            yarn install --ignore-peer-deps
-          fi
-
+          
       - name: Build with Next.js
         run: yarn next build
 
