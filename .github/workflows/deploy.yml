@@ -2,7 +2,7 @@ name: Deploy Next.js site to Pages
 
 on:
   push:
-    branches: ["dev"]  # Run on pushes to the dev branch only
+    branches: ["dev"]
 
   workflow_dispatch:
 
@@ -31,15 +31,23 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
+      - name: Restore cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/yarn.lock') }}-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**/yarn.lock') }}-
+
       - name: Install dependencies with Yarn and ignore peer deps
         run: yarn install --ignore-peer-deps
 
-      - name: Build with Next.js for /dev deployment
-        run: |
-          echo "Building Next.js site with /dev basePath..."
-          echo "module.exports = { basePath: '/dev' };" > next.config.js  # Set the basePath
-          yarn next build
-          yarn next export
+      - name: Build with Next.js
+        run: yarn next build
+
+      - name: Export static files
+        run: yarn next export
 
       - name: Move files to /dev directory
         run: |
