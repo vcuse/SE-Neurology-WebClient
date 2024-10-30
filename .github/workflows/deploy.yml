@@ -33,7 +33,7 @@ jobs:
           # Ensure the latest changes are present on the main branch
           git pull origin main
           git add .
-          git commit -m "Deploy HTML/CSS site to root" || echo "No changes to commit"
+          git commit -m "Deploy HTML/CSS site to root" || true
           git push origin main
 
       # Deploy Next.js site to /dev for dev branch
