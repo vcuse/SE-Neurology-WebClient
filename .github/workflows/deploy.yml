@@ -39,6 +39,9 @@ jobs:
             echo "Unable to determine package manager"
             exit 1
           fi
+          
+      - name: Install 
+        run: $npm install
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -48,9 +51,6 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
-        
-      - name: Install dependencies
-        run: $npm install 
 
       - name: Install dependencies
         run: ${{ steps.detect-package-manager.outputs.manager }} ${{ steps.detect-package-manager.outputs.command }}
