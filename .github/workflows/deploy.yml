@@ -22,45 +22,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Detect package manager
-        id: detect-package-manager
-        run: |
-          if [ -f "${{ github.workspace }}/yarn.lock" ]; then
-            echo "manager=yarn" >> $GITHUB_OUTPUT
-            echo "command=install" >> $GITHUB_OUTPUT
-            echo "runner=yarn" >> $GITHUB_OUTPUT
-            exit 0
-          elif [ -f "${{ github.workspace }}/package.json" ]; then
-            echo "manager=npm" >> $GITHUB_OUTPUT
-            echo "command=ci" >> $GITHUB_OUTPUT
-            echo "runner=npx --no-install" >> $GITHUB_OUTPUT
-            exit 0
-          else
-            echo "Unable to determine package manager"
-            exit 1
-          fi
-          
-      - name: Install 
-        run: $npm install
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: "lts/*"
-          cache: ${{ steps.detect-package-manager.outputs.manager }}
+          cache: npm
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
-      - name: Install dependencies
-        run: ${{ steps.detect-package-manager.outputs.manager }} ${{ steps.detect-package-manager.outputs.command }}
+      - name: Install dependencies and generate package-lock.json if missing
+        run: |
+          if [ ! -f package-lock.json ]; then
+            npm install --package-lock  # Generate package-lock.json if it doesn't exist
+            git add package-lock.json
+            git commit -m "Generate package-lock.json for deployment" || echo "No changes to commit"
+          else
+            npm ci  # Install dependencies from the existing lock file
+          fi
 
       - name: Build with Next.js for /dev deployment
         run: |
           echo "Building Next.js site with /dev basePath..."
           echo "module.exports = { basePath: '/dev' };" > next.config.js  # Set the basePath
-          ${{ steps.detect-package-manager.outputs.runner }} next build
-          ${{ steps.detect-package-manager.outputs.runner }} next export
+          npx next build
+          npx next export
 
       - name: Move files to /dev directory
         run: |
