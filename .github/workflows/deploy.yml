@@ -1,0 +1,58 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js (for static site generators, if needed)
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        run: |
+          npm install
+
+      - name: Build the site
+        run: |
+          npm run build  # adjust this command based on your build process
+
+      - name: Deploy main branch to root
+        if: github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p .temp-deployment
+          cp -R public/* .temp-deployment/  # Adjust 'public' to your build output folder
+          git config --global user.email "your-email@example.com"
+          git config --global user.name "your-github-username"
+          git checkout gh-pages
+          cp -R .temp-deployment/* .
+          rm -rf .temp-deployment
+          git add .
+          git commit -m "Deploy main branch to root" || echo "No changes to commit"
+          git push origin gh-pages
+
+      - name: Deploy dev branch to /dev subdirectory
+        if: github.ref == 'refs/heads/dev'
+        run: |
+          mkdir -p .temp-deployment
+          cp -R public/* .temp-deployment/  # Adjust 'public' to your build output folder
+          git config --global user.email "your-email@example.com"
+          git config --global user.name "your-github-username"
+          git checkout gh-pages
+          mkdir -p dev
+          cp -R .temp-deployment/* dev/
+          rm -rf .temp-deployment
+          git add .
+          git commit -m "Deploy dev branch to /dev" || echo "No changes to commit"
+          git push origin gh-pages
+
