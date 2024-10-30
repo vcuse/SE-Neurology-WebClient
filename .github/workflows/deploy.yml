@@ -42,11 +42,6 @@ jobs:
       - name: Build with Next.js
         run: NEXT_SKIP_ESLINT_CHECK=true yarn next build
 
-      - name: Move files to /dev directory
-        run: |
-          mkdir -p ./out/dev
-          mv ./out/* ./out/dev
-
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
