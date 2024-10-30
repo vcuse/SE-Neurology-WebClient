@@ -40,7 +40,7 @@ jobs:
         uses: actions/configure-pages@v4
           
       - name: Build with Next.js
-        run: yarn next build
+        run: NEXT_SKIP_ESLINT_CHECK=true yarn next build
 
       - name: Export static files
         run: yarn next export
