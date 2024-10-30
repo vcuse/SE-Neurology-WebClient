@@ -40,8 +40,6 @@ jobs:
         uses: actions/configure-pages@v4
           
       - name: Build with Next.js
-        env:
-          NEXT_PUBLIC_BASE_PATH: "/dev"
         run: NEXT_SKIP_ESLINT_CHECK=true yarn next build
 
       - name: Upload artifact
