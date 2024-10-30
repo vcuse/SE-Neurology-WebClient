@@ -42,11 +42,6 @@ jobs:
       - name: Build for /dev Environment
         run: |
           yarn next build  # Use your framework's build command
-
-      - name: Prepare dev deployment folder
-        run: |
-          mkdir -p ./out/dev
-          cp -r out/* ./out/dev
         
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
