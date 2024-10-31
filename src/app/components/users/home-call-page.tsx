@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import Peer, { DataConnection, MediaConnection } from "peerjs";
-import { Button } from "@/app/dev/components/ui/button";
-import { Card, CardContent, CardFooter } from "@/app/dev/components/ui/card";
+import { Button } from "@/app/components/ui/button";
+import { Card, CardContent, CardFooter } from "@/app/components/ui/card";
 import { PhoneCall } from "lucide-react";
-import PerlinNoiseBackground from '@/app/dev/components/ui/perlinNoiseBackground';
+import PerlinNoiseBackground from '@/app/components/ui/perlinNoiseBackground';
 
 export function HomeCallPage() {
   const [currentPeerId, setCurrentPeerId] = useState("");
