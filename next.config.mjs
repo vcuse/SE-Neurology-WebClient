@@ -20,20 +20,6 @@ const nextConfig = {
      *
      * @see https://nextjs.org/docs/app/api-reference/components/image#unoptimized
      */
-
-    /**
-     * Rewrite paths to include a /dev prefix without changing the basePath.
-     *
-     * @see https://nextjs.org/docs/app/api-reference/next-config-js/rewrites
-     */
-    async rewrites() {
-      return [
-        {
-          source: '/dev/:path*',
-          destination: '/:path*',
-        },
-      ];
-    },
     images: {
       unoptimized: true,
     },

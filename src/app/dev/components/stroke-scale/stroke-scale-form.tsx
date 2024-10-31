@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Card } from '@/app/components/ui/card';
-import { Button } from '@/app/components/ui/button';
+import { Card } from '@/app/dev/components/ui/card';
+import { Button } from '@/app/dev/components/ui/button';
 
 interface StrokeScaleFormProps {
   onClose: () => void;
