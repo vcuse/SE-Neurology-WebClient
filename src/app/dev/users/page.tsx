@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import HomeCallPage from "@/components/users/home-call-page";
-import StrokeScaleForm from "@/components/stroke-scale/stroke-scale-form";
-import { Button } from "@/components/ui/button";
+import HomeCallPage from "@/app/dev/components/users/home-call-page";
+import StrokeScaleForm from "@/app/dev/components/stroke-scale/stroke-scale-form";
+import { Button } from "@/app/dev/components/ui/button";
 
 const UserPage = () => {
   const router = useRouter();

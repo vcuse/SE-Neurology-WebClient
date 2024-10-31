@@ -2,12 +2,12 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import PerlinNoiseBackground from '@/components/ui/perlinNoiseBackground';
+import { Button } from '@/app/dev/components/ui/button';
+import { Input } from '@/app/dev/components/ui/input';
+import { Label } from '@/app/dev/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/dev/components/ui/card';
+import { Alert, AlertDescription } from '@/app/dev/components/ui/alert';
+import PerlinNoiseBackground from '@/app/dev/components/ui/perlinNoiseBackground';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
