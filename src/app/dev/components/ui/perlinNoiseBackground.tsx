@@ -70,7 +70,7 @@ const PerlinNoiseBackground: React.FC<PerlinNoiseBackgroundProps> = ({ style, cl
       window.removeEventListener('resize', debouncedResize);
       cancelAnimationFrame(animationFrameId);
     };
-  }, []);
+  }, [frameInterval]);
 
   function debounce(func: Function, wait: number) {
     let timeout: NodeJS.Timeout;

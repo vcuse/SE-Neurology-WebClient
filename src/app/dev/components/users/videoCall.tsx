@@ -1,8 +1,8 @@
 'use client';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import Peer, { DataConnection, MediaConnection } from 'peerjs';
 
-const videoCall = () => {
+const VideoCall = () => {
     const [peerId, setPeerId] = useState<string | null>(null);
     const [onlineUsers, setOnlineUsers] = useState([]);
     const [listedUsers, setListedUsers] = useState<string[]>([]);
@@ -17,6 +17,34 @@ const videoCall = () => {
     const peerRef = useRef<Peer | null>(null); // Use useRef to persist peer instance across re-renders
 
     const SIGNALS = ["ENDED", "DECLINED"];
+
+    // Function to close connections when the call ends
+    const closeConnections = useCallback(() => {
+        if (dataConnection) dataConnection.close();
+        if (mediaConnection) mediaConnection.close();
+        if (myStream) {
+            myStream.getTracks().forEach(track => track.stop());
+        }
+        setMyStream(null);
+        setDataConnection(null);
+        setMediaConnection(null);
+    }, [dataConnection, mediaConnection, myStream]);
+
+    // Function to handle incoming data (messages or signals)
+    const handleData = useCallback((data: any) => {
+        if (data[0] === SIGNALS[1]) {
+            closeConnections();
+            window.alert("Call was declined");
+        } else if (data[0] === SIGNALS[0]) {
+            closeConnections();
+            window.alert("Call was ended by remote user");
+        } else {
+            const messageList = document.getElementById("messageList");
+            if (messageList) {
+                messageList.innerHTML += `<li>Remote User: ${data}</li>`;
+            }
+        }
+    }, [closeConnections, SIGNALS]);
 
     // Initialize Peer connection
     useEffect(() => {
@@ -49,22 +77,7 @@ const videoCall = () => {
         });
 
         return () => peer.destroy(); // Clean up on unmount
-    }, []);
-
-    // Fetch online users periodically
-    useEffect(() => {
-        const fetchUsers = () => {
-            fetch('https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/peers')
-                .then((response) => response.json())
-                .then((data) => {
-                    setOnlineUsers(data);
-                })
-                .catch((error) => console.log(error));
-        };
-
-        const intervalId = setInterval(fetchUsers, 1000);
-        return () => clearInterval(intervalId); // Clean up interval
-    }, []);
+    }, [closeConnections, handleData]);
 
     // Function to call a user
     const callUser = (id: string) => {
@@ -106,34 +119,6 @@ const videoCall = () => {
         }
     };
 
-    // Function to handle incoming data (messages or signals)
-    const handleData = (data: any) => {
-        if (data[0] === SIGNALS[1]) {
-            closeConnections();
-            window.alert("Call was declined");
-        } else if (data[0] === SIGNALS[0]) {
-            closeConnections();
-            window.alert("Call was ended by remote user");
-        } else {
-            const messageList = document.getElementById("messageList");
-            if (messageList) {
-                messageList.innerHTML += `<li>Remote User: ${data}</li>`;
-            }
-        }
-    };
-
-    // Function to close connections when the call ends
-    const closeConnections = () => {
-        if (dataConnection) dataConnection.close();
-        if (mediaConnection) mediaConnection.close();
-        if (myStream) {
-            myStream.getTracks().forEach(track => track.stop());
-        }
-        setMyStream(null);
-        setDataConnection(null);
-        setMediaConnection(null);
-    };
-
     // Function to render the video or audio stream
     const renderVideoOrAudio = (remoteStream: MediaStream) => {
         const videoElement = videoEl.current;
@@ -156,7 +141,7 @@ const videoCall = () => {
 
             {/* User List */}
             <ul>
-                {listedUsers.length === 0 && <p id="nobodyOnlineIndicator">Hmmmm, nobody's here right now!</p>}
+                {listedUsers.length === 0 && <p id="nobodyOnlineIndicator">Hmmmm, nobody&apos;s here right now!</p>}
                 {listedUsers.map(user => (
                     <li key={user}>
                         {user}
@@ -189,4 +174,4 @@ const videoCall = () => {
     );
 };
 
-export default videoCall;
+export default VideoCall;

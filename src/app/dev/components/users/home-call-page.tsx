@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Peer, { DataConnection, MediaConnection } from "peerjs";
 import { Button } from "@/app/dev/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/app/dev/components/ui/card";
@@ -36,6 +36,40 @@ export function HomeCallPage() {
   // Define the peer reference
   const peerRef = useRef<Peer | null>(null);
 
+  // Memoize cleanup function to avoid dependency issues
+  const cleanup = useCallback(() => {
+    if (myStream) {
+      myStream.getTracks().forEach((track) => track.stop());
+    }
+    if (mediaConnection) {
+      mediaConnection.close();
+    }
+    if (dataConnection) {
+      dataConnection.close();
+    }
+  }, [myStream, mediaConnection, dataConnection]);
+
+  // Fetch peer IDs function
+  const fetchPeerIds = useCallback(() => {
+    fetch("https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/peers")
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to fetch peer IDs");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        const otherPeerIds = data.filter((id: string) => id !== currentPeerId);
+        setPeerIds(otherPeerIds);
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        console.error("Error fetching peer IDs:", err);
+        setError("Failed to load peer IDs. Please try again later.");
+        setIsLoading(false);
+      });
+  }, [currentPeerId]);
+
   useEffect(() => {
     const peer = new Peer({
       host: "videochat-signaling-app.ue.r.appspot.com",
@@ -56,46 +90,17 @@ export function HomeCallPage() {
       setCallerId(call.peer);
     });
 
-    // Fetch peer IDs from external JSON source
-    const fetchPeerIds = () => {
-      fetch("https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/peers")
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error("Failed to fetch peer IDs");
-          }
-          return response.json();
-        })
-        .then((data) => {
-          const otherPeerIds = data.filter((id: string) => id !== currentPeerId);
-          setPeerIds(otherPeerIds);
-          setIsLoading(false);
-        })
-        .catch((err) => {
-          console.error("Error fetching peer IDs:", err);
-          setError("Failed to load peer IDs. Please try again later.");
-          setIsLoading(false);
-        });
-    };
-
     // Fetch peer IDs initially and set an interval to refresh
     fetchPeerIds();
     const intervalId = setInterval(fetchPeerIds, 5000);
 
     // Cleanup on component unmount
     return () => {
-      if (myStream) {
-        myStream.getTracks().forEach((track) => track.stop());
-      }
-      if (mediaConnection) {
-        mediaConnection.close();
-      }
-      if (dataConnection) {
-        dataConnection.close();
-      }
+      cleanup();
       peerRef.current?.destroy();
       clearInterval(intervalId);
     };
-  }, []); // Empty dependency array ensures this runs only once
+  }, [cleanup, fetchPeerIds]);
 
   const handleCall = (peerId: string) => {
     console.log(`Calling peer ${peerId}`);
