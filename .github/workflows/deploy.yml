@@ -44,7 +44,7 @@ jobs:
         env:
           NEXT_SKIP_ESLINT_CHECK: true
           NEXT_SKIP_TYPE_CHECK: true
-        run: yarn next build
+        run: yarn NEXT_SKIP_ESLINT_CHECK=true NEXT_SKIP_TYPE_CHECK=true next build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
