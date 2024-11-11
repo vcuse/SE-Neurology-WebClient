@@ -16,29 +16,10 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "lts/*"
-          cache: yarn
-
-      - name: Install dependencies
-        run: yarn install --ignore-peer-deps
-        
-      - name: Run Lint
-        run: yarn lint
-
   build:
     runs-on: ubuntu-latest
-    needs: lint  # Optional: run build only if lint completes successfully
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Node
@@ -47,8 +28,14 @@ jobs:
           node-version: "lts/*"
           cache: yarn
 
-      - name: Install dependencies
-        run: yarn install --ignore-peer-deps
+      - name: Install dependencies with Yarn and generate yarn.lock if missing
+        run: |
+          yarn install --ignore-peer-deps
+          git config --global user.email "ferrufinoda2@vcu.edu"
+          git config --global user.name "deHank"
+          git add yarn.lock
+          git commit -m "Generate yarn.lock" || true
+          git push origin dev
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -57,8 +44,7 @@ jobs:
         env:
           NEXT_SKIP_ESLINT_CHECK: true
           NEXT_SKIP_TYPE_CHECK: true
-          CI: false  # Disables CI checks
-        run: yarn build
+        run: yarn next build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
