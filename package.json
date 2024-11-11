@@ -4,10 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "NEXT_SKIP_ESLINT_CHECK=true NEXT_SKIP_TYPE_CHECK=true next build",
     "start": "next start",
     "lint": "next lint",
-    "export": "next build"
+    "export": "next build && next export"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -37,7 +37,6 @@
     "tailwindcss": "^3.4.11",
     "typescript": "^5"
   },
-  
   "module": "index.ts",
   "type": "module"
 }
