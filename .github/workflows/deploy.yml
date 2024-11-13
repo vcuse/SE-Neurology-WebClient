@@ -36,6 +36,10 @@ jobs:
           git add yarn.lock
           git commit -m "Generate yarn.lock" || true
           git push origin dev
+          
+      - name: Run ESLint
+        run: yarn lint
+        continue-on-error: true
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
