@@ -1,3 +1,5 @@
+"use client"
+
 import { useEffect, useState, useRef } from 'react';
 import Peer, { DataConnection, MediaConnection } from 'peerjs';
 
