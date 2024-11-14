@@ -4,8 +4,19 @@ import React, { useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
 
-const UserListClient = ({ initialUsers }) => {
-  const [users, setUsers] = useState(initialUsers);
+interface User {
+  id: string | number;
+  name: string;
+  email: string;
+  username: string;
+}
+
+interface UserListClientProps {
+  initialUsers: User[];
+}
+
+const UserListClient = ({ initialUsers }: UserListClientProps) => {
+  const [users, setUsers] = useState<User[]>(initialUsers);
 
   useEffect(() => {
     // You can add additional client-side effects here if needed
