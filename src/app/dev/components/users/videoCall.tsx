@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Peer, { DataConnection, MediaConnection } from 'peerjs';
 
-const videoCall = () => {
+const VideoCall = () => {
     const [peerId, setPeerId] = useState<string | null>(null);
     const [onlineUsers, setOnlineUsers] = useState([]);
     const [listedUsers, setListedUsers] = useState<string[]>([]);
@@ -156,7 +156,7 @@ const videoCall = () => {
 
             {/* User List */}
             <ul>
-                {listedUsers.length === 0 && <p id="nobodyOnlineIndicator">Hmmmm, nobody's here right now!</p>}
+                {listedUsers.length === 0 && <p id="nobodyOnlineIndicator">Hmmmm, nobody&apos;s here right now!</p>}
                 {listedUsers.map(user => (
                     <li key={user}>
                         {user}
@@ -189,4 +189,4 @@ const videoCall = () => {
     );
 };
 
-export default videoCall;
+export default VideoCall;
