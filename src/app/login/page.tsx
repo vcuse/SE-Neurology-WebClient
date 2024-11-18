@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import PerlinNoiseBackground from '@/components/ui/perlinNoiseBackground';
+import PerlinNoiseBackground from '@/components/ui/perlin-noise-background';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');

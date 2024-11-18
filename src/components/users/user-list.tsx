@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
-import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 interface User {
   id: string | number;
@@ -11,11 +11,11 @@ interface User {
   username: string;
 }
 
-interface UserListClientProps {
+interface UserListProps {
   initialUsers: User[];
 }
 
-const UserListClient = ({ initialUsers }: UserListClientProps) => {
+export function UserList({ initialUsers }: UserListProps) {
   const [users, setUsers] = useState<User[]>(initialUsers);
 
   useEffect(() => {
@@ -49,6 +49,4 @@ const UserListClient = ({ initialUsers }: UserListClientProps) => {
       </CardContent>
     </Card>
   );
-};
-
-export default UserListClient;
+}

@@ -1,11 +1,11 @@
 "use client"
 
 import React, { useState } from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 interface StrokeScaleFormProps {
-  onClose: () => void;
+  onClose?: () => void;
 }
 
 interface Question {
@@ -18,7 +18,7 @@ interface FormData {
   [key: number]: number;
 }
 
-const StrokeScaleForm: React.FC<StrokeScaleFormProps> = ({ onClose }) => {
+export function StrokeScaleForm({ onClose }: StrokeScaleFormProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<FormData>({});
 
@@ -223,7 +223,7 @@ const StrokeScaleForm: React.FC<StrokeScaleFormProps> = ({ onClose }) => {
     <Card className="w-full max-w-2xl p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">NIH Stroke Scale Assessment</h2>
-        <Button variant="outline" onClick={onClose}>Close</Button>
+        {onClose && <Button variant="outline" onClick={onClose}>Close</Button>}
       </div>
 
       {renderQuestion({
@@ -254,6 +254,4 @@ const StrokeScaleForm: React.FC<StrokeScaleFormProps> = ({ onClose }) => {
       </div>
     </Card>
   );
-};
-
-export default StrokeScaleForm;
+}
