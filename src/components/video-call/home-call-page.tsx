@@ -35,6 +35,10 @@ export function HomeCallPage() {
 
   // Define the peer reference
   const peerRef = useRef<Peer | null>(null);
+  // Ref for interval ID to avoid dependency issues
+  const intervalRef = useRef<NodeJS.Timeout>();
+  // Ref for currentPeerId to avoid dependency issues
+  const currentPeerIdRef = useRef<string>("");
 
   useEffect(() => {
     const peer = new Peer({
@@ -48,6 +52,7 @@ export function HomeCallPage() {
 
     peer.on("open", (id) => {
       setCurrentPeerId(id);
+      currentPeerIdRef.current = id; // Update ref when ID changes
     });
 
     peer.on("call", (call) => {
@@ -66,7 +71,8 @@ export function HomeCallPage() {
           return response.json();
         })
         .then((data) => {
-          const otherPeerIds = data.filter((id: string) => id !== currentPeerId);
+          // Use ref instead of state to avoid dependency
+          const otherPeerIds = data.filter((id: string) => id !== currentPeerIdRef.current);
           setPeerIds(otherPeerIds);
           setIsLoading(false);
         })
@@ -79,9 +85,19 @@ export function HomeCallPage() {
 
     // Fetch peer IDs initially and set an interval to refresh
     fetchPeerIds();
-    const intervalId = setInterval(fetchPeerIds, 5000);
+    intervalRef.current = setInterval(fetchPeerIds, 5000);
 
-    // Cleanup on component unmount
+    // Return cleanup function
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+      peerRef.current?.destroy();
+    };
+  }, []); // Empty dependency array is fine here as we're using refs
+
+  // Separate useEffect for stream and connection cleanup
+  useEffect(() => {
     return () => {
       if (myStream) {
         myStream.getTracks().forEach((track) => track.stop());
@@ -92,10 +108,8 @@ export function HomeCallPage() {
       if (dataConnection) {
         dataConnection.close();
       }
-      peerRef.current?.destroy();
-      clearInterval(intervalId);
     };
-  }, []); // Empty dependency array ensures this runs only once
+  }, [myStream, mediaConnection, dataConnection]);
 
   const handleCall = (peerId: string) => {
     console.log(`Calling peer ${peerId}`);

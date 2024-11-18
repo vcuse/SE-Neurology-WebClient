@@ -16,7 +16,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body suppressHydrationWarning={true}> // TODO find a better fix for hydration warnings
+        <div className={inter.className}>
+          {children}
+        </div>
+      </body>
     </html>
   );
 }
