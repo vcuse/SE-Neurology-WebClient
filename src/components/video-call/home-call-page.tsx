@@ -4,14 +4,18 @@ import { useState, useEffect, useRef } from "react";
 import Peer, { DataConnection, MediaConnection } from "peerjs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { PhoneCall } from "lucide-react";
-import PerlinNoiseBackground from '@/components/ui/perlin-noise-background';
+import { PhoneCall, Mic, MicOff } from "lucide-react";
+import PerlinNoiseBackground from "@/components/ui/perlin-noise-background";
+import { StrokeScaleForm } from "@/components/stroke-scale/stroke-scale-form";
+import { ChatBox } from "./chat-box";
 
 export function HomeCallPage() {
   const [currentPeerId, setCurrentPeerId] = useState("");
   const [peerIds, setPeerIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isStrokeScaleOpen, setIsStrokeScaleOpen] = useState(false);
 
   const [dataConnection, setDataConnection] = useState<DataConnection | null>(null);
   const [incomingCall, setIncomingCall] = useState<MediaConnection | null>(null);
@@ -61,7 +65,8 @@ export function HomeCallPage() {
       setCallerId(call.peer);
     });
 
-    // Fetch peer IDs from external JSON source
+    //Fetch peer ids from external json source
+    
     const fetchPeerIds = () => {
       fetch("https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/peers")
         .then((response) => {
@@ -94,9 +99,8 @@ export function HomeCallPage() {
       }
       peerRef.current?.destroy();
     };
-  }, []); // Empty dependency array is fine here as we're using refs
+  }, []);
 
-  // Separate useEffect for stream and connection cleanup
   useEffect(() => {
     return () => {
       if (myStream) {
@@ -195,6 +199,27 @@ export function HomeCallPage() {
     }
   };
 
+  const toggleMute = () => {
+    if (myStream) {
+      const audioTracks = myStream.getAudioTracks();
+      audioTracks.forEach(track => {
+        track.enabled = !track.enabled;
+      });
+      setIsMuted(!isMuted);
+    }
+  };
+
+  const handleStrokeScaleOpen = () => {
+    setIsStrokeScaleOpen(true);
+  };
+
+  const handleStrokeScaleClose = () => {
+    setIsStrokeScaleOpen(false);
+    if (isCallActive) {
+      setActiveTab('activeCall');
+    }
+  };
+
   return (
     <div className="container mx-auto p-4">
       <PerlinNoiseBackground
@@ -202,8 +227,9 @@ export function HomeCallPage() {
         style={{ filter: 'blur(30px)', zIndex: -5}}
       />
       <div className="absolute inset-0 bg-white opacity-60 z-[-4]"></div>
+      
       {isIncomingCall && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-white p-6 rounded-md text-center">
             <p className="mb-4">Incoming call from {callerId}</p>
             <Button onClick={acceptCall} className="mr-2">
@@ -216,7 +242,14 @@ export function HomeCallPage() {
         </div>
       )}
 
-      {/* Tab Selector */}
+      {isStrokeScaleOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white rounded-lg overflow-auto max-h-[90vh] w-full max-w-4xl mx-4">
+            <StrokeScaleForm onClose={handleStrokeScaleClose} />
+          </div>
+        </div>
+      )}
+
       <div className="mb-4">
         <div className="flex border-b">
           {tabs.map((tab) => (
@@ -225,7 +258,13 @@ export function HomeCallPage() {
               className={`px-4 py-2 -mb-px border-b-2 ${
                 activeTab === tab.key ? 'border-blue-500 font-medium' : 'border-transparent'
               }`}
-              onClick={() => setActiveTab(tab.key as any)}
+              onClick={() => {
+                if (tab.key === 'strokeScale') {
+                  handleStrokeScaleOpen();
+                } else {
+                  setActiveTab(tab.key as any);
+                }
+              }}
             >
               {tab.name}
             </button>
@@ -280,15 +319,7 @@ export function HomeCallPage() {
         </div>
       )}
 
-      {activeTab === 'strokeScale' && (
-        <div>
-          {/* Stroke Scale Tab Content */}
-          <h1 className="text-2xl font-bold mb-6">Stroke Scale</h1>
-          {/* Add your Stroke Scale content here */}
-        </div>
-      )}
-
-      {activeTab === 'files' && (
+      {activeTab === 'files' && !isStrokeScaleOpen && (
         <div>
           {/* Files Tab Content */}
           <h1 className="text-2xl font-bold mb-6">Files</h1>
@@ -296,7 +327,7 @@ export function HomeCallPage() {
         </div>
       )}
 
-      {activeTab === 'activeCall' && (
+      {activeTab === 'activeCall' && !isStrokeScaleOpen && (
         <div className="mt-6">
           {/* Active Call Content */}
           <h2 className="text-xl font-bold mb-4">Active Call</h2>
@@ -314,7 +345,20 @@ export function HomeCallPage() {
             <Button onClick={holdCall}>
               {isCallOnHold ? 'Resume Call' : 'Hold Call'}
             </Button>
+            <Button onClick={toggleMute} variant="outline">
+              {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              {isMuted ? 'Unmute' : 'Mute'}
+            </Button>
+            <Button onClick={handleStrokeScaleOpen} variant="outline">
+              Open Stroke Scale
+            </Button>
           </div>
+          
+          {/* Chat Box Component */}
+          <ChatBox
+            dataConnection={dataConnection}
+            currentPeerId={currentPeerId}
+          />
         </div>
       )}
     </div>
