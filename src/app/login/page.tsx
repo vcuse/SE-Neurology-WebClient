@@ -28,15 +28,32 @@ export default function LoginPage() {
     }
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      const response = await fetch('http://localhost:9000/key=peerjs/post', {
+        method: 'POST',
+        credentials: 'include', // Include cookies
+        headers: {
+          'Content-Type': 'application/json',
+          Action: action, // Either 'login' or 'create'
+        },
+        body: JSON.stringify({
+          username,
+          password,
+        }),
+      });
 
-      if (action === 'login') {
-        // Set login cookie
-        document.cookie = 'isLoggedIn=true; path=/';
-        console.log('Login success');
-        router.push(`/users?username=${encodeURIComponent(username)}`);
+      const result = await response.text();
+
+      if (response.ok) {
+        if (action === 'login') {
+          // Navigate to the user dashboard
+          console.log('Login successful:', result);
+          router.push(`/users?username=${encodeURIComponent(username)}`);
+        } else if (action === 'create') {
+          setError('Account created successfully. You may now log in');
+        }
       } else {
-        setError('Account created successfully. You may now log in');
+        // Handle server error messages
+        setError(result || 'An error occurred. Please try again.');
       }
     } catch (err) {
       console.error('Error:', err);
