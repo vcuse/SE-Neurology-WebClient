@@ -10,7 +10,7 @@ function submit(){
         fetch("https://devbranch-server-dot-videochat-signaling-app.ue.r.appspot.com/key=peerjs/post", {
             method: "POST",
             body: JSON.stringify(data),
-            //credentials: "include", seems to work without it, but some have suggested to put it
+            credentials: "include", 
             headers: {
                 'Content-Type': 'application/json',
                 'Action': 'login'
@@ -42,7 +42,7 @@ function create(){
         fetch("https://devbranch-server-dot-videochat-signaling-app.ue.r.appspot.com/key=peerjs/post", {
             method: "POST",
             body: JSON.stringify(data),
-            //credentials: "include", seems to work without it, but some have suggested to put it
+            credentials: "include",
             headers: {
                 'Content-Type': 'application/json',
                 'Action': 'create'
