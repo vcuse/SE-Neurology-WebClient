@@ -4,9 +4,10 @@ import { useState, useEffect, useRef } from "react";
 import Peer, { DataConnection, MediaConnection } from "peerjs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PhoneCall, Mic, MicOff, MessageCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+>>>>>>>>> Temporary merge branch 2
 import PerlinNoiseBackground from "@/components/ui/perlin-noise-background";
 import { StrokeScaleForm } from "@/components/stroke-scale/stroke-scale-form";
 import { ChatBox } from "./chat-box";
@@ -443,6 +444,7 @@ export function HomeCallPage() {
               Open Stroke Scale
             </Button>
           </div>
+          
           {/* Active Call Chat */}
           {mediaConnection && activeChats[mediaConnection.peer] && (
             <div className="mt-4">
@@ -455,8 +457,8 @@ export function HomeCallPage() {
               />
             </div>
           )}
-        </div>
-      )}
+        </TabsContent>
+      </Tabs>
 
       {/* Standalone Chat Boxes */}
       <div className="fixed bottom-4 right-4 flex flex-col-reverse gap-4 max-h-[80vh] overflow-y-auto">
