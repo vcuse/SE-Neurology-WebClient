@@ -16,9 +16,20 @@ interface Message {
 interface ChatBoxProps {
   dataConnection: DataConnection | null;
   currentPeerId: string;
+  remotePeerId: string;
+  onClose?: () => void;
+  minimized?: boolean;
+  onMinimize?: () => void;
 }
 
-export function ChatBox({ dataConnection, currentPeerId }: ChatBoxProps) {
+export function ChatBox({ 
+  dataConnection, 
+  currentPeerId, 
+  remotePeerId,
+  onClose,
+  minimized = false,
+  onMinimize 
+}: ChatBoxProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -31,21 +42,50 @@ export function ChatBox({ dataConnection, currentPeerId }: ChatBoxProps) {
     scrollToBottom();
   }, [messages]);
 
+  // Load messages from session storage and handle data connection
   useEffect(() => {
-    if (!dataConnection) return;
+    if (!currentPeerId || !remotePeerId) return;
 
-    const handleData = (data: any) => {
-      if (data.type === 'chat') {
-        setMessages(prev => [...prev, data.message]);
+    // Create a composite key that works both ways
+    const peers = [currentPeerId, remotePeerId].sort();
+    const storageKey = `chat_messages_${peers[0]}_${peers[1]}`;
+    
+    // Load existing messages
+    const storedMessages = sessionStorage.getItem(storageKey);
+    if (storedMessages) {
+      try {
+        const parsedMessages = JSON.parse(storedMessages);
+        setMessages(parsedMessages);
+        scrollToBottom();
+      } catch (error) {
+        console.error('Error parsing stored messages:', error);
       }
-    };
+    }
 
-    dataConnection.on('data', handleData);
+    // Set up data connection handler
+    if (dataConnection) {
+      const handleData = (data: any) => {
+        if (data.type === 'chat') {
+          const newMessage = data.message;
+          setMessages(prev => {
+            // Check if message already exists
+            if (prev.some(msg => msg.id === newMessage.id)) {
+              return prev;
+            }
+            // Save to session storage immediately
+            const updatedMessages = [...prev, newMessage];
+            sessionStorage.setItem(storageKey, JSON.stringify(updatedMessages));
+            return updatedMessages;
+          });
+        }
+      };
 
-    return () => {
-      dataConnection.off('data', handleData);
-    };
-  }, [dataConnection]);
+      dataConnection.on('data', handleData);
+      return () => {
+        dataConnection.off('data', handleData);
+      };
+    }
+  }, [currentPeerId, remotePeerId, dataConnection]);
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,13 +103,53 @@ export function ChatBox({ dataConnection, currentPeerId }: ChatBoxProps) {
       message,
     });
 
-    setMessages(prev => [...prev, message]);
+    // Create composite key
+    const peers = [currentPeerId, remotePeerId].sort();
+    const storageKey = `chat_messages_${peers[0]}_${peers[1]}`;
+
+    setMessages(prev => {
+      // Check if message already exists
+      if (prev.some(msg => msg.id === message.id)) {
+        return prev;
+      }
+      const updatedMessages = [...prev, message];
+      // Save to session storage immediately
+      sessionStorage.setItem(storageKey, JSON.stringify(updatedMessages));
+      return updatedMessages;
+    });
     setNewMessage("");
   };
 
   return (
     <Card className="mt-4">
-      <CardContent className="p-4">
+      <CardContent className="p-4 border-b">
+        <div className="flex justify-between items-center">
+          <div className="text-sm font-medium truncate">
+            Chat with {remotePeerId}
+          </div>
+          <div className="flex gap-1">
+        {onMinimize && (
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={onMinimize}
+          >
+            {minimized ? "+" : "-"}
+          </Button>
+        )}
+        {onClose && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={onClose}
+          >
+            ×
+          </Button>
+        )}
+      </div>
+      </div>
+      </CardContent>
+      <CardContent className={`p-4 ${minimized ? 'hidden' : ''}`}>
         <div className="h-[200px] overflow-y-auto mb-4 space-y-2">
           {messages.map((message) => (
             <div
