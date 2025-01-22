@@ -5,7 +5,8 @@ import Peer, { DataConnection, MediaConnection } from "peerjs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { PhoneCall, Mic, MicOff } from "lucide-react";
+import { PhoneCall, Mic, MicOff, MessageCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import PerlinNoiseBackground from "@/components/ui/perlin-noise-background";
 import { StrokeScaleForm } from "@/components/stroke-scale/stroke-scale-form";
 import { ChatBox } from "./chat-box";
@@ -18,7 +19,9 @@ export function HomeCallPage() {
   const [isMuted, setIsMuted] = useState(false);
   const [isStrokeScaleOpen, setIsStrokeScaleOpen] = useState(false);
 
-  const [dataConnection, setDataConnection] = useState<DataConnection | null>(null);
+  const [activeChats, setActiveChats] = useState<{[key: string]: DataConnection}>({});
+  const [minimizedChats, setMinimizedChats] = useState<string[]>([]);
+  const [notifications, setNotifications] = useState<{[key: string]: boolean}>({});
   const [incomingCall, setIncomingCall] = useState<MediaConnection | null>(null);
   const [myStream, setMyStream] = useState<MediaStream | null>(null);
   const [mediaConnection, setMediaConnection] = useState<MediaConnection | null>(null);
@@ -110,16 +113,102 @@ export function HomeCallPage() {
       if (mediaConnection) {
         mediaConnection.close();
       }
-      if (dataConnection) {
-        dataConnection.close();
-      }
+      Object.values(activeChats).forEach(conn => conn.close());
     };
-  }, [myStream, mediaConnection, dataConnection]);
+  }, [myStream, mediaConnection, activeChats]);
+
+  useEffect(() => {
+    if (!peerRef.current) return;
+
+    const handleConnection = (conn: DataConnection) => {
+      conn.on('data', (data: any) => {
+        if (data.type === 'chat' && !activeChats[conn.peer]) {
+          setNotifications(prev => ({ ...prev, [conn.peer]: true }));
+        }
+      });
+      
+      setActiveChats(prev => ({ ...prev, [conn.peer]: conn }));
+    };
+
+    peerRef.current.on('connection', handleConnection);
+
+    return () => {
+      peerRef.current?.off('connection', handleConnection);
+    };
+  }, [activeChats]);
+
+  const initializeChat = (peerId: string) => {
+    // If chat is already active, just unminimize it
+    if (activeChats[peerId]) {
+      setMinimizedChats(prev => prev.filter(id => id !== peerId));
+      setNotifications(prev => ({ ...prev, [peerId]: false }));
+      return;
+    }
+
+    // Check if there's an existing connection
+    const existingConn = Object.entries(activeChats).find(([_, conn]) => conn.peer === peerId)?.[1];
+    if (existingConn && existingConn.open) {
+      setActiveChats(prev => ({ ...prev, [peerId]: existingConn }));
+      setNotifications(prev => ({ ...prev, [peerId]: false }));
+      return;
+    }
+
+    // Create new connection if needed
+    const peer = peerRef.current;
+    if (peer) {
+      const conn = peer.connect(peerId);
+      conn.on('open', () => {
+        setActiveChats(prev => ({ ...prev, [peerId]: conn }));
+        setNotifications(prev => ({ ...prev, [peerId]: false }));
+      });
+    }
+  };
+
+  const closeChat = (peerId: string) => {
+    const conn = activeChats[peerId];
+    if (conn) {
+      conn.close();
+      setActiveChats(prev => {
+        const newChats = { ...prev };
+        delete newChats[peerId];
+        return newChats;
+      });
+      setNotifications(prev => {
+        const newNotifications = { ...prev };
+        delete newNotifications[peerId];
+        return newNotifications;
+      });
+    }
+  };
+
+  const minimizeChat = (peerId: string) => {
+    setMinimizedChats(prev => 
+      prev.includes(peerId) 
+        ? prev.filter(id => id !== peerId)
+        : [...prev, peerId]
+    );
+  };
+
+  const establishDataConnection = (peerId: string) => {
+    if (activeChats[peerId]) return;
+
+    const peer = peerRef.current;
+    if (peer) {
+      const conn = peer.connect(peerId);
+      conn.on('open', () => {
+        setActiveChats(prev => ({ ...prev, [peerId]: conn }));
+        setNotifications(prev => ({ ...prev, [peerId]: false }));
+      });
+    }
+  };
 
   const handleCall = (peerId: string) => {
     console.log(`Calling peer ${peerId}`);
     const peer = peerRef.current;
     if (peer) {
+      // First establish data connection for chat
+      establishDataConnection(peerId);
+
       navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
         setMyStream(stream);
         const call = peer.call(peerId, stream);
@@ -144,6 +233,9 @@ export function HomeCallPage() {
 
   const acceptCall = () => {
     if (incomingCall) {
+      // First establish data connection for chat
+      establishDataConnection(incomingCall.peer);
+
       navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
         setMyStream(stream);
         incomingCall.answer(stream);
@@ -302,9 +394,17 @@ export function HomeCallPage() {
                     {peerId}
                   </div>
                 </CardContent>
-                <CardFooter className="p-4">
+                <CardFooter className="p-4 flex gap-2">
                   <Button onClick={() => handleCall(peerId)} size="sm">
                     <PhoneCall className="mr-2 h-4 w-4" /> Call
+                  </Button>
+                  <Button 
+                    onClick={() => initializeChat(peerId)} 
+                    size="sm"
+                    variant={notifications[peerId] ? "destructive" : "secondary"}
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4" /> 
+                    {notifications[peerId] ? "New Message" : "Chat"}
                   </Button>
                 </CardFooter>
               </Card>
@@ -344,13 +444,50 @@ export function HomeCallPage() {
             </Button>
           </div>
           
-          {/* Chat Box Component */}
-          <ChatBox
-            dataConnection={dataConnection}
-            currentPeerId={currentPeerId}
-          />
+          {/* Active Call Chat */}
+          {mediaConnection && activeChats[mediaConnection.peer] && (
+            <div className="mt-4">
+              <ChatBox
+                dataConnection={activeChats[mediaConnection.peer]}
+                currentPeerId={currentPeerId}
+                remotePeerId={mediaConnection.peer}
+                onMinimize={() => minimizeChat(mediaConnection.peer)}
+                minimized={minimizedChats.includes(mediaConnection.peer)}
+              />
+            </div>
+          )}
         </TabsContent>
       </Tabs>
+
+      {/* Standalone Chat Boxes */}
+      <div className="fixed bottom-4 right-4 flex flex-col-reverse gap-4 max-h-[80vh] overflow-y-auto">
+        {Object.entries(activeChats)
+          .filter(([peerId]) => !mediaConnection || peerId !== mediaConnection.peer)
+          .map(([peerId, conn]) => (
+            <ChatBox
+              key={peerId}
+              dataConnection={conn}
+              currentPeerId={currentPeerId}
+              remotePeerId={peerId}
+              onClose={() => closeChat(peerId)}
+              onMinimize={() => minimizeChat(peerId)}
+              minimized={minimizedChats.includes(peerId)}
+            />
+          ))}
+      </div>
+
+      {/* Notifications */}
+      <div className="fixed top-4 right-4 flex flex-col gap-2">
+        {Object.entries(notifications)
+          .filter(([_, hasNotification]) => hasNotification)
+          .map(([peerId]) => (
+            <Alert key={peerId} className="w-[300px] cursor-pointer" onClick={() => initializeChat(peerId)}>
+              <AlertDescription>
+                New message from {peerId}
+              </AlertDescription>
+            </Alert>
+          ))}
+      </div>
     </div>
   );
 }
