@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Peer, { DataConnection, MediaConnection } from "peerjs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PhoneCall, Mic, MicOff } from "lucide-react";
 import PerlinNoiseBackground from "@/components/ui/perlin-noise-background";
 import { StrokeScaleForm } from "@/components/stroke-scale/stroke-scale-form";
@@ -250,41 +251,34 @@ export function HomeCallPage() {
         </div>
       )}
 
-      <div className="mb-4">
-        <div className="flex border-b">
+      <Tabs value={activeTab} onValueChange={(value) => {
+        if (value === 'strokeScale') {
+          handleStrokeScaleOpen();
+        } else {
+          setActiveTab(value as any);
+        }
+      }}>
+        <TabsList className="w-full border-b rounded-none bg-transparent">
           {tabs.map((tab) => (
-            <button
+            <TabsTrigger
               key={tab.key}
-              className={`px-4 py-2 -mb-px border-b-2 ${
-                activeTab === tab.key ? 'border-blue-500 font-medium' : 'border-transparent'
-              }`}
-              onClick={() => {
-                if (tab.key === 'strokeScale') {
-                  handleStrokeScaleOpen();
-                } else {
-                  setActiveTab(tab.key as any);
-                }
-              }}
+              value={tab.key}
+              className="data-[state=active]:border-primary data-[state=active]:bg-transparent"
             >
               {tab.name}
-            </button>
+            </TabsTrigger>
           ))}
           {isCallActive && (
-            <button
-              className={`px-4 py-2 -mb-px border-b-2 ${
-                activeTab === 'activeCall' ? 'border-blue-500 font-medium' : 'border-transparent'
-              }`}
-              onClick={() => setActiveTab('activeCall')}
+            <TabsTrigger
+              value="activeCall"
+              className="data-[state=active]:border-primary data-[state=active]:bg-transparent"
             >
               Active Call
-            </button>
+            </TabsTrigger>
           )}
-        </div>
-      </div>
+        </TabsList>
 
-      {/* Tab Content */}
-      {activeTab === 'home' && (
-        <div>
+        <TabsContent value="home">
           {/* Home Tab Content */}
           <h1 className="text-2xl font-bold mb-6">Home Call Page</h1>
           <Card className="mb-6">
@@ -316,19 +310,15 @@ export function HomeCallPage() {
               </Card>
             ))}
           </div>
-        </div>
-      )}
+        </TabsContent>
 
-      {activeTab === 'files' && !isStrokeScaleOpen && (
-        <div>
+        <TabsContent value="files" className={isStrokeScaleOpen ? 'hidden' : ''}>
           {/* Files Tab Content */}
           <h1 className="text-2xl font-bold mb-6">Files</h1>
           {/* Add your Files content here */}
-        </div>
-      )}
+        </TabsContent>
 
-      {activeTab === 'activeCall' && !isStrokeScaleOpen && (
-        <div className="mt-6">
+        <TabsContent value="activeCall" className={`${isStrokeScaleOpen ? 'hidden' : ''} mt-6`}>
           {/* Active Call Content */}
           <h2 className="text-xl font-bold mb-4">Active Call</h2>
           <video
@@ -359,8 +349,8 @@ export function HomeCallPage() {
             dataConnection={dataConnection}
             currentPeerId={currentPeerId}
           />
-        </div>
-      )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
