@@ -7,7 +7,6 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PhoneCall, Mic, MicOff, MessageCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
->>>>>>>>> Temporary merge branch 2
 import PerlinNoiseBackground from "@/components/ui/perlin-noise-background";
 import { StrokeScaleForm } from "@/components/stroke-scale/stroke-scale-form";
 import { ChatBox } from "./chat-box";
