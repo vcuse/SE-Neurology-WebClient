@@ -1,17 +1,19 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import Peer, { DataConnection, MediaConnection } from "peerjs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { PhoneCall, Mic, MicOff, MessageCircle } from "lucide-react";
+import { PhoneCall, Mic, MicOff, MessageCircle, LogOut } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import PerlinNoiseBackground from "@/components/ui/perlin-noise-background";
 import { StrokeScaleForm } from "@/components/stroke-scale/stroke-scale-form";
 import { ChatBox } from "./chat-box";
 
 export function HomeCallPage() {
+  const router = useRouter();
   const [currentPeerId, setCurrentPeerId] = useState("");
   const [peerIds, setPeerIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -313,8 +315,21 @@ export function HomeCallPage() {
     }
   };
 
+  const handleLogout = () => {
+    document.cookie = "isLoggedIn=false; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    router.push('/login');
+  };
+
   return (
     <div className="container mx-auto p-4">
+      <Button
+        onClick={handleLogout}
+        className="fixed top-4 right-4 z-50"
+        variant="outline"
+        size="sm"
+      >
+        <LogOut className="mr-2 h-4 w-4" /> Logout
+      </Button>
       <PerlinNoiseBackground
         className="absolute inset-0 w-full h-full"
         style={{ filter: 'blur(30px)', zIndex: -5}}
@@ -343,6 +358,8 @@ export function HomeCallPage() {
         </div>
       )}
 
+      <h1 className="text-2xl font-bold mb-6">Home Call Page</h1>
+      
       <Tabs value={activeTab} onValueChange={(value) => {
         if (value === 'strokeScale') {
           handleStrokeScaleOpen();
@@ -350,29 +367,29 @@ export function HomeCallPage() {
           setActiveTab(value as any);
         }
       }}>
-        <TabsList className="w-full border-b rounded-none bg-transparent">
-          {tabs.map((tab) => (
-            <TabsTrigger
-              key={tab.key}
-              value={tab.key}
-              className="data-[state=active]:border-primary data-[state=active]:bg-transparent"
-            >
-              {tab.name}
-            </TabsTrigger>
-          ))}
-          {isCallActive && (
-            <TabsTrigger
-              value="activeCall"
-              className="data-[state=active]:border-primary data-[state=active]:bg-transparent"
-            >
-              Active Call
-            </TabsTrigger>
-          )}
-        </TabsList>
+        <div className="flex justify-start">
+          <TabsList className="inline-flex rounded-lg bg-white/50 backdrop-blur-sm p-1 shadow-sm border">
+            {tabs.map((tab) => (
+              <TabsTrigger
+                key={tab.key}
+                value={tab.key}
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md transition-all duration-200 hover:bg-muted"
+              >
+                {tab.name}
+              </TabsTrigger>
+            ))}
+            {isCallActive && (
+              <TabsTrigger
+                value="activeCall"
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md transition-all duration-200 hover:bg-muted"
+              >
+                Active Call
+              </TabsTrigger>
+            )}
+          </TabsList>
+        </div>
 
-        <TabsContent value="home">
-          {/* Home Tab Content */}
-          <h1 className="text-2xl font-bold mb-6">Home Call Page</h1>
+        <TabsContent value="home" className="mt-6">
           <Card className="mb-6">
             <CardContent className="pt-6">
               <div className="text-center">
