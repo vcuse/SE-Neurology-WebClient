@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { DataConnection } from "peerjs";
+import { DataConnection, Peer } from "peerjs";
 
 interface Message {
   id: string;
@@ -20,6 +20,9 @@ interface ChatBoxProps {
   onClose?: () => void;
   minimized?: boolean;
   onMinimize?: () => void;
+  visible?: boolean;
+  peer?: Peer | null;
+  onConnectionEstablished?: (connection: DataConnection) => void;
 }
 
 export function ChatBox({ 
@@ -28,7 +31,10 @@ export function ChatBox({
   remotePeerId,
   onClose,
   minimized = false,
-  onMinimize 
+  onMinimize,
+  visible = true,
+  peer,
+  onConnectionEstablished
 }: ChatBoxProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -87,9 +93,28 @@ export function ChatBox({
     }
   }, [currentPeerId, remotePeerId, dataConnection]);
 
+  const ensureConnection = () => {
+    if (dataConnection?.open) return dataConnection;
+    
+    if (peer) {
+      const conn = peer.connect(remotePeerId);
+      if (onConnectionEstablished) {
+        conn.on('open', () => {
+          onConnectionEstablished(conn);
+        });
+      }
+      return conn;
+    }
+    return null;
+  };
+
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !dataConnection) return;
+    if (!newMessage.trim()) return;
+
+    // Ensure we have an active connection before sending
+    const activeConnection = ensureConnection();
+    if (!activeConnection) return;
 
     const message: Message = {
       id: Math.random().toString(36).substr(2, 9),
@@ -98,30 +123,57 @@ export function ChatBox({
       timestamp: new Date(),
     };
 
-    dataConnection.send({
-      type: 'chat',
-      message,
-    });
+    // If connection is already open, send immediately
+    if (activeConnection.open) {
+      activeConnection.send({
+        type: 'chat',
+        message,
+      });
+      
+      // Create composite key
+      const peers = [currentPeerId, remotePeerId].sort();
+      const storageKey = `chat_messages_${peers[0]}_${peers[1]}`;
 
-    // Create composite key
-    const peers = [currentPeerId, remotePeerId].sort();
-    const storageKey = `chat_messages_${peers[0]}_${peers[1]}`;
+      setMessages(prev => {
+        // Check if message already exists
+        if (prev.some(msg => msg.id === message.id)) {
+          return prev;
+        }
+        const updatedMessages = [...prev, message];
+        // Save to session storage immediately
+        sessionStorage.setItem(storageKey, JSON.stringify(updatedMessages));
+        return updatedMessages;
+      });
+      setNewMessage("");
+    } else {
+      // If connection is new, wait for it to open before sending
+      activeConnection.on('open', () => {
+        activeConnection.send({
+          type: 'chat',
+          message,
+        });
+        
+        // Create composite key
+        const peers = [currentPeerId, remotePeerId].sort();
+        const storageKey = `chat_messages_${peers[0]}_${peers[1]}`;
 
-    setMessages(prev => {
-      // Check if message already exists
-      if (prev.some(msg => msg.id === message.id)) {
-        return prev;
-      }
-      const updatedMessages = [...prev, message];
-      // Save to session storage immediately
-      sessionStorage.setItem(storageKey, JSON.stringify(updatedMessages));
-      return updatedMessages;
-    });
-    setNewMessage("");
+        setMessages(prev => {
+          // Check if message already exists
+          if (prev.some(msg => msg.id === message.id)) {
+            return prev;
+          }
+          const updatedMessages = [...prev, message];
+          // Save to session storage immediately
+          sessionStorage.setItem(storageKey, JSON.stringify(updatedMessages));
+          return updatedMessages;
+        });
+        setNewMessage("");
+      });
+    }
   };
 
   return (
-    <Card className="mt-4">
+    <Card className={`mt-4 ${!visible ? 'hidden' : ''}`}>
       <CardContent className="p-4 border-b">
         <div className="flex justify-between items-center">
           <div className="text-sm font-medium truncate">

@@ -21,6 +21,7 @@ export function HomeCallPage() {
   const [activeChats, setActiveChats] = useState<{[key: string]: DataConnection}>({});
   const [minimizedChats, setMinimizedChats] = useState<string[]>([]);
   const [notifications, setNotifications] = useState<{[key: string]: boolean}>({});
+  const [visibleChats, setVisibleChats] = useState<string[]>([]);
   const [incomingCall, setIncomingCall] = useState<MediaConnection | null>(null);
   const [myStream, setMyStream] = useState<MediaStream | null>(null);
   const [mediaConnection, setMediaConnection] = useState<MediaConnection | null>(null);
@@ -121,12 +122,19 @@ export function HomeCallPage() {
 
     const handleConnection = (conn: DataConnection) => {
       conn.on('data', (data: any) => {
-        if (data.type === 'chat' && !activeChats[conn.peer]) {
-          setNotifications(prev => ({ ...prev, [conn.peer]: true }));
+        if (data.type === 'chat') {
+          // Only set notification if chat isn't actively open and visible
+          if (!activeChats[conn.peer] || !visibleChats.includes(conn.peer) || minimizedChats.includes(conn.peer)) {
+            setNotifications(prev => ({ ...prev, [conn.peer]: true }));
+          }
         }
       });
       
-      setActiveChats(prev => ({ ...prev, [conn.peer]: conn }));
+      // Store connection without automatically showing chat
+      const existingConn = activeChats[conn.peer];
+      if (!existingConn) {
+        setActiveChats(prev => ({ ...prev, [conn.peer]: conn }));
+      }
     };
 
     peerRef.current.on('connection', handleConnection);
@@ -134,20 +142,13 @@ export function HomeCallPage() {
     return () => {
       peerRef.current?.off('connection', handleConnection);
     };
-  }, [activeChats]);
+  }, [activeChats, visibleChats, minimizedChats]);
 
   const initializeChat = (peerId: string) => {
-    // If chat is already active, just unminimize it
+    // If chat exists, make it visible and clear notification
     if (activeChats[peerId]) {
+      setVisibleChats(prev => [...prev.filter(id => id !== peerId), peerId]);
       setMinimizedChats(prev => prev.filter(id => id !== peerId));
-      setNotifications(prev => ({ ...prev, [peerId]: false }));
-      return;
-    }
-
-    // Check if there's an existing connection
-    const existingConn = Object.entries(activeChats).find(([_, conn]) => conn.peer === peerId)?.[1];
-    if (existingConn && existingConn.open) {
-      setActiveChats(prev => ({ ...prev, [peerId]: existingConn }));
       setNotifications(prev => ({ ...prev, [peerId]: false }));
       return;
     }
@@ -158,6 +159,7 @@ export function HomeCallPage() {
       const conn = peer.connect(peerId);
       conn.on('open', () => {
         setActiveChats(prev => ({ ...prev, [peerId]: conn }));
+        setVisibleChats(prev => [...prev, peerId]); // Make chat visible when initialized
         setNotifications(prev => ({ ...prev, [peerId]: false }));
       });
     }
@@ -177,6 +179,7 @@ export function HomeCallPage() {
         delete newNotifications[peerId];
         return newNotifications;
       });
+      setVisibleChats(prev => prev.filter(id => id !== peerId));
     }
   };
 
@@ -195,8 +198,8 @@ export function HomeCallPage() {
     if (peer) {
       const conn = peer.connect(peerId);
       conn.on('open', () => {
+        // Only store the connection without showing chat
         setActiveChats(prev => ({ ...prev, [peerId]: conn }));
-        setNotifications(prev => ({ ...prev, [peerId]: false }));
       });
     }
   };
@@ -214,6 +217,8 @@ export function HomeCallPage() {
         setMediaConnection(call);
         setIsCallActive(true);
         setActiveTab('activeCall');
+        // Make chat visible for calls
+        setVisibleChats(prev => [...prev.filter(id => id !== peerId), peerId]);
 
         call.on("stream", (remoteStream) => {
           const videoElement = videoEl.current;
@@ -241,6 +246,8 @@ export function HomeCallPage() {
         setMediaConnection(incomingCall);
         setIsCallActive(true);
         setActiveTab('activeCall');
+        // Make chat visible for calls
+        setVisibleChats(prev => [...prev.filter(id => id !== incomingCall.peer), incomingCall.peer]);
 
         incomingCall.on("stream", (remoteStream) => {
           const videoElement = videoEl.current;
@@ -299,6 +306,10 @@ export function HomeCallPage() {
       });
       setIsMuted(!isMuted);
     }
+  };
+
+  const handleConnectionEstablished = (peerId: string, newConn: DataConnection) => {
+    setActiveChats(prev => ({ ...prev, [peerId]: newConn }));
   };
 
   return (
@@ -432,7 +443,7 @@ export function HomeCallPage() {
               </div>
               
               {/* Active Call Chat */}
-              {mediaConnection && activeChats[mediaConnection.peer] && (
+              {/* {mediaConnection && activeChats[mediaConnection.peer] && (
                 <div className="mt-4">
                   <ChatBox
                     dataConnection={activeChats[mediaConnection.peer]}
@@ -440,9 +451,12 @@ export function HomeCallPage() {
                     remotePeerId={mediaConnection.peer}
                     onMinimize={() => minimizeChat(mediaConnection.peer)}
                     minimized={minimizedChats.includes(mediaConnection.peer)}
+                    visible={visibleChats.includes(mediaConnection.peer)}
+                    peer={peerRef.current}
+                    onConnectionEstablished={(conn) => handleConnectionEstablished(mediaConnection.peer, conn)}
                   />
                 </div>
-              )}
+              )} */}
             </TabsContent>
           </Tabs>
 
@@ -459,6 +473,9 @@ export function HomeCallPage() {
                   onClose={() => closeChat(peerId)}
                   onMinimize={() => minimizeChat(peerId)}
                   minimized={minimizedChats.includes(peerId)}
+                  visible={visibleChats.includes(peerId)}
+                  peer={peerRef.current}
+                  onConnectionEstablished={(conn) => handleConnectionEstablished(peerId, conn)}
                 />
               ))}
           </div>
