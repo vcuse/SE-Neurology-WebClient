@@ -17,7 +17,6 @@ export function HomeCallPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
-  const [isStrokeScaleOpen, setIsStrokeScaleOpen] = useState(false);
 
   const [activeChats, setActiveChats] = useState<{[key: string]: DataConnection}>({});
   const [minimizedChats, setMinimizedChats] = useState<string[]>([]);
@@ -302,191 +301,181 @@ export function HomeCallPage() {
     }
   };
 
-  const handleStrokeScaleOpen = () => {
-    setIsStrokeScaleOpen(true);
-  };
-
-  const handleStrokeScaleClose = () => {
-    setIsStrokeScaleOpen(false);
-    if (isCallActive) {
-      setActiveTab('activeCall');
-    }
-  };
-
   return (
-    <div className="container mx-auto p-4">
-      <PerlinNoiseBackground
-        className="absolute inset-0 w-full h-full"
-        style={{ filter: 'blur(30px)', zIndex: -5}}
-      />
-      <div className="absolute inset-0 bg-white opacity-60 z-[-4]"></div>
-      
-      {isIncomingCall && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white p-6 rounded-md text-center">
-            <p className="mb-4">Incoming call from {callerId}</p>
-            <Button onClick={acceptCall} className="mr-2">
-              Accept
-            </Button>
-            <Button onClick={declineCall} variant="destructive">
-              Decline
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {isStrokeScaleOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white rounded-lg overflow-auto max-h-[90vh] w-full max-w-4xl mx-4">
-            <StrokeScaleForm onClose={handleStrokeScaleClose} />
-          </div>
-        </div>
-      )}
-
-      <Tabs value={activeTab} onValueChange={(value) => {
-        if (value === 'strokeScale') {
-          handleStrokeScaleOpen();
-        } else {
-          setActiveTab(value as any);
-        }
-      }}>
-        <TabsList className="w-full border-b rounded-none bg-transparent">
-          {tabs.map((tab) => (
-            <TabsTrigger
-              key={tab.key}
-              value={tab.key}
-              className="data-[state=active]:border-primary data-[state=active]:bg-transparent"
-            >
-              {tab.name}
-            </TabsTrigger>
-          ))}
-          {isCallActive && (
-            <TabsTrigger
-              value="activeCall"
-              className="data-[state=active]:border-primary data-[state=active]:bg-transparent"
-            >
-              Active Call
-            </TabsTrigger>
-          )}
-        </TabsList>
-
-        <TabsContent value="home">
-          {/* Home Tab Content */}
-          <h1 className="text-2xl font-bold mb-6">Home Call Page</h1>
-          <Card className="mb-6">
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="text-lg font-semibold mb-2">Your Peer ID:</div>
-                <div className="text-sm bg-muted p-2 rounded-md overflow-x-auto">
-                  <code>{currentPeerId}</code>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          {isLoading && <div className="text-center">Loading peer IDs...</div>}
-          {error && <div className="text-red-500 mb-4">{error}</div>}
-          <div className="grid grid-cols-1 gap-4">
-            {peerIds.map((peerId) => (
-              <Card key={peerId} className="flex flex-row items-center">
-                <CardContent className="py-4 flex-grow">
-                  <div className="text-sm font-medium">Peer ID:</div>
-                  <div className="text-xs text-muted-foreground break-all">
-                    {peerId}
-                  </div>
-                </CardContent>
-                <CardFooter className="p-4 flex gap-2">
-                  <Button onClick={() => handleCall(peerId)} size="sm">
-                    <PhoneCall className="mr-2 h-4 w-4" /> Call
-                  </Button>
-                  <Button 
-                    onClick={() => initializeChat(peerId)} 
-                    size="sm"
-                    variant={notifications[peerId] ? "destructive" : "secondary"}
-                  >
-                    <MessageCircle className="mr-2 h-4 w-4" /> 
-                    {notifications[peerId] ? "New Message" : "Chat"}
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="files" className={isStrokeScaleOpen ? 'hidden' : ''}>
-          {/* Files Tab Content */}
-          <h1 className="text-2xl font-bold mb-6">Files</h1>
-          {/* Add your Files content here */}
-        </TabsContent>
-
-        <TabsContent value="activeCall" className={`${isStrokeScaleOpen ? 'hidden' : ''} mt-6`}>
-          {/* Active Call Content */}
-          <h2 className="text-xl font-bold mb-4">Active Call</h2>
-          <video
-            ref={videoEl}
-            autoPlay
-            playsInline
-            className="w-full h-auto border"
-            muted
-          ></video>
-          <div className="flex mt-4 space-x-4">
-            <Button onClick={endCall} variant="destructive">
-              End Call
-            </Button>
-            <Button onClick={holdCall}>
-              {isCallOnHold ? 'Resume Call' : 'Hold Call'}
-            </Button>
-            <Button onClick={toggleMute} variant="outline">
-              {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-              {isMuted ? 'Unmute' : 'Mute'}
-            </Button>
-            <Button onClick={handleStrokeScaleOpen} variant="outline">
-              Open Stroke Scale
-            </Button>
-          </div>
-          
-          {/* Active Call Chat */}
-          {mediaConnection && activeChats[mediaConnection.peer] && (
-            <div className="mt-4">
-              <ChatBox
-                dataConnection={activeChats[mediaConnection.peer]}
-                currentPeerId={currentPeerId}
-                remotePeerId={mediaConnection.peer}
-                onMinimize={() => minimizeChat(mediaConnection.peer)}
-                minimized={minimizedChats.includes(mediaConnection.peer)}
-              />
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
-
-      {/* Standalone Chat Boxes */}
-      <div className="fixed bottom-4 right-4 flex flex-col-reverse gap-4 max-h-[80vh] overflow-y-auto">
-        {Object.entries(activeChats)
-          .filter(([peerId]) => !mediaConnection || peerId !== mediaConnection.peer)
-          .map(([peerId, conn]) => (
-            <ChatBox
-              key={peerId}
-              dataConnection={conn}
-              currentPeerId={currentPeerId}
-              remotePeerId={peerId}
-              onClose={() => closeChat(peerId)}
-              onMinimize={() => minimizeChat(peerId)}
-              minimized={minimizedChats.includes(peerId)}
-            />
-          ))}
+    <div className="min-h-screen relative">
+      <div className="fixed inset-0 w-full h-full pointer-events-none" style={{ zIndex: -1 }}>
+        <PerlinNoiseBackground
+          className="absolute inset-0 w-full h-full"
+          style={{ filter: 'blur(30px)'}}
+        />
+        <div className="absolute inset-0 bg-white opacity-60"></div>
       </div>
 
-      {/* Notifications */}
-      <div className="fixed top-4 right-4 flex flex-col gap-2">
-        {Object.entries(notifications)
-          .filter(([_, hasNotification]) => hasNotification)
-          .map(([peerId]) => (
-            <Alert key={peerId} className="w-[300px] cursor-pointer" onClick={() => initializeChat(peerId)}>
-              <AlertDescription>
-                New message from {peerId}
-              </AlertDescription>
-            </Alert>
-          ))}
+      <div className="relative min-h-screen z-0">
+        <div className="container mx-auto p-4">
+          {isIncomingCall && (
+            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+              <div className="bg-white p-6 rounded-md text-center">
+                <p className="mb-4">Incoming call from {callerId}</p>
+                <Button onClick={acceptCall} className="mr-2">
+                  Accept
+                </Button>
+                <Button onClick={declineCall} variant="destructive">
+                  Decline
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)}>
+            <TabsList className="w-full border-b rounded-none bg-transparent">
+              {tabs.map((tab) => (
+                <TabsTrigger
+                  key={tab.key}
+                  value={tab.key}
+                  className="data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                >
+                  {tab.name}
+                </TabsTrigger>
+              ))}
+              {isCallActive && (
+                <TabsTrigger
+                  value="activeCall"
+                  className="data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                >
+                  Active Call
+                </TabsTrigger>
+              )}
+            </TabsList>
+
+            <TabsContent value="home">
+              {/* Home Tab Content */}
+              <h1 className="text-2xl font-bold mb-6">Home Call Page</h1>
+              <Card className="mb-6">
+                <CardContent className="pt-6">
+                  <div className="text-center">
+                    <div className="text-lg font-semibold mb-2">Your Peer ID:</div>
+                    <div className="text-sm bg-muted p-2 rounded-md overflow-x-auto">
+                      <code>{currentPeerId}</code>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              {isLoading && <div className="text-center">Loading peer IDs...</div>}
+              {error && <div className="text-red-500 mb-4">{error}</div>}
+              <div className="grid grid-cols-1 gap-4">
+                {peerIds.map((peerId) => (
+                  <Card key={peerId} className="flex flex-row items-center">
+                    <CardContent className="py-4 flex-grow">
+                      <div className="text-sm font-medium">Peer ID:</div>
+                      <div className="text-xs text-muted-foreground break-all">
+                        {peerId}
+                      </div>
+                    </CardContent>
+                    <CardFooter className="p-4 flex gap-2">
+                      <Button onClick={() => handleCall(peerId)} size="sm">
+                        <PhoneCall className="mr-2 h-4 w-4" /> Call
+                      </Button>
+                      <Button 
+                        onClick={() => initializeChat(peerId)} 
+                        size="sm"
+                        variant={notifications[peerId] ? "destructive" : "secondary"}
+                      >
+                        <MessageCircle className="mr-2 h-4 w-4" /> 
+                        {notifications[peerId] ? "New Message" : "Chat"}
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="strokeScale">
+              <div className="mt-6">
+                <StrokeScaleForm />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="files">
+              {/* Files Tab Content */}
+              <h1 className="text-2xl font-bold mb-6">Files</h1>
+              {/* Add your Files content here */}
+            </TabsContent>
+
+            <TabsContent value="activeCall" className="mt-6">
+              {/* Active Call Content */}
+              <h2 className="text-xl font-bold mb-4">Active Call</h2>
+              <video
+                ref={videoEl}
+                autoPlay
+                playsInline
+                className="w-full h-auto border"
+                muted
+              ></video>
+              <div className="flex mt-4 space-x-4">
+                <Button onClick={endCall} variant="destructive">
+                  End Call
+                </Button>
+                <Button onClick={holdCall}>
+                  {isCallOnHold ? 'Resume Call' : 'Hold Call'}
+                </Button>
+                <Button onClick={toggleMute} variant="outline">
+                  {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  {isMuted ? 'Unmute' : 'Mute'}
+                </Button>
+                <Button 
+                  onClick={() => setActiveTab('strokeScale')} 
+                  variant="outline"
+                >
+                  Open Stroke Scale
+                </Button>
+              </div>
+              
+              {/* Active Call Chat */}
+              {mediaConnection && activeChats[mediaConnection.peer] && (
+                <div className="mt-4">
+                  <ChatBox
+                    dataConnection={activeChats[mediaConnection.peer]}
+                    currentPeerId={currentPeerId}
+                    remotePeerId={mediaConnection.peer}
+                    onMinimize={() => minimizeChat(mediaConnection.peer)}
+                    minimized={minimizedChats.includes(mediaConnection.peer)}
+                  />
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+
+          {/* Standalone Chat Boxes */}
+          <div className="fixed bottom-4 right-4 flex flex-col-reverse gap-4 max-h-[80vh] overflow-y-auto">
+            {Object.entries(activeChats)
+              .filter(([peerId]) => !mediaConnection || peerId !== mediaConnection.peer)
+              .map(([peerId, conn]) => (
+                <ChatBox
+                  key={peerId}
+                  dataConnection={conn}
+                  currentPeerId={currentPeerId}
+                  remotePeerId={peerId}
+                  onClose={() => closeChat(peerId)}
+                  onMinimize={() => minimizeChat(peerId)}
+                  minimized={minimizedChats.includes(peerId)}
+                />
+              ))}
+          </div>
+
+          {/* Notifications */}
+          <div className="fixed top-4 right-4 flex flex-col gap-2">
+            {Object.entries(notifications)
+              .filter(([_, hasNotification]) => hasNotification)
+              .map(([peerId]) => (
+                <Alert key={peerId} className="w-[300px] cursor-pointer" onClick={() => initializeChat(peerId)}>
+                  <AlertDescription>
+                    New message from {peerId}
+                  </AlertDescription>
+                </Alert>
+              ))}
+          </div>
+        </div>
       </div>
     </div>
   );

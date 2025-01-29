@@ -4,9 +4,7 @@ import React, { useState } from 'react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-interface StrokeScaleFormProps {
-  onClose?: () => void;
-}
+interface StrokeScaleFormProps {}
 
 interface Question {
   id: number;
@@ -18,9 +16,9 @@ interface FormData {
   [key: number]: number;
 }
 
-export function StrokeScaleForm({ onClose }: StrokeScaleFormProps) {
-  const [currentStep, setCurrentStep] = useState(0);
+export function StrokeScaleForm({}: StrokeScaleFormProps) {
   const [formData, setFormData] = useState<FormData>({});
+  const [patientName, setPatientName] = useState('');
 
   const questions: Question[] = [
     {
@@ -182,14 +180,10 @@ export function StrokeScaleForm({ onClose }: StrokeScaleFormProps) {
       ...prevData,
       [questionId]: optionIndex
     }));
-    
-    const question = questions.find(q => q.id === questionId);
-    if (question && questions.indexOf(question) < questions.length - 1) {
-      setCurrentStep(currentStep + 1);
-    }
   };
 
-  const renderQuestion = ({ question, selectedOption }: { question: Question; selectedOption: number | undefined }) => {
+  const renderQuestion = (question: Question) => {
+    const selectedOption = formData[question.id];
     return (
       <div key={question.id} className="space-y-4">
         <h3 className="text-lg font-semibold">{question.text}</h3>
@@ -220,37 +214,35 @@ export function StrokeScaleForm({ onClose }: StrokeScaleFormProps) {
   };
 
   return (
-    <Card className="w-full max-w-2xl p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">NIH Stroke Scale Assessment</h2>
-        {onClose && <Button variant="outline" onClick={onClose}>Close</Button>}
-      </div>
-
-      {renderQuestion({
-        question: questions[currentStep],
-        selectedOption: formData[questions[currentStep].id]
-      })}
-
-      <div className="flex justify-between mt-6">
-        <Button
-          variant="outline"
-          onClick={() => setCurrentStep(prev => Math.max(0, prev - 1))}
-          disabled={currentStep === 0}
-        >
-          Previous
-        </Button>
-
-        <div className="text-center">
-          <p className="font-semibold">Question {currentStep + 1} of {questions.length}</p>
-          <p>Total Score: {calculateScore()}</p>
+    <Card className="w-full p-6 space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold mb-6">NIH Stroke Scale Assessment</h2>
+        
+        <div className="mb-6">
+          <label htmlFor="patientName" className="block text-sm font-medium mb-2">Patient Name</label>
+          <input
+            type="text"
+            id="patientName"
+            value={patientName}
+            onChange={(e) => setPatientName(e.target.value)}
+            className="w-full p-2 border rounded-md"
+            placeholder="Enter patient name"
+          />
         </div>
 
-        <Button
-          onClick={() => setCurrentStep(prev => Math.min(questions.length - 1, prev + 1))}
-          disabled={currentStep === questions.length - 1}
-        >
-          Next
-        </Button>
+        <div className="space-y-8">
+          {questions.map((question) => (
+            <div key={question.id} className="border-b pb-6">
+              {renderQuestion(question)}
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-6 pt-6 border-t">
+          <div className="text-xl font-bold text-center">
+            Total NIHSS Score: {calculateScore()}
+          </div>
+        </div>
       </div>
     </Card>
   );

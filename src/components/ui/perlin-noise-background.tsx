@@ -23,10 +23,23 @@ const PerlinNoiseBackground: React.FC<PerlinNoiseBackgroundProps> = ({ style, cl
     let animationFrameId: number;
 
     const resize = () => {
+      const container = canvas.parentElement;
+      if (!container) return;
+
+      // Get the full document height
+      const docHeight = Math.max(
+        document.documentElement.scrollHeight,
+        document.documentElement.offsetHeight,
+        document.documentElement.clientHeight
+      );
+
       canvas.width = Math.floor(window.innerWidth / 4);
-      canvas.height = Math.floor(window.innerHeight / 4);
+      canvas.height = Math.floor(docHeight / 4);
       canvas.style.width = '100%';
       canvas.style.height = '100%';
+      canvas.style.position = 'fixed';
+      canvas.style.top = '0';
+      canvas.style.left = '0';
     };
 
     const animate = (timestamp: number) => {

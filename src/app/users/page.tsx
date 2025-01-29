@@ -17,23 +17,10 @@ const UserPage = () => {
 
   return (
     <div>
-      <Button onClick={handleLogout} className="absolute top-4 right-4">
+      <Button onClick={handleLogout} className="absolute top-4 right-4 z-50">
         Logout
       </Button>
       
-      <Button 
-        onClick={() => setShowStrokeScale(true)}
-        className="absolute top-4 right-24"
-      >
-        Open Stroke Scale
-      </Button>
-
-      {showStrokeScale && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4">
-          <StrokeScaleForm onClose={() => setShowStrokeScale(false)} />
-        </div>
-      )}
-
       <HomeCallPage />
     </div>
   );
