@@ -2,26 +2,24 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { PhoneCall, Mic, MicOff, MessageCircle, LogOut, Brain, PanelLeftOpen, PanelLeftClose, HomeIcon, FileText } from "lucide-react";
+import { MessageCircle, LogOut, Brain, PanelLeftOpen, PanelLeftClose, HomeIcon } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { StrokeScaleForm } from "@/components/stroke-scale/stroke-scale-form";
 import { ChatBox } from "@/components/video-call/chat-box";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { usePeerConnection } from "@/lib/usePeerConnection";
+import { usePeerConnection } from "@/hooks/usePeerConnection";
 
 type MenuItem = {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
-  value: 'home' | 'strokeScale' | 'files';
+  value: 'home' | 'strokeScale';
 };
 
 const menuItems: MenuItem[] = [
   { icon: HomeIcon, label: 'Home', value: 'home' },
   { icon: Brain, label: 'Stroke Scale', value: 'strokeScale' },
-  { icon: FileText, label: 'Files', value: 'files' },
 ];
 
-export default function UsersPage() {
+export default function Page() {
   const {
     currentPeerId,
     peerIds,
@@ -32,11 +30,7 @@ export default function UsersPage() {
     activeChats,
     minimizedChats,
     notifications,
-    incomingCall,
-    isIncomingCall,
     callerId,
-    myStream,
-    mediaConnection,
     videoEl,
     isCallActive,
     isCallOnHold,
@@ -54,14 +48,12 @@ export default function UsersPage() {
     initializeChat,
     closeChat,
     minimizeChat,
-    establishDataConnection,
+    mediaConnection,
     setActiveView,
-    setNotifications,
   } = usePeerConnection();
 
   return (
     <div className="flex h-screen">
-      {/* Sidebar */}
       <div className={`h-full bg-white border-r transition-all duration-200 flex flex-col ${isSidebarOpen ? 'w-64' : 'w-16'}`}>
         <div className="p-4 flex items-center justify-between border-b">
           {isSidebarOpen && (
@@ -103,14 +95,13 @@ export default function UsersPage() {
               className={`w-full h-10 ${isSidebarOpen ? 'justify-start px-3' : 'justify-center px-0'}`}
               onClick={() => setActiveView('activeCall')}
             >
-              <PhoneCall className="h-5 w-5 shrink-0" />
+              <HomeIcon className="h-5 w-5 shrink-0" />
               {isSidebarOpen && <span className="ml-2">Active Call</span>}
             </Button>
           )}
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="flex-1 overflow-auto">
         <header className="bg-blue-500 text-white flex items-center justify-end px-6 py-4 shadow-lg">
           <Button 
@@ -124,7 +115,6 @@ export default function UsersPage() {
         </header>
 
         <div className="container mx-auto p-4">
-          {/* View content */}
           {activeView === 'home' && (
             <div className="space-y-6">
               <Card className="mb-6 bg-blue-100">
@@ -150,7 +140,7 @@ export default function UsersPage() {
                     </CardContent>
                     <CardFooter className="p-4 flex gap-2">
                       <Button onClick={() => handleCall(peerId)} size="sm">
-                        <PhoneCall className="mr-2 h-4 w-4" /> Call
+                        <HomeIcon className="mr-2 h-4 w-4" /> Call
                       </Button>
                       <Button 
                         onClick={() => initializeChat(peerId)} 
@@ -164,13 +154,6 @@ export default function UsersPage() {
                   </Card>
                 ))}
               </div>
-            </div>
-          )}
-
-          {activeView === 'files' && (
-            <div className={isStrokeScaleOpen ? 'hidden' : ''}>
-              <h1 className="text-2xl font-bold mb-6">Files</h1>
-              {/* Files content */}
             </div>
           )}
 
@@ -192,15 +175,13 @@ export default function UsersPage() {
                   {isCallOnHold ? 'Resume Call' : 'Hold Call'}
                 </Button>
                 <Button onClick={toggleMute} variant="outline">
-                  {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                   {isMuted ? 'Unmute' : 'Mute'}
                 </Button>
                 <Button onClick={handleStrokeScaleOpen} variant="outline">
                   Open Stroke Scale
                 </Button>
               </div>
-              
-              {/* Active Call Chat */}
+
               {mediaConnection && activeChats[mediaConnection.peer] && (
                 <div className="mt-4">
                   <ChatBox
@@ -215,24 +196,20 @@ export default function UsersPage() {
             </div>
           )}
 
-          {/* Standalone Chat Boxes */}
           <div className="fixed bottom-4 right-4 flex flex-col-reverse gap-4 max-h-[80vh] overflow-y-auto">
-            {Object.entries(activeChats)
-              .filter(([peerId]) => !mediaConnection || peerId !== mediaConnection.peer)
-              .map(([peerId, conn]) => (
-                <ChatBox
-                  key={peerId}
-                  dataConnection={conn}
-                  currentPeerId={currentPeerId}
-                  remotePeerId={peerId}
-                  onClose={() => closeChat(peerId)}
-                  onMinimize={() => minimizeChat(peerId)}
-                  minimized={minimizedChats.includes(peerId)}
-                />
-              ))}
+            {Object.entries(activeChats).map(([peerId, conn]) => (
+              <ChatBox
+                key={peerId}
+                dataConnection={conn}
+                currentPeerId={currentPeerId}
+                remotePeerId={peerId}
+                onClose={() => closeChat(peerId)}
+                onMinimize={() => minimizeChat(peerId)}
+                minimized={minimizedChats.includes(peerId)}
+              />
+            ))}
           </div>
 
-          {/* Notifications */}
           <div className="fixed top-4 right-4 flex flex-col gap-2">
             {Object.entries(notifications)
               .filter(([_, hasNotification]) => hasNotification)
@@ -247,21 +224,6 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* ...existing modals and overlays... */}
-      {isIncomingCall && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white p-6 rounded-md text-center">
-            <p className="mb-4">Incoming call from {callerId}</p>
-            <Button onClick={acceptCall} className="mr-2">
-              Accept
-            </Button>
-            <Button onClick={declineCall} variant="destructive">
-              Decline
-            </Button>
-          </div>
-        </div>
-      )}
-
       {isStrokeScaleOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-white rounded-lg overflow-auto max-h-[90vh] w-full max-w-4xl mx-4">
@@ -270,5 +232,5 @@ export default function UsersPage() {
         </div>
       )}
     </div>
-    );
-    }
+  );
+}
