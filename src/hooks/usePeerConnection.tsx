@@ -284,6 +284,7 @@ export function usePeerConnection() {
 
   const handleStrokeScaleClose = () => {
     setIsStrokeScaleOpen(false);
+    setIsSidebarOpen(false);
     if (isCallActive) {
       setActiveView('activeCall');
     }

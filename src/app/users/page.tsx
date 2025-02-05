@@ -1,12 +1,27 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { MessageCircle, LogOut, Brain, PanelLeftOpen, PanelLeftClose, HomeIcon } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { 
+  MessageCircle, 
+  LogOut, 
+  Brain, 
+  Stethoscope,
+  User2,
+  Video,
+  PhoneCall,
+  ClipboardList,
+  Crosshair
+} from "lucide-react";
 import { StrokeScaleForm } from "@/components/stroke-scale/stroke-scale-form";
 import { ChatBox } from "@/components/video-call/chat-box";
 import { usePeerConnection } from "@/hooks/usePeerConnection";
+import { cn } from "@/lib/utils";
 
 type MenuItem = {
   icon: React.ComponentType<{ className?: string }>;
@@ -15,8 +30,8 @@ type MenuItem = {
 };
 
 const menuItems: MenuItem[] = [
-  { icon: HomeIcon, label: 'Home', value: 'home' },
-  { icon: Brain, label: 'Stroke Scale', value: 'strokeScale' },
+  { icon: Stethoscope, label: 'Consultations', value: 'home' },
+  { icon: ClipboardList, label: 'Stroke Scale', value: 'strokeScale' },
 ];
 
 export default function Page() {
@@ -34,7 +49,6 @@ export default function Page() {
     videoEl,
     isCallActive,
     isCallOnHold,
-    isSidebarOpen,
     activeView,
     handleCall,
     acceptCall,
@@ -53,150 +67,196 @@ export default function Page() {
   } = usePeerConnection();
 
   return (
-    <div className="flex h-screen">
-      <div className={`h-full bg-white border-r transition-all duration-200 flex flex-col ${isSidebarOpen ? 'w-64' : 'w-16'}`}>
-        <div className="p-4 flex items-center justify-between border-b">
-          {isSidebarOpen && (
-            <div className="flex items-center gap-2">
-              <Brain className="h-6 w-6" />
-              <span className="font-bold">NeuroCall</span>
-            </div>
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 shrink-0"
-            onClick={handleStrokeScaleClose}
-          >
-            {isSidebarOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
-          </Button>
+    <div className="flex h-screen bg-[#f8fafc]">
+      {/* Static Sidebar */}
+      <div className="w-[280px] border-r border-gray-100 bg-white p-4">
+        <div className="flex items-center gap-3 pb-6">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src="/neuro-logo.svg" />
+            <AvatarFallback>NC</AvatarFallback>
+          </Avatar>
+          <h1 className="text-lg font-semibold text-blue-900">
+            NeuroConnect
+          </h1>
         </div>
-        <div className="flex flex-col gap-2 p-2">
+
+        <nav className="space-y-1">
           {menuItems.map((item) => (
             <Button
               key={item.value}
-              variant={activeView === item.value ? "default" : "ghost"}
-              className={`w-full h-10 ${isSidebarOpen ? 'justify-start px-3' : 'justify-center px-0'}`}
+              variant={activeView === item.value ? "secondary" : "ghost"}
+              className={cn(
+                "w-full justify-start gap-3",
+                activeView === item.value && "bg-blue-50 text-blue-900"
+              )}
               onClick={() => {
-                if (item.value === 'strokeScale') {
-                  handleStrokeScaleOpen();
-                } else {
-                  setActiveView(item.value);
-                }
+                item.value === 'strokeScale' 
+                  ? handleStrokeScaleOpen()
+                  : setActiveView(item.value)
               }}
             >
-              <item.icon className="h-5 w-5 shrink-0" />
-              {isSidebarOpen && <span className="ml-2">{item.label}</span>}
+              <item.icon className="h-5 w-5 text-blue-600" />
+              {item.label}
             </Button>
           ))}
-          {isCallActive && (
-            <Button
-              variant={activeView === 'activeCall' ? "default" : "ghost"}
-              className={`w-full h-10 ${isSidebarOpen ? 'justify-start px-3' : 'justify-center px-0'}`}
-              onClick={() => setActiveView('activeCall')}
-            >
-              <HomeIcon className="h-5 w-5 shrink-0" />
-              {isSidebarOpen && <span className="ml-2">Active Call</span>}
-            </Button>
-          )}
-        </div>
+        </nav>
       </div>
 
-      <div className="flex-1 overflow-auto">
-        <header className="bg-blue-500 text-white flex items-center justify-end px-6 py-4 shadow-lg">
+      <main className="flex-1 overflow-hidden">
+        <header className="flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="border-blue-100 bg-blue-50 text-blue-900">
+              <User2 className="mr-2 h-4 w-4" />
+              {currentPeerId ? (
+                <span className="font-mono text-sm">{currentPeerId.slice(0, 8)}</span>
+              ) : (
+                <Skeleton className="h-4 w-24" />
+              )}
+            </Badge>
+          </div>
+
           <Button 
-            onClick={handleLogout} 
-            variant="outline" 
-            size="sm" 
-            className="text-white border-white bg-transparent hover:bg-blue-600 focus:bg-blue-600"
+            onClick={handleLogout}
+            variant="ghost"
+            className="text-red-600 hover:bg-red-50"
           >
-            <LogOut className="mr-2 h-4 w-4" /> Logout
+            <LogOut className="mr-2 h-4 w-4" />
+            Sign Out
           </Button>
         </header>
 
-        <div className="container mx-auto p-4">
+        <div className="h-[calc(100vh-80px)] overflow-y-auto p-6">
           {activeView === 'home' && (
-            <div className="space-y-6">
-              <Card className="mb-6 bg-blue-100">
-                <CardContent className="pt-6">
-                  <div className="text-center">
-                    <div className="text-lg font-semibold mb-2">Your Peer ID:</div>
-                    <div className="text-sm bg-muted p-2 rounded-md overflow-x-auto">
-                      <code>{currentPeerId}</code>
+            <div className="mx-auto max-w-4xl space-y-6">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertTitle>Connection Error</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <Card className="border-blue-50 bg-white shadow-sm">
+                <CardHeader className="border-b border-blue-50">
+                  <CardTitle className="flex items-center gap-2 text-blue-900">
+                    <Video className="h-5 w-5" />
+                    Active Consultations
+                  </CardTitle>
+                </CardHeader>
+                
+                <CardContent className="p-0">
+                  {isLoading ? (
+                    <div className="space-y-4 p-6">
+                      {[1, 2, 3].map((i) => (
+                        <Skeleton key={i} className="h-20 w-full rounded-lg" />
+                      ))}
                     </div>
-                  </div>
+                  ) : peerIds.length > 0 ? (
+                    <div className="divide-y divide-blue-50">
+                      {peerIds.map((peerId) => (
+                        <div key={peerId} className="flex items-center justify-between p-4">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-9 w-9">
+                              <AvatarImage src={`/avatars/${peerId.slice(-2)}.png`} />
+                              <AvatarFallback>MD</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium text-gray-900">Dr. {peerId.slice(0, 6)}</p>
+                              <p className="text-sm text-gray-500">Cardiology</p>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <HoverCard>
+                              <HoverCardTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleCall(peerId)}
+                                  className="gap-2 bg-blue-600 hover:bg-blue-700"
+                                >
+                                  <PhoneCall className="h-4 w-4" />
+                                  <span>Video Call</span>
+                                </Button>
+                              </HoverCardTrigger>
+                              <HoverCardContent className="w-80">
+                                <div className="space-y-2">
+                                  <h4 className="font-medium">Consultation Options</h4>
+                                  <p className="text-sm text-gray-600">
+                                    Initiate a video consultation or text chat with this specialist.
+                                  </p>
+                                </div>
+                              </HoverCardContent>
+                            </HoverCard>
+
+                            <Button
+                              variant={notifications[peerId] ? "destructive" : "outline"}
+                              size="sm"
+                              onClick={() => initializeChat(peerId)}
+                            >
+                              <MessageCircle className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-6 text-center text-gray-500">
+                      No active consultations available
+                    </div>
+                  )}
                 </CardContent>
               </Card>
-              {isLoading && <div className="text-center">Loading peer IDs...</div>}
-              {error && <div className="text-red-500 mb-4">{error}</div>}
-              <div className="grid grid-cols-1 gap-4">
-                {peerIds.map((peerId) => (
-                  <Card key={peerId} className="flex flex-row items-center">
-                    <CardContent className="py-4 flex-grow">
-                      <div className="text-sm font-medium">Peer ID:</div>
-                      <div className="text-xs text-muted-foreground break-all">
-                        {peerId}
-                      </div>
-                    </CardContent>
-                    <CardFooter className="p-4 flex gap-2">
-                      <Button onClick={() => handleCall(peerId)} size="sm">
-                        <HomeIcon className="mr-2 h-4 w-4" /> Call
-                      </Button>
-                      <Button 
-                        onClick={() => initializeChat(peerId)} 
-                        size="sm"
-                        variant={notifications[peerId] ? "destructive" : "secondary"}
-                      >
-                        <MessageCircle className="mr-2 h-4 w-4" /> 
-                        {notifications[peerId] ? "New Message" : "Chat"}
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
-              </div>
             </div>
           )}
 
           {activeView === 'activeCall' && (
-            <div className={`${isStrokeScaleOpen ? 'hidden' : ''}`}>
-              <h2 className="text-xl font-bold mb-4">Active Call</h2>
-              <video
-                ref={videoEl}
-                autoPlay
-                playsInline
-                className="w-full h-auto border"
-                muted
-              ></video>
-              <div className="flex mt-4 space-x-4">
-                <Button onClick={endCall} variant="destructive">
-                  End Call
-                </Button>
-                <Button onClick={holdCall}>
-                  {isCallOnHold ? 'Resume Call' : 'Hold Call'}
-                </Button>
-                <Button onClick={toggleMute} variant="outline">
-                  {isMuted ? 'Unmute' : 'Mute'}
-                </Button>
-                <Button onClick={handleStrokeScaleOpen} variant="outline">
-                  Open Stroke Scale
-                </Button>
-              </div>
-
-              {mediaConnection && activeChats[mediaConnection.peer] && (
-                <div className="mt-4">
-                  <ChatBox
-                    dataConnection={activeChats[mediaConnection.peer]}
-                    currentPeerId={currentPeerId}
-                    remotePeerId={mediaConnection.peer}
-                    onMinimize={() => minimizeChat(mediaConnection.peer)}
-                    minimized={minimizedChats.includes(mediaConnection.peer)}
+            <div className="mx-auto max-w-4xl space-y-6">
+              <Card className="overflow-hidden border-blue-50">
+                <CardHeader className="border-b border-blue-50 bg-blue-50 p-4">
+                  <CardTitle className="flex items-center gap-2 text-blue-900">
+                    <PhoneCall className="h-5 w-5" />
+                    Ongoing Consultation
+                  </CardTitle>
+                </CardHeader>
+                
+                <CardContent className="p-0">
+                  <video
+                    ref={videoEl}
+                    autoPlay
+                    playsInline
+                    className="h-[500px] w-full object-cover"
+                    muted
                   />
-                </div>
-              )}
+
+                  <div className="flex gap-2 p-4">
+                    <Button 
+                      onClick={endCall} 
+                      variant="destructive" 
+                      className="gap-2"
+                    >
+                      <PhoneCall className="h-4 w-4" />
+                      End Call
+                    </Button>
+                    <Button
+                      onClick={holdCall}
+                      variant="outline"
+                      className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
+                    >
+                      {isCallOnHold ? 'Resume' : 'Hold'}
+                    </Button>
+                    <Button
+                      onClick={toggleMute}
+                      variant="outline"
+                      className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
+                    >
+                      {isMuted ? 'Unmute' : 'Mute'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
 
-          <div className="fixed bottom-4 right-4 flex flex-col-reverse gap-4 max-h-[80vh] overflow-y-auto">
+          <div className="fixed bottom-4 right-4 flex flex-col-reverse gap-4">
             {Object.entries(activeChats).map(([peerId, conn]) => (
               <ChatBox
                 key={peerId}
@@ -210,25 +270,35 @@ export default function Page() {
             ))}
           </div>
 
-          <div className="fixed top-4 right-4 flex flex-col gap-2">
+          <div className="fixed right-4 top-20 space-y-2">
             {Object.entries(notifications)
               .filter(([_, hasNotification]) => hasNotification)
               .map(([peerId]) => (
-                <Alert key={peerId} className="w-[300px] cursor-pointer" onClick={() => initializeChat(peerId)}>
-                  <AlertDescription>
-                    New message from {peerId}
+                <Alert 
+                  key={peerId} 
+                  className="w-[300px] cursor-pointer bg-blue-50 border-blue-200"
+                  onClick={() => initializeChat(peerId)}
+                >
+                  <AlertDescription className="flex items-center gap-2 text-blue-900">
+                    <MessageCircle className="h-4 w-4" />
+                    New message from Dr. {peerId.slice(0, 6)}
                   </AlertDescription>
                 </Alert>
               ))}
           </div>
         </div>
-      </div>
+      </main>
 
       {isStrokeScaleOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white rounded-lg overflow-auto max-h-[90vh] w-full max-w-4xl mx-4">
-            <StrokeScaleForm onClose={handleStrokeScaleClose} />
-          </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <Card className="max-h-[90vh] w-full max-w-3xl overflow-hidden">
+            <CardHeader className="border-b border-blue-50 bg-blue-50">
+              <CardTitle className="text-blue-900">NIH Stroke Scale Assessment</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <StrokeScaleForm onClose={handleStrokeScaleClose} />
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>
