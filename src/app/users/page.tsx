@@ -62,12 +62,9 @@ export default function Page() {
     isIncomingCall,
   } = usePeerConnection();
 
-  // Reassign video stream when call resumes
   useEffect(() => {
     if (!isCallOnHold && videoEl.current && mediaConnection?.remoteStream) {
       videoEl.current.srcObject = mediaConnection.remoteStream;
-      // Optional: ensure the video starts playing
-      videoEl.current.play().catch(err => console.error("Error playing video:", err));
     }
   }, [isCallOnHold, mediaConnection, videoEl]);
 
@@ -161,7 +158,6 @@ export default function Page() {
                         <div key={peerId} className="flex items-center justify-between p-4">
                           <div className="flex items-center gap-3">
                             <Avatar className="h-9 w-9">
-                              <AvatarImage src={`/avatars/${peerId}.png`} />
                               <AvatarFallback>MD</AvatarFallback>
                             </Avatar>
                             <div>
