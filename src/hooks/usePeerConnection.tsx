@@ -13,14 +13,12 @@ export function usePeerConnection() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isMuted, setIsMuted] = useState<boolean>(false);
-  const [isStrokeScaleOpen, setIsStrokeScaleOpen] = useState<boolean>(false);
   const [incomingCall, setIncomingCall] = useState<MediaConnection | null>(null);
   const [myStream, setMyStream] = useState<MediaStream | null>(null);
   const [mediaConnection, setMediaConnection] = useState<MediaConnection | null>(null);
   const videoEl = useRef<HTMLVideoElement>(null);
   const [isIncomingCall, setIsIncomingCall] = useState<boolean>(false);
   const [callerId, setCallerId] = useState<string>("");
-  const [isCallActive, setIsCallActive] = useState<boolean>(false);
   const [isCallOnHold, setIsCallOnHold] = useState<boolean>(false);
   const [activeView, setActiveView] = useState<'home' | 'strokeScale' | 'files' | 'activeCall'>('home');
   const [isRinging, setIsRinging] = useState<boolean>(false);
@@ -107,10 +105,10 @@ export function usePeerConnection() {
         setIsRinging(true);
         const call = peer.call(peerId, stream);
         setMediaConnection(call);
-        setIsCallActive(true);
-        setActiveView('activeCall');
 
         call.on("stream", (remoteStream) => {
+          setActiveView('activeCall');
+
           if (videoEl.current) {
             videoEl.current.srcObject = remoteStream;
           }
@@ -133,7 +131,6 @@ export function usePeerConnection() {
         setMyStream(stream);
         incomingCall.answer(stream);
         setMediaConnection(incomingCall);
-        setIsCallActive(true);
         setActiveView('activeCall');
 
         incomingCall.on("stream", (remoteStream) => {
@@ -169,7 +166,6 @@ export function usePeerConnection() {
     if (myStream) {
       myStream.getTracks().forEach((track) => track.stop());
     }
-    setIsCallActive(false);
     setActiveView('home');
     setMediaConnection(null);
     setMyStream(null);
@@ -186,22 +182,10 @@ export function usePeerConnection() {
 
   const toggleMute = () => {
     if (myStream) {
-      const audioTracks = myStream.getAudioTracks();
-      audioTracks.forEach(track => {
-        track.enabled = !track.enabled;
+      myStream.getAudioTracks().forEach(track => {
+        track.enabled = isMuted ? true : false;
       });
       setIsMuted(!isMuted);
-    }
-  };
-
-  const handleStrokeScaleOpen = () => {
-    setIsStrokeScaleOpen(true);
-  };
-
-  const handleStrokeScaleClose = () => {
-    setIsStrokeScaleOpen(false);
-    if (isCallActive) {
-      setActiveView('activeCall');
     }
   };
 
@@ -217,14 +201,12 @@ export function usePeerConnection() {
     error,
     isLoading,
     isMuted,
-    isStrokeScaleOpen,
     incomingCall,
     isIncomingCall,
     callerId,
     myStream,
     mediaConnection,
     videoEl,
-    isCallActive,
     isCallOnHold,
     activeView,
     handleCall,
@@ -233,8 +215,6 @@ export function usePeerConnection() {
     endCall,
     holdCall,
     toggleMute,
-    handleStrokeScaleOpen,
-    handleStrokeScaleClose,
     handleLogout,
     setActiveView,
     isRinging,

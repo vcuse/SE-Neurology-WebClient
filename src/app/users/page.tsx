@@ -2,7 +2,7 @@
 
 import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
@@ -10,15 +10,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
   Pause,
-  MessageCircle, 
-  LogOut, 
-  Brain, 
+  LogOut,
   Stethoscope,
   User2,
   Video,
   PhoneCall,
-  ClipboardList,
-  Crosshair
 } from "lucide-react";
 import { StrokeScaleForm } from "@/components/stroke-scale/stroke-scale-form";
 import { usePeerConnection } from "@/hooks/usePeerConnection";
@@ -32,7 +28,6 @@ type MenuItem = {
 
 const menuItems: MenuItem[] = [
   { icon: Stethoscope, label: 'Consultations', value: 'home' },
-  { icon: ClipboardList, label: 'Stroke Scale', value: 'strokeScale' },
 ];
 
 export default function Page() {
@@ -42,10 +37,8 @@ export default function Page() {
     error,
     isLoading,
     isMuted,
-    isStrokeScaleOpen,
     callerId,
     videoEl,
-    isCallActive,
     isCallOnHold,
     activeView,
     handleCall,
@@ -54,8 +47,6 @@ export default function Page() {
     endCall,
     holdCall,
     toggleMute,
-    handleStrokeScaleOpen,
-    handleStrokeScaleClose,
     handleLogout,
     mediaConnection,
     setActiveView,
@@ -74,7 +65,6 @@ export default function Page() {
       <div className="w-[280px] border-r border-gray-100 bg-white p-4">
         <div className="flex items-center gap-3 pb-6">
           <Avatar className="h-8 w-8">
-            <AvatarImage src="/neuro-logo.svg" />
             <AvatarFallback>NC</AvatarFallback>
           </Avatar>
           <h1 className="text-lg font-semibold text-blue-900">
@@ -92,9 +82,7 @@ export default function Page() {
                 activeView === item.value && "bg-blue-50 text-blue-900"
               )}
               onClick={() => {
-                item.value === 'strokeScale' 
-                  ? handleStrokeScaleOpen()
-                  : setActiveView(item.value)
+                setActiveView(item.value)
               }}
             >
               <item.icon className="h-5 w-5 text-blue-600" />
@@ -117,7 +105,7 @@ export default function Page() {
             </Badge>
           </div>
 
-          <Button 
+          <Button
             onClick={handleLogout}
             variant="ghost"
             className="text-red-600 hover:bg-red-50"
@@ -144,7 +132,7 @@ export default function Page() {
                     Active Consultations
                   </CardTitle>
                 </CardHeader>
-                
+
                 <CardContent className="p-0">
                   {isLoading ? (
                     <div className="space-y-4 p-6">
@@ -165,7 +153,6 @@ export default function Page() {
                               <p className="text-sm text-gray-500">Cardiology</p>
                             </div>
                           </div>
-
                           <div className="flex gap-2">
                             <HoverCard>
                               <HoverCardTrigger asChild>
@@ -231,7 +218,7 @@ export default function Page() {
                     Ongoing Consultation
                   </CardTitle>
                 </CardHeader>
-                
+
                 <CardContent className="p-0">
                   {isCallOnHold ? (
                     <div className="flex h-[500px] w-full items-center justify-center bg-gray-100 text-gray-500">
@@ -248,9 +235,9 @@ export default function Page() {
                   )}
 
                   <div className="flex gap-2 p-4">
-                    <Button 
-                      onClick={endCall} 
-                      variant="destructive" 
+                    <Button
+                      onClick={endCall}
+                      variant="destructive"
                       className="gap-2"
                     >
                       <PhoneCall className="h-4 w-4" />
@@ -275,22 +262,8 @@ export default function Page() {
               </Card>
             </div>
           )}
-
         </div>
       </main>
-
-      {isStrokeScaleOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <Card className="max-h-[90vh] w-full max-w-3xl overflow-hidden">
-            <CardHeader className="border-b border-blue-50 bg-blue-50">
-              <CardTitle className="text-blue-900">NIH Stroke Scale Assessment</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <StrokeScaleForm onClose={handleStrokeScaleClose} />
-            </CardContent>
-          </Card>
-        </div>
-      )}
     </div>
   );
 }
