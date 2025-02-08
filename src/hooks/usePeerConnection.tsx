@@ -22,7 +22,6 @@ export function usePeerConnection() {
   const [callerId, setCallerId] = useState<string>("");
   const [isCallActive, setIsCallActive] = useState<boolean>(false);
   const [isCallOnHold, setIsCallOnHold] = useState<boolean>(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
   const [activeView, setActiveView] = useState<'home' | 'strokeScale' | 'files' | 'activeCall'>('home');
   const [isRinging, setIsRinging] = useState<boolean>(false);
 
@@ -201,7 +200,6 @@ export function usePeerConnection() {
 
   const handleStrokeScaleClose = () => {
     setIsStrokeScaleOpen(false);
-    setIsSidebarOpen(false);
     if (isCallActive) {
       setActiveView('activeCall');
     }
@@ -228,7 +226,6 @@ export function usePeerConnection() {
     videoEl,
     isCallActive,
     isCallOnHold,
-    isSidebarOpen,
     activeView,
     handleCall,
     acceptCall,
