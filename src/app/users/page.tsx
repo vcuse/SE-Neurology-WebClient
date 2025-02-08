@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -7,7 +8,8 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { 
+import {
+  Pause,
   MessageCircle, 
   LogOut, 
   Brain, 
@@ -19,7 +21,6 @@ import {
   Crosshair
 } from "lucide-react";
 import { StrokeScaleForm } from "@/components/stroke-scale/stroke-scale-form";
-import { ChatBox } from "@/components/video-call/chat-box";
 import { usePeerConnection } from "@/hooks/usePeerConnection";
 import { cn } from "@/lib/utils";
 
@@ -42,9 +43,6 @@ export default function Page() {
     isLoading,
     isMuted,
     isStrokeScaleOpen,
-    activeChats,
-    minimizedChats,
-    notifications,
     callerId,
     videoEl,
     isCallActive,
@@ -59,12 +57,19 @@ export default function Page() {
     handleStrokeScaleOpen,
     handleStrokeScaleClose,
     handleLogout,
-    initializeChat,
-    closeChat,
-    minimizeChat,
     mediaConnection,
     setActiveView,
+    isIncomingCall,
   } = usePeerConnection();
+
+  // Reassign video stream when call resumes
+  useEffect(() => {
+    if (!isCallOnHold && videoEl.current && mediaConnection?.remoteStream) {
+      videoEl.current.srcObject = mediaConnection.remoteStream;
+      // Optional: ensure the video starts playing
+      videoEl.current.play().catch(err => console.error("Error playing video:", err));
+    }
+  }, [isCallOnHold, mediaConnection, videoEl]);
 
   return (
     <div className="flex h-screen bg-[#f8fafc]">
@@ -108,7 +113,7 @@ export default function Page() {
             <Badge variant="outline" className="border-blue-100 bg-blue-50 text-blue-900">
               <User2 className="mr-2 h-4 w-4" />
               {currentPeerId ? (
-                <span className="font-mono text-sm">{currentPeerId.slice(0, 8)}</span>
+                <span className="font-mono text-sm">{currentPeerId}</span>
               ) : (
                 <Skeleton className="h-4 w-24" />
               )}
@@ -156,11 +161,11 @@ export default function Page() {
                         <div key={peerId} className="flex items-center justify-between p-4">
                           <div className="flex items-center gap-3">
                             <Avatar className="h-9 w-9">
-                              <AvatarImage src={`/avatars/${peerId.slice(-2)}.png`} />
+                              <AvatarImage src={`/avatars/${peerId}.png`} />
                               <AvatarFallback>MD</AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="font-medium text-gray-900">Dr. {peerId.slice(0, 6)}</p>
+                              <p className="font-medium text-gray-900">{peerId}</p>
                               <p className="text-sm text-gray-500">Cardiology</p>
                             </div>
                           </div>
@@ -186,14 +191,6 @@ export default function Page() {
                                 </div>
                               </HoverCardContent>
                             </HoverCard>
-
-                            <Button
-                              variant={notifications[peerId] ? "destructive" : "outline"}
-                              size="sm"
-                              onClick={() => initializeChat(peerId)}
-                            >
-                              <MessageCircle className="h-4 w-4" />
-                            </Button>
                           </div>
                         </div>
                       ))}
@@ -203,6 +200,27 @@ export default function Page() {
                       No active consultations available
                     </div>
                   )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {isIncomingCall && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+              <Card className="w-full max-w-md border-blue-50 bg-white shadow-sm">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-blue-900">Incoming Call</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <AlertDescription>
+                    Incoming call from Dr. {callerId}
+                    <div className="mt-2 flex justify-end gap-2">
+                      <Button variant="ghost" onClick={declineCall}>
+                        Decline
+                      </Button>
+                      <Button onClick={acceptCall}>Accept</Button>
+                    </div>
+                  </AlertDescription>
                 </CardContent>
               </Card>
             </div>
@@ -219,13 +237,19 @@ export default function Page() {
                 </CardHeader>
                 
                 <CardContent className="p-0">
-                  <video
-                    ref={videoEl}
-                    autoPlay
-                    playsInline
-                    className="h-[500px] w-full object-cover"
-                    muted
-                  />
+                  {isCallOnHold ? (
+                    <div className="flex h-[500px] w-full items-center justify-center bg-gray-100 text-gray-500">
+                      <Pause className="h-12 w-12" />
+                    </div>
+                  ) : (
+                    <video
+                      ref={videoEl}
+                      autoPlay
+                      playsInline
+                      className="h-[500px] w-full object-cover"
+                      muted
+                    />
+                  )}
 
                   <div className="flex gap-2 p-4">
                     <Button 
@@ -256,36 +280,6 @@ export default function Page() {
             </div>
           )}
 
-          <div className="fixed bottom-4 right-4 flex flex-col-reverse gap-4">
-            {Object.entries(activeChats).map(([peerId, conn]) => (
-              <ChatBox
-                key={peerId}
-                dataConnection={conn}
-                currentPeerId={currentPeerId}
-                remotePeerId={peerId}
-                onClose={() => closeChat(peerId)}
-                onMinimize={() => minimizeChat(peerId)}
-                minimized={minimizedChats.includes(peerId)}
-              />
-            ))}
-          </div>
-
-          <div className="fixed right-4 top-20 space-y-2">
-            {Object.entries(notifications)
-              .filter(([_, hasNotification]) => hasNotification)
-              .map(([peerId]) => (
-                <Alert 
-                  key={peerId} 
-                  className="w-[300px] cursor-pointer bg-blue-50 border-blue-200"
-                  onClick={() => initializeChat(peerId)}
-                >
-                  <AlertDescription className="flex items-center gap-2 text-blue-900">
-                    <MessageCircle className="h-4 w-4" />
-                    New message from Dr. {peerId.slice(0, 6)}
-                  </AlertDescription>
-                </Alert>
-              ))}
-          </div>
         </div>
       </main>
 

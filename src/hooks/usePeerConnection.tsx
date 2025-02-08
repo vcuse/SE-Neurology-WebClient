@@ -14,9 +14,6 @@ export function usePeerConnection() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [isStrokeScaleOpen, setIsStrokeScaleOpen] = useState<boolean>(false);
-  const [activeChats, setActiveChats] = useState<{ [key: string]: DataConnection }>({});
-  const [minimizedChats, setMinimizedChats] = useState<string[]>([]);
-  const [notifications, setNotifications] = useState<{ [key: string]: boolean }>({});
   const [incomingCall, setIncomingCall] = useState<MediaConnection | null>(null);
   const [myStream, setMyStream] = useState<MediaStream | null>(null);
   const [mediaConnection, setMediaConnection] = useState<MediaConnection | null>(null);
@@ -27,6 +24,7 @@ export function usePeerConnection() {
   const [isCallOnHold, setIsCallOnHold] = useState<boolean>(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
   const [activeView, setActiveView] = useState<'home' | 'strokeScale' | 'files' | 'activeCall'>('home');
+  const [isRinging, setIsRinging] = useState<boolean>(false);
 
   // References
   const peerRef = useRef<Peer | null>(null);
@@ -34,7 +32,8 @@ export function usePeerConnection() {
   const currentPeerIdRef = useRef<string>("");
 
   useEffect(() => {
-    const peer = new Peer({
+    const storedPeerId = localStorage.getItem('peerId');
+    const peer = new Peer(storedPeerId || '', {
       host: "videochat-signaling-app.ue.r.appspot.com",
       port: 443,
       secure: true,
@@ -44,6 +43,9 @@ export function usePeerConnection() {
     peerRef.current = peer;
 
     peer.on("open", (id) => {
+      if (!storedPeerId) {
+        localStorage.setItem('peerId', id);
+      }
       setCurrentPeerId(id);
       currentPeerIdRef.current = id;
     });
@@ -94,100 +96,16 @@ export function usePeerConnection() {
       if (mediaConnection) {
         mediaConnection.close();
       }
-      Object.values(activeChats).forEach(conn => conn.close());
     };
-  }, [myStream, mediaConnection, activeChats]);
-
-  useEffect(() => {
-    if (!peerRef.current) return;
-
-    const handleConnection = (conn: DataConnection) => {
-      conn.on('data', (data: any) => {
-        if (data.type === 'chat' && !activeChats[conn.peer]) {
-          setNotifications(prev => ({ ...prev, [conn.peer]: true }));
-        }
-      });
-      
-      setActiveChats(prev => ({ ...prev, [conn.peer]: conn }));
-    };
-
-    peerRef.current.on('connection', handleConnection);
-
-    return () => {
-      peerRef.current?.off('connection', handleConnection);
-    };
-  }, [activeChats]);
-
-  const initializeChat = (peerId: string) => {
-    if (activeChats[peerId]) {
-      setMinimizedChats(prev => prev.filter(id => id !== peerId));
-      setNotifications(prev => ({ ...prev, [peerId]: false }));
-      return;
-    }
-
-    const existingConn = Object.entries(activeChats).find(([_, conn]) => conn.peer === peerId)?.[1];
-    if (existingConn && existingConn.open) {
-      setActiveChats(prev => ({ ...prev, [peerId]: existingConn }));
-      setNotifications(prev => ({ ...prev, [peerId]: false }));
-      return;
-    }
-
-    const peer = peerRef.current;
-    if (peer) {
-      const conn = peer.connect(peerId);
-      conn.on('open', () => {
-        setActiveChats(prev => ({ ...prev, [peerId]: conn }));
-        setNotifications(prev => ({ ...prev, [peerId]: false }));
-      });
-    }
-  };
-
-  const closeChat = (peerId: string) => {
-    const conn = activeChats[peerId];
-    if (conn) {
-      conn.close();
-      setActiveChats(prev => {
-        const newChats = { ...prev };
-        delete newChats[peerId];
-        return newChats;
-      });
-      setNotifications(prev => {
-        const newNotifications = { ...prev };
-        delete newNotifications[peerId];
-        return newNotifications;
-      });
-    }
-  };
-
-  const minimizeChat = (peerId: string) => {
-    setMinimizedChats(prev => 
-      prev.includes(peerId) 
-        ? prev.filter(id => id !== peerId)
-        : [...prev, peerId]
-    );
-  };
-
-  const establishDataConnection = (peerId: string) => {
-    if (activeChats[peerId]) return;
-
-    const peer = peerRef.current;
-    if (peer) {
-      const conn = peer.connect(peerId);
-      conn.on('open', () => {
-        setActiveChats(prev => ({ ...prev, [peerId]: conn }));
-        setNotifications(prev => ({ ...prev, [peerId]: false }));
-      });
-    }
-  };
+  }, [myStream, mediaConnection]);
 
   const handleCall = (peerId: string) => {
     console.log(`Calling peer ${peerId}`);
     const peer = peerRef.current;
     if (peer) {
-      establishDataConnection(peerId);
-
       navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
         setMyStream(stream);
+        setIsRinging(true);
         const call = peer.call(peerId, stream);
         setMediaConnection(call);
         setIsCallActive(true);
@@ -212,8 +130,6 @@ export function usePeerConnection() {
 
   const acceptCall = () => {
     if (incomingCall) {
-      establishDataConnection(incomingCall.peer);
-
       navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
         setMyStream(stream);
         incomingCall.answer(stream);
@@ -244,6 +160,7 @@ export function usePeerConnection() {
       incomingCall.close();
     }
     setIsIncomingCall(false);
+    setIsRinging(false);
   };
 
   const endCall = () => {
@@ -292,6 +209,7 @@ export function usePeerConnection() {
 
   const handleLogout = () => {
     document.cookie = "isLoggedIn=false; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    localStorage.removeItem('peerId');
     router.push('/login');
   };
 
@@ -302,9 +220,6 @@ export function usePeerConnection() {
     isLoading,
     isMuted,
     isStrokeScaleOpen,
-    activeChats,
-    minimizedChats,
-    notifications,
     incomingCall,
     isIncomingCall,
     callerId,
@@ -324,11 +239,7 @@ export function usePeerConnection() {
     handleStrokeScaleOpen,
     handleStrokeScaleClose,
     handleLogout,
-    initializeChat,
-    closeChat,
-    minimizeChat,
-    establishDataConnection,
     setActiveView,
-    setNotifications,
+    isRinging,
   };
 }
