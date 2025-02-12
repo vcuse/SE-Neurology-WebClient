@@ -17,8 +17,10 @@ export function usePeerConnection() {
   const [myStream, setMyStream] = useState<MediaStream | null>(null);
   const [mediaConnection, setMediaConnection] = useState<MediaConnection | null>(null);
   const videoEl = useRef<HTMLVideoElement>(null);
+  const [messages, setMessages] = useState<Array<{text: string, sender: string, timestamp: number}>>([]);
   const [isIncomingCall, setIsIncomingCall] = useState<boolean>(false);
   const [callerId, setCallerId] = useState<string>("");
+  const dataConnectionRef = useRef<DataConnection | null>(null);
   const [isCallOnHold, setIsCallOnHold] = useState<boolean>(false);
   const [activeView, setActiveView] = useState<'home' | 'strokeScale' | 'files' | 'activeCall'>('home');
   const [isRinging, setIsRinging] = useState<boolean>(false);
@@ -106,6 +108,15 @@ export function usePeerConnection() {
         const call = peer.call(peerId, stream);
         setMediaConnection(call);
         setActiveView('activeCall');
+        
+        // Setup data channel for chat
+        const dataConnection = peer.connect(peerId);
+        dataConnectionRef.current = dataConnection;
+        dataConnection.on('data', (data: unknown) => {
+          if (typeof data === 'string') {
+            setMessages(prev => [...prev, {text: data, sender: peerId, timestamp: Date.now()}]);
+          }
+        });
 
         call.on("stream", (remoteStream) => {
           if (videoEl.current) {
@@ -131,6 +142,16 @@ export function usePeerConnection() {
         incomingCall.answer(stream);
         setMediaConnection(incomingCall);
         setActiveView('activeCall');
+        
+        // Setup data channel receiver
+        peerRef.current?.on('connection', (dataConnection) => {
+          dataConnectionRef.current = dataConnection;
+          dataConnection.on('data', (data: unknown) => {
+            if (typeof data === 'string') {
+              setMessages(prev => [...prev, {text: data, sender: dataConnection.peer, timestamp: Date.now()}]);
+            }
+          });
+        });
 
         incomingCall.on("stream", (remoteStream) => {
           if (videoEl.current) {
@@ -188,6 +209,13 @@ export function usePeerConnection() {
     }
   };
 
+  const sendMessage = (text: string) => {
+    if (dataConnectionRef.current?.open) {
+      dataConnectionRef.current.send(text);
+      setMessages(prev => [...prev, {text, sender: currentPeerId, timestamp: Date.now()}]);
+    }
+  };
+
   const handleLogout = () => {
     document.cookie = "isLoggedIn=false; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     localStorage.removeItem('peerId');
@@ -208,6 +236,9 @@ export function usePeerConnection() {
     videoEl,
     isCallOnHold,
     activeView,
+    messages,
+    setMessages,
+    sendMessage,
     handleCall,
     acceptCall,
     declineCall,
