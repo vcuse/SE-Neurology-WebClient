@@ -105,10 +105,9 @@ export function usePeerConnection() {
         setIsRinging(true);
         const call = peer.call(peerId, stream);
         setMediaConnection(call);
+        setActiveView('activeCall');
 
         call.on("stream", (remoteStream) => {
-          setActiveView('activeCall');
-
           if (videoEl.current) {
             videoEl.current.srcObject = remoteStream;
           }
