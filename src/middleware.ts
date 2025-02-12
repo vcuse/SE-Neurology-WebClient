@@ -13,9 +13,9 @@ export function middleware(request: NextRequest) {
   }
 
   // Prevent access to /users if not logged in
-  if (request.nextUrl.pathname.startsWith('/users') && !isLoggedIn) {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
+  //if (request.nextUrl.pathname.startsWith('/users') && !isLoggedIn) {
+  //  return NextResponse.redirect(new URL('/login', request.url))
+  //}
 
   return NextResponse.next()
 }

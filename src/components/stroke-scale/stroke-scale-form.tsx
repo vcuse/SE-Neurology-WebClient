@@ -19,6 +19,7 @@ interface FormData {
 export function StrokeScaleForm({}: StrokeScaleFormProps) {
   const [formData, setFormData] = useState<FormData>({});
   const [patientName, setPatientName] = useState('');
+  const [dob, setDob] = useState('');
 
   const questions: Question[] = [
     {
@@ -213,6 +214,45 @@ export function StrokeScaleForm({}: StrokeScaleFormProps) {
     return totalScore;
   };
 
+  const submitStrokeScale = async () => {
+    if (Object.entries(formData).length != 15) {
+      console.log('Please answer every question');
+    }
+    else if (patientName == '' || dob == ''){
+      console.log("Please enter the patient credentials at the top");
+    }
+    else{
+      let jsonString = "";
+      Object.entries(formData).forEach(([questionId, score]) => {
+        if (typeof score === 'number' && !isNaN(score)) {
+          jsonString += String(score);
+        }
+      });
+
+      let today = new Date();
+      let date = (today.getMonth() + 1) + '/' + today.getDay() + '/' + today.getFullYear();
+      try {
+        const response = await fetch('http://localhost:9000/key=peerjs/post', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            Action: "strokeScale", 
+          },
+          body: JSON.stringify({
+            patientName,
+            DOB: dob,
+            formDate: date,
+            results: jsonString
+          }),
+        });
+    }
+    catch (error){
+      console.log(error);
+    }
+  }
+}
+
   return (
     <Card className="w-full p-6 space-y-6">
       <div>
@@ -228,6 +268,15 @@ export function StrokeScaleForm({}: StrokeScaleFormProps) {
             className="w-full p-2 border rounded-md"
             placeholder="Enter patient name"
           />
+          <label htmlFor="DOB" className="block text-sm font-medium mb-2">Date of Birth (MM/DD/YYYY)</label>
+          <input
+            type="text"
+            id="DOB"
+            value={dob}
+            onChange={(e) => setDob(e.target.value)}
+            className="w-full p-2 border rounded-md"
+            placeholder="Enter patient's date of birth"
+          />
         </div>
 
         <div className="space-y-8">
@@ -241,6 +290,9 @@ export function StrokeScaleForm({}: StrokeScaleFormProps) {
         <div className="mt-6 pt-6 border-t">
           <div className="text-xl font-bold text-center">
             Total NIHSS Score: {calculateScore()}
+            <br/><Button onClick={submitStrokeScale}>
+              Submit
+            </Button>
           </div>
         </div>
       </div>
