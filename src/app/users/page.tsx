@@ -19,6 +19,7 @@ import {
 import { StrokeScaleForm } from "@/components/stroke-scale/stroke-scale-form";
 import { usePeerConnection } from "@/hooks/usePeerConnection";
 import { cn } from "@/lib/utils";
+import { ChatBox } from "@/components/video-call/ChatBox";
 
 type MenuItem = {
   icon: React.ComponentType<{ className?: string }>;
@@ -51,6 +52,14 @@ export default function Page() {
     mediaConnection,
     setActiveView,
     isIncomingCall,
+    // Chat related
+    isChatVisible,
+    minimizedChat,
+    toggleChat,
+    toggleMinimizeChat,
+    initializeChat,
+    messages,
+    sendMessage,
   } = usePeerConnection();
 
   useEffect(() => {
@@ -220,19 +229,35 @@ export default function Page() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                  {isCallOnHold ? (
-                    <div className="flex h-[500px] w-full items-center justify-center bg-gray-100 text-gray-500">
-                      <Pause className="h-12 w-12" />
-                    </div>
-                  ) : (
-                    <video
-                      ref={videoEl}
-                      autoPlay
-                      playsInline
-                      className="h-[500px] w-full object-cover"
-                      muted
-                    />
-                  )}
+                  <div className="grid grid-cols-[1fr,300px] gap-4">
+                    {isCallOnHold ? (
+                      <div className="flex h-[500px] w-full items-center justify-center bg-gray-100 text-gray-500">
+                        <Pause className="h-12 w-12" />
+                      </div>
+                    ) : (
+                      <video
+                        ref={videoEl}
+                        autoPlay
+                        playsInline
+                        className="h-[500px] w-full object-cover"
+                        muted
+                      />
+                    )}
+
+                    {/* Chat Section */}
+                    {isChatVisible && (
+                      <ChatBox
+                        currentPeerId={currentPeerId}
+                        remotePeerId={callerId}
+                        onClose={toggleChat}
+                        onMinimize={toggleMinimizeChat}
+                        minimized={minimizedChat}
+                        visible={isChatVisible}
+                        messages={messages}
+                        sendMessage={sendMessage}
+                      />
+                    )}
+                  </div>
 
                   <div className="flex gap-2 p-4">
                     <Button
@@ -256,6 +281,13 @@ export default function Page() {
                       className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
                     >
                       {isMuted ? 'Unmute' : 'Mute'}
+                    </Button>
+                    <Button
+                      onClick={toggleChat}
+                      variant="outline"
+                      className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
+                    >
+                      {isChatVisible ? 'Hide Chat' : 'Show Chat'}
                     </Button>
                   </div>
                 </CardContent>

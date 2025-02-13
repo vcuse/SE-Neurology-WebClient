@@ -4,6 +4,13 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Peer, { DataConnection, MediaConnection } from "peerjs";
 
+interface Message {
+  id: string;
+  sender: string;
+  text: string;
+  timestamp: Date;
+}
+
 export function usePeerConnection() {
   const router = useRouter();
 
@@ -17,13 +24,15 @@ export function usePeerConnection() {
   const [myStream, setMyStream] = useState<MediaStream | null>(null);
   const [mediaConnection, setMediaConnection] = useState<MediaConnection | null>(null);
   const videoEl = useRef<HTMLVideoElement>(null);
-  const [messages, setMessages] = useState<Array<{text: string, sender: string, timestamp: number}>>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isIncomingCall, setIsIncomingCall] = useState<boolean>(false);
   const [callerId, setCallerId] = useState<string>("");
   const dataConnectionRef = useRef<DataConnection | null>(null);
   const [isCallOnHold, setIsCallOnHold] = useState<boolean>(false);
   const [activeView, setActiveView] = useState<'home' | 'strokeScale' | 'files' | 'activeCall'>('home');
   const [isRinging, setIsRinging] = useState<boolean>(false);
+  const [minimizedChat, setMinimizedChat] = useState<boolean>(false);
+  const [isChatVisible, setIsChatVisible] = useState<boolean>(false);
 
   // References
   const peerRef = useRef<Peer | null>(null);
@@ -114,7 +123,12 @@ export function usePeerConnection() {
         dataConnectionRef.current = dataConnection;
         dataConnection.on('data', (data: unknown) => {
           if (typeof data === 'string') {
-            setMessages(prev => [...prev, {text: data, sender: peerId, timestamp: Date.now()}]);
+            setMessages(prev => [...prev, {
+              id: Math.random().toString(36).substr(2, 9),
+              text: data,
+              sender: peerId,
+              timestamp: new Date()
+            }]);
           }
         });
 
@@ -148,7 +162,12 @@ export function usePeerConnection() {
           dataConnectionRef.current = dataConnection;
           dataConnection.on('data', (data: unknown) => {
             if (typeof data === 'string') {
-              setMessages(prev => [...prev, {text: data, sender: dataConnection.peer, timestamp: Date.now()}]);
+              setMessages(prev => [...prev, {
+                id: Math.random().toString(36).substr(2, 9),
+                text: data,
+                sender: dataConnection.peer,
+                timestamp: new Date()
+              }]);
             }
           });
         });
@@ -212,7 +231,12 @@ export function usePeerConnection() {
   const sendMessage = (text: string) => {
     if (dataConnectionRef.current?.open) {
       dataConnectionRef.current.send(text);
-      setMessages(prev => [...prev, {text, sender: currentPeerId, timestamp: Date.now()}]);
+      setMessages(prev => [...prev, {
+        id: Math.random().toString(36).substr(2, 9),
+        text,
+        sender: currentPeerId,
+        timestamp: new Date()
+      }]);
     }
   };
 
@@ -220,6 +244,33 @@ export function usePeerConnection() {
     document.cookie = "isLoggedIn=false; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     localStorage.removeItem('peerId');
     router.push('/login');
+  };
+
+  const toggleChat = () => {
+    setIsChatVisible(prev => !prev);
+  };
+
+  const toggleMinimizeChat = () => {
+    setMinimizedChat(prev => !prev);
+  };
+
+  const initializeChat = (peerId: string) => {
+    const peer = peerRef.current;
+    if (peer && !dataConnectionRef.current) {
+      const dataConnection = peer.connect(peerId);
+      dataConnectionRef.current = dataConnection;
+      dataConnection.on('data', (data: unknown) => {
+        if (typeof data === 'string') {
+          setMessages(prev => [...prev, {
+            id: Math.random().toString(36).substr(2, 9),
+            text: data,
+            sender: peerId,
+            timestamp: new Date()
+          }]);
+        }
+      });
+    }
+    setIsChatVisible(true);
   };
 
   return {
@@ -248,5 +299,11 @@ export function usePeerConnection() {
     handleLogout,
     setActiveView,
     isRinging,
+    // Chat related
+    isChatVisible,
+    minimizedChat,
+    toggleChat,
+    toggleMinimizeChat,
+    initializeChat,
   };
 }
