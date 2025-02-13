@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import PerlinNoiseBackground from "@/components/ui/perlin-noise-background";
 import { StrokeScaleForm } from "@/components/stroke-scale/stroke-scale-form";
 import { ChatBox } from "./chat-box";
+import { Files } from "@/components/files/files";
 
 export function HomeCallPage() {
   const [currentPeerId, setCurrentPeerId] = useState("");
@@ -408,9 +409,9 @@ export function HomeCallPage() {
             </TabsContent>
 
             <TabsContent value="files">
-              {/* Files Tab Content */}
-              <h1 className="text-2xl font-bold mb-6">Files</h1>
-              {/* Add your Files content here */}
+            <div className="mt-6">
+                <Files />
+              </div>
             </TabsContent>
 
             <TabsContent value="activeCall" className="mt-6">
