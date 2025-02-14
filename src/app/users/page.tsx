@@ -15,6 +15,7 @@ import {
   User2,
   Video,
   PhoneCall,
+  MessageSquare,
 } from "lucide-react";
 import { StrokeScaleForm } from "@/components/stroke-scale/stroke-scale-form";
 import { usePeerConnection } from "@/hooks/usePeerConnection";
@@ -39,6 +40,7 @@ export default function Page() {
     isLoading,
     isMuted,
     callerId,
+    setCallerId,
     videoEl,
     isCallOnHold,
     activeView,
@@ -163,26 +165,52 @@ export default function Page() {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <HoverCard>
-                              <HoverCardTrigger asChild>
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleCall(peerId)}
-                                  className="gap-2 bg-blue-600 hover:bg-blue-700"
-                                >
-                                  <PhoneCall className="h-4 w-4" />
-                                  <span>Video Call</span>
-                                </Button>
-                              </HoverCardTrigger>
-                              <HoverCardContent className="w-80">
-                                <div className="space-y-2">
-                                  <h4 className="font-medium">Consultation Options</h4>
-                                  <p className="text-sm text-gray-600">
-                                    Initiate a video consultation or text chat with this specialist.
-                                  </p>
-                                </div>
-                              </HoverCardContent>
-                            </HoverCard>
+                            <div className="flex gap-2">
+                              <HoverCard>
+                                <HoverCardTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleCall(peerId)}
+                                    className="gap-2 bg-blue-600 hover:bg-blue-700"
+                                  >
+                                    <PhoneCall className="h-4 w-4" />
+                                    <span>Video Call</span>
+                                  </Button>
+                                </HoverCardTrigger>
+                                <HoverCardContent className="w-80">
+                                  <div className="space-y-2">
+                                    <h4 className="font-medium">Video Consultation</h4>
+                                    <p className="text-sm text-gray-600">
+                                      Start a video consultation with this specialist.
+                                    </p>
+                                  </div>
+                                </HoverCardContent>
+                              </HoverCard>
+                              <HoverCard>
+                                <HoverCardTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => {
+                                      initializeChat(peerId);
+                                      setCallerId(peerId);
+                                    }}
+                                    variant="outline"
+                                    className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
+                                  >
+                                    <MessageSquare className="h-4 w-4" />
+                                    <span>Chat</span>
+                                  </Button>
+                                </HoverCardTrigger>
+                                <HoverCardContent className="w-80">
+                                  <div className="space-y-2">
+                                    <h4 className="font-medium">Text Chat</h4>
+                                    <p className="text-sm text-gray-600">
+                                      Start a text conversation with this specialist.
+                                    </p>
+                                  </div>
+                                </HoverCardContent>
+                              </HoverCard>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -194,6 +222,22 @@ export default function Page() {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Chat window for users list */}
+              {isChatVisible && (
+                <div className="fixed bottom-6 right-6 w-[350px] z-50">
+                  <ChatBox
+                    currentPeerId={currentPeerId}
+                    remotePeerId={callerId}
+                    onClose={toggleChat}
+                    onMinimize={toggleMinimizeChat}
+                    minimized={minimizedChat}
+                    visible={isChatVisible}
+                    messages={messages}
+                    sendMessage={sendMessage}
+                  />
+                </div>
+              )}
             </div>
           )}
 

@@ -64,6 +64,39 @@ export function usePeerConnection() {
       setCallerId(call.peer);
     });
 
+    // Set up data channel receiver
+    peer.on('connection', (dataConnection) => {
+      console.log('Incoming data connection from:', dataConnection.peer);
+      dataConnectionRef.current = dataConnection;
+      setCallerId(dataConnection.peer);
+      
+      dataConnection.on('open', () => {
+        console.log('Data channel opened');
+        setIsChatVisible(true);
+      });
+
+      dataConnection.on('data', (data: unknown) => {
+        if (typeof data === 'string') {
+          setMessages(prev => [...prev, {
+            id: Math.random().toString(36).substr(2, 9),
+            text: data,
+            sender: dataConnection.peer,
+            timestamp: new Date()
+          }]);
+        }
+      });
+
+      dataConnection.on('close', () => {
+        console.log('Data channel closed');
+        dataConnectionRef.current = null;
+      });
+
+      dataConnection.on('error', (err) => {
+        console.error('Data channel error:', err);
+        setError('Chat connection error. Please try again.');
+      });
+    });
+
     // Fetch peer IDs
     const fetchPeerIds = () => {
       fetch("https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/peers")
@@ -256,21 +289,44 @@ export function usePeerConnection() {
 
   const initializeChat = (peerId: string) => {
     const peer = peerRef.current;
-    if (peer && !dataConnectionRef.current) {
-      const dataConnection = peer.connect(peerId);
-      dataConnectionRef.current = dataConnection;
-      dataConnection.on('data', (data: unknown) => {
-        if (typeof data === 'string') {
-          setMessages(prev => [...prev, {
-            id: Math.random().toString(36).substr(2, 9),
-            text: data,
-            sender: peerId,
-            timestamp: new Date()
-          }]);
-        }
-      });
+    if (!peer) return;
+
+    // Close existing data connection if any
+    if (dataConnectionRef.current) {
+      dataConnectionRef.current.close();
+      dataConnectionRef.current = null;
     }
-    setIsChatVisible(true);
+
+    // Create new data connection
+    const dataConnection = peer.connect(peerId);
+    dataConnectionRef.current = dataConnection;
+
+    // Set up connection event handlers
+    dataConnection.on('open', () => {
+      console.log('Data channel opened');
+      setIsChatVisible(true);
+    });
+
+    dataConnection.on('data', (data: unknown) => {
+      if (typeof data === 'string') {
+        setMessages(prev => [...prev, {
+          id: Math.random().toString(36).substr(2, 9),
+          text: data,
+          sender: peerId,
+          timestamp: new Date()
+        }]);
+      }
+    });
+
+    dataConnection.on('close', () => {
+      console.log('Data channel closed');
+      dataConnectionRef.current = null;
+    });
+
+    dataConnection.on('error', (err) => {
+      console.error('Data channel error:', err);
+      setError('Chat connection error. Please try again.');
+    });
   };
 
   return {
@@ -282,6 +338,7 @@ export function usePeerConnection() {
     incomingCall,
     isIncomingCall,
     callerId,
+    setCallerId,
     myStream,
     mediaConnection,
     videoEl,
