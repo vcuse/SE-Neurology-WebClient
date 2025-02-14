@@ -4,7 +4,7 @@ import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -16,11 +16,13 @@ import {
   Video,
   PhoneCall,
   MessageSquare,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { StrokeScaleForm } from "@/components/stroke-scale/stroke-scale-form";
 import { usePeerConnection } from "@/hooks/usePeerConnection";
 import { cn } from "@/lib/utils";
-import { ChatBox } from "@/components/video-call/ChatBox";
+import { HomeViewChat, CallViewChat } from "@/components/video-call";
 
 type MenuItem = {
   icon: React.ComponentType<{ className?: string }>;
@@ -33,6 +35,20 @@ const menuItems: MenuItem[] = [
 ];
 
 export default function Page() {
+  const [isSidebarExpanded, setIsSidebarExpanded] = React.useState(() => {
+    // Get initial state from localStorage, default to true if not set
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('sidebarExpanded');
+      return saved !== null ? JSON.parse(saved) : true;
+    }
+    return true;
+  });
+
+  // Save sidebar state to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('sidebarExpanded', JSON.stringify(isSidebarExpanded));
+  }, [isSidebarExpanded]);
+
   const {
     currentPeerId,
     peerIds,
@@ -54,7 +70,6 @@ export default function Page() {
     mediaConnection,
     setActiveView,
     isIncomingCall,
-    // Chat related
     isChatVisible,
     minimizedChat,
     toggleChat,
@@ -72,35 +87,58 @@ export default function Page() {
 
   return (
     <div className="flex h-screen bg-[#f8fafc]">
-      {/* Static Sidebar */}
-      <div className="w-[280px] border-r border-gray-100 bg-white p-4">
-        <div className="flex items-center gap-3 pb-6">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback>NC</AvatarFallback>
-          </Avatar>
-          <h1 className="text-lg font-semibold text-blue-900">
-            NeuroConnect
-          </h1>
-        </div>
+      {/* Collapsible Sidebar */}
+      <div className={cn(
+        "transition-all duration-300 ease-in-out border-r border-gray-100 bg-white",
+        isSidebarExpanded ? "w-[280px]" : "w-[80px]"
+      )}>
+        <div className="relative p-4">
+          <div className={cn(
+            "flex items-center pb-6",
+            isSidebarExpanded ? "gap-3" : "justify-center"
+          )}>
+            <Avatar className="h-8 w-8">
+              <AvatarFallback>NC</AvatarFallback>
+            </Avatar>
+            {isSidebarExpanded && (
+              <h1 className="text-lg font-semibold text-blue-900">
+                NeuroConnect
+              </h1>
+            )}
+          </div>
 
-        <nav className="space-y-1">
-          {menuItems.map((item) => (
-            <Button
-              key={item.value}
-              variant={activeView === item.value ? "secondary" : "ghost"}
-              className={cn(
-                "w-full justify-start gap-3",
-                activeView === item.value && "bg-blue-50 text-blue-900"
-              )}
-              onClick={() => {
-                setActiveView(item.value)
-              }}
-            >
-              <item.icon className="h-5 w-5 text-blue-600" />
-              {item.label}
-            </Button>
-          ))}
-        </nav>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="absolute -right-4 top-6 h-8 w-8 rounded-full border border-gray-200 bg-white p-0 shadow-sm hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors"
+            onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
+          >
+            {isSidebarExpanded ?
+              <ChevronLeft className="h-5 w-5" /> :
+              <ChevronRight className="h-5 w-5" />
+            }
+          </Button>
+
+          <nav className="space-y-1">
+            {menuItems.map((item) => (
+              <Button
+                key={item.value}
+                variant={activeView === item.value ? "secondary" : "ghost"}
+                className={cn(
+                  "w-full",
+                  isSidebarExpanded ? "justify-start gap-3 px-3" : "p-0",
+                  activeView === item.value && "bg-blue-50 text-blue-900"
+                )}
+                onClick={() => {
+                  setActiveView(item.value)
+                }}
+              >
+                <item.icon className="h-5 w-5 text-blue-600" />
+                {isSidebarExpanded && item.label}
+              </Button>
+            ))}
+          </nav>
+        </div>
       </div>
 
       <main className="flex-1 overflow-hidden">
@@ -223,10 +261,9 @@ export default function Page() {
                 </CardContent>
               </Card>
 
-              {/* Chat window for users list */}
               {isChatVisible && (
                 <div className="fixed bottom-6 right-6 w-[350px] z-50">
-                  <ChatBox
+                  <HomeViewChat
                     currentPeerId={currentPeerId}
                     remotePeerId={callerId}
                     onClose={toggleChat}
@@ -263,19 +300,19 @@ export default function Page() {
           )}
 
           {activeView === 'activeCall' && (
-            <div className="mx-auto max-w-4xl space-y-6">
-              <Card className="overflow-hidden border-blue-50">
-                <CardHeader className="border-b border-blue-50 bg-blue-50 p-4">
-                  <CardTitle className="flex items-center gap-2 text-blue-900">
-                    <PhoneCall className="h-5 w-5" />
-                    Ongoing Consultation
-                  </CardTitle>
-                </CardHeader>
+            <div className="mx-auto max-w-6xl">
+              <div className="grid grid-cols-[1fr,350px] gap-6">
+                <Card className="overflow-hidden border-blue-50 flex flex-col">
+                  <CardHeader className="border-b border-blue-50 bg-blue-50 p-4 flex-none">
+                    <CardTitle className="flex items-center gap-2 text-blue-900">
+                      <PhoneCall className="h-5 w-5" />
+                      Ongoing Consultation
+                    </CardTitle>
+                  </CardHeader>
 
-                <CardContent className="p-0">
-                  <div className="grid grid-cols-[1fr,300px] gap-4">
+                  <CardContent className="p-0 flex-1 flex flex-col">
                     {isCallOnHold ? (
-                      <div className="flex h-[500px] w-full items-center justify-center bg-gray-100 text-gray-500">
+                      <div className="flex-1 flex items-center justify-center bg-gray-100 text-gray-500">
                         <Pause className="h-12 w-12" />
                       </div>
                     ) : (
@@ -283,59 +320,64 @@ export default function Page() {
                         ref={videoEl}
                         autoPlay
                         playsInline
-                        className="h-[500px] w-full object-cover"
+                        className="flex-1 w-full object-cover"
                         muted
                       />
                     )}
 
-                    {/* Chat Section */}
-                    {isChatVisible && (
-                      <ChatBox
+                    <div className="flex gap-2 p-4 border-t border-blue-50">
+                      <Button
+                        onClick={endCall}
+                        variant="destructive"
+                        className="gap-2"
+                      >
+                        <PhoneCall className="h-4 w-4" />
+                        End Call
+                      </Button>
+                      <Button
+                        onClick={holdCall}
+                        variant="outline"
+                        className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
+                      >
+                        {isCallOnHold ? 'Resume' : 'Hold'}
+                      </Button>
+                      <Button
+                        onClick={toggleMute}
+                        variant="outline"
+                        className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
+                      >
+                        {isMuted ? 'Unmute' : 'Mute'}
+                      </Button>
+                      <Button
+                        onClick={toggleChat}
+                        variant="outline"
+                        className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
+                      >
+                        {isChatVisible ? 'Hide Chat' : 'Show Chat'}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {isChatVisible && (
+                  <Card className="border-blue-50 h-[500px] flex flex-col">
+                    <CardHeader className="border-b border-blue-50 bg-blue-50 p-4">
+                      <CardTitle className="flex items-center gap-2 text-blue-900">
+                        <MessageSquare className="h-5 w-5" />
+                        Chat
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0 flex-1 overflow-hidden">
+                      <CallViewChat
                         currentPeerId={currentPeerId}
                         remotePeerId={callerId}
-                        onClose={toggleChat}
-                        onMinimize={toggleMinimizeChat}
-                        minimized={minimizedChat}
-                        visible={isChatVisible}
                         messages={messages}
                         sendMessage={sendMessage}
                       />
-                    )}
-                  </div>
-
-                  <div className="flex gap-2 p-4">
-                    <Button
-                      onClick={endCall}
-                      variant="destructive"
-                      className="gap-2"
-                    >
-                      <PhoneCall className="h-4 w-4" />
-                      End Call
-                    </Button>
-                    <Button
-                      onClick={holdCall}
-                      variant="outline"
-                      className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
-                    >
-                      {isCallOnHold ? 'Resume' : 'Hold'}
-                    </Button>
-                    <Button
-                      onClick={toggleMute}
-                      variant="outline"
-                      className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
-                    >
-                      {isMuted ? 'Unmute' : 'Mute'}
-                    </Button>
-                    <Button
-                      onClick={toggleChat}
-                      variant="outline"
-                      className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
-                    >
-                      {isChatVisible ? 'Hide Chat' : 'Show Chat'}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
             </div>
           )}
         </div>

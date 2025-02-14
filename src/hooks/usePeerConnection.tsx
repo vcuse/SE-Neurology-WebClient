@@ -1,5 +1,3 @@
-// Comprehensive hook to manage peer connections, chats, and calls
-
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Peer, { DataConnection, MediaConnection } from "peerjs";
@@ -72,7 +70,6 @@ export function usePeerConnection() {
       
       dataConnection.on('open', () => {
         console.log('Data channel opened');
-        setIsChatVisible(true);
       });
 
       dataConnection.on('data', (data: unknown) => {
@@ -83,6 +80,7 @@ export function usePeerConnection() {
             sender: dataConnection.peer,
             timestamp: new Date()
           }]);
+          setIsChatVisible(true);
         }
       });
 
@@ -304,7 +302,7 @@ export function usePeerConnection() {
     // Set up connection event handlers
     dataConnection.on('open', () => {
       console.log('Data channel opened');
-      setIsChatVisible(true);
+      setIsChatVisible(true); // Show chat for sender when they initiate
     });
 
     dataConnection.on('data', (data: unknown) => {
@@ -315,6 +313,7 @@ export function usePeerConnection() {
           sender: peerId,
           timestamp: new Date()
         }]);
+        setIsChatVisible(true);
       }
     });
 
@@ -356,7 +355,6 @@ export function usePeerConnection() {
     handleLogout,
     setActiveView,
     isRinging,
-    // Chat related
     isChatVisible,
     minimizedChat,
     toggleChat,
