@@ -237,7 +237,7 @@ export function StrokeScaleForm({}: StrokeScaleFormProps) {
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-            Action: "strokeScale", 
+            Action: "submitStrokeScale", 
           },
           body: JSON.stringify({
             patientName,

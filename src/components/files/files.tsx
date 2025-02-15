@@ -12,6 +12,14 @@ interface Question {
   options: string[];
 }
 
+interface patientForm {
+  name: string;
+  dob: string;
+  form_date: string;
+  results: string;
+  id: number;
+}
+
 interface FormData {
   [key: number]: number;
 }
@@ -20,6 +28,9 @@ export function Files({}: FilesProps) {
   const [formData, setFormData] = useState<FormData>({});
   const [patientName, setPatientName] = useState('');
   const [dob, setDob] = useState('');
+  const [formsFetched, setFormsFetched] = useState(false);
+  const [formSelected, setFormSelected] = useState(false);
+  const [strokeScaleForms, setStrokeScaleForms] = useState<patientForm[]>([]);
 
   const questions: Question[] = [
     {
@@ -191,10 +202,10 @@ export function Files({}: FilesProps) {
         <div className="space-y-2">
           {question.options.map((option: string, index: number) => (
             <Button
+              disabled={true}
               key={index}
               variant={selectedOption === index ? "default" : "outline"}
               className="w-full justify-start text-left"
-              onClick={() => handleOptionSelect(question.id, index)}
             >
               {option}
             </Button>
@@ -202,6 +213,29 @@ export function Files({}: FilesProps) {
         </div>
       </div>
     );
+  };
+
+  const renderData = (event: any) => {
+    if (event.target.value != "Select Form") {
+      setFormSelected(true)
+    }
+    else {
+      setFormData([]);
+      setFormSelected(false);
+      return;
+    }
+    let file;
+    let id = Number(event.target.value.split(": ")[1].replace(")", ""));
+    strokeScaleForms.forEach((item) => {
+      if (item.id === id){
+        file = item;
+      }
+    });
+    
+    const results = file.results;
+    for (let i = 0; i < results.length; i++) {
+      handleOptionSelect(i + 1, Number(results[i]));
+    }
   };
 
   const calculateScore = () => {
@@ -214,65 +248,30 @@ export function Files({}: FilesProps) {
     return totalScore;
   };
 
-  const fetchPatientFiles = async () => {
+  const fetchPatientForms = async () => {
+    setFormSelected(false);
+    setFormData([]);
     try {
       const response = await fetch('http://localhost:9000/key=peerjs/post', {
         method: 'POST',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          Action: "getFiles", 
+          Action: "getForms", 
         },
         body: JSON.stringify({
           patientName,
           DOB: dob
         }),
       });
-      console.log(response.text());
+      let strokeScaleForms = await response.json();
+      setFormsFetched(true);
+      setStrokeScaleForms(strokeScaleForms);
     }
     catch (error){
       console.log(error);
     }
   }
-
-  const submitStrokeScale = async () => {
-    if (Object.entries(formData).length != 15) {
-      console.log('Please answer every question');
-    }
-    else if (patientName == '' || dob == ''){
-      console.log("Please enter the patient credentials at the top");
-    }
-    else{
-      let jsonString = "";
-      Object.entries(formData).forEach(([questionId, score]) => {
-        if (typeof score === 'number' && !isNaN(score)) {
-          jsonString += String(score);
-        }
-      });
-
-      let today = new Date();
-      let date = (today.getMonth() + 1) + '/' + today.getDay() + '/' + today.getFullYear();
-      try {
-        const response = await fetch('http://localhost:9000/key=peerjs/post', {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-            Action: "strokeScale", 
-          },
-          body: JSON.stringify({
-            patientName,
-            DOB: dob,
-            formDate: date,
-            results: jsonString
-          }),
-        });
-    }
-    catch (error){
-      console.log(error);
-    }
-  }
-}
 
   return (
     <Card className="w-full p-6 space-y-6">
@@ -301,20 +300,35 @@ export function Files({}: FilesProps) {
         </div>
         
           <div className="text-xl font-bold text-center">
-            Total NIHSS Score: {calculateScore()}
-            <br/><Button onClick={fetchPatientFiles}>
+            <br/><Button onClick={fetchPatientForms}>
               Submit
             </Button>
           <div className="mt-6 pt-6 border-t"></div>
         </div>
-        <div className="space-y-8">
+        {formsFetched && <div className="space-y-8">
+          <div className="space-y-4">
+            <select className="text-lg font-semibold" onChange={renderData}>
+              <option>Select Form</option>
+                {strokeScaleForms.map((item) => (
+              <option key={item.id}>{item.form_date + " Stroke Scale (ID: " + item.id + ")"}</option>
+            ))}
+          </select>
+          </div>
+        </div>
+        }
+      </div>
+      {formsFetched && <div className="text-xl font-bold text-center">
+        {formSelected && <div className="space-y-8">
           {questions.map((question) => (
             <div key={question.id} className="border-b pb-6">
               {renderQuestion(question)}
             </div>
           ))}
         </div>
+        }
+        Total NIHSS Score: {calculateScore()}
       </div>
+      }
     </Card>
   );
 }
