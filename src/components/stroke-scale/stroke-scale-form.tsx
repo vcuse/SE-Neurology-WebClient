@@ -230,8 +230,11 @@ export function StrokeScaleForm({}: StrokeScaleFormProps) {
       });
 
       let today = new Date();
-      let date = (today.getMonth() + 1) + '/' + today.getDay() + '/' + today.getFullYear();
-      try {
+      let month = String(today.getMonth() + 1).padStart(2, '0');
+      let day = String(today.getDate()).padStart(2, '0');
+      let date = (month + '/' + day + '/' + today.getFullYear());
+      console.log(date);
+      /*try {
         const response = await fetch('http://localhost:9000/key=peerjs/post', {
           method: 'POST',
           credentials: 'include',
@@ -249,7 +252,7 @@ export function StrokeScaleForm({}: StrokeScaleFormProps) {
     }
     catch (error){
       console.log(error);
-    }
+    }*/
   }
 }
 

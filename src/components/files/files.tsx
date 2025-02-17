@@ -232,7 +232,7 @@ export function Files({}: FilesProps) {
       }
     });
     
-    const results = file.results;
+    const results = file!.results;
     for (let i = 0; i < results.length; i++) {
       handleOptionSelect(i + 1, Number(results[i]));
     }
