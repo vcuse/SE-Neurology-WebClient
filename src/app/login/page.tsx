@@ -52,7 +52,6 @@ export default function LoginPage() {
           setError('Account created successfully. You may now log in');
         }
       } else {
-        // Handle server error messages
         setError(result || 'An error occurred. Please try again.');
       }
     } catch (err) {
@@ -64,21 +63,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative">
+    <div className="min-h-screen flex items-center justify-center relative bg-[#f8fafc] overflow-hidden">
       <PerlinNoiseBackground
         className="absolute inset-0 w-full h-full"
         style={{ filter: 'blur(8px)' }}
       />
-      <div className="absolute inset-0 bg-black opacity-40 z-[0]"></div>
-      <Card className="w-full max-w-md z-10">
-        <CardHeader>
-          <CardTitle className="text-2xl">Login</CardTitle>
-          <CardDescription>Enter your credentials to access your account</CardDescription>
+      <div className="absolute inset-0 bg-blue-900/20 z-[0]"></div>
+      <Card className="w-full max-w-md z-10 border-blue-50 shadow-lg">
+        <CardHeader className="border-b border-blue-50 bg-blue-50">
+          <CardTitle className="text-2xl text-blue-900">NeuroConnect</CardTitle>
+          <CardDescription className="text-blue-700">Enter your credentials to access your account</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6 bg-white">
           <form onSubmit={(e) => handleSubmit(e, 'login')} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username" className="text-blue-900">Username</Label>
               <Input
                 id="username"
                 placeholder="Enter your username"
@@ -86,10 +85,11 @@ export default function LoginPage() {
                 onChange={(e) => setUsername(e.target.value)}
                 required
                 disabled={isLoading}
+                className="border-blue-100 focus:border-blue-200"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-blue-900">Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -98,6 +98,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={isLoading}
+                className="border-blue-100 focus:border-blue-200"
               />
             </div>
             {error && (
@@ -106,11 +107,15 @@ export default function LoginPage() {
               </Alert>
             )}
             <div className="space-y-2">
-              <Button className="w-full" type="submit" disabled={isLoading}>
+              <Button 
+                className="w-full bg-blue-600 hover:bg-blue-700" 
+                type="submit" 
+                disabled={isLoading}
+              >
                 {isLoading ? 'Signing In...' : 'Sign In'}
               </Button>
               <Button
-                className="w-full"
+                className="w-full border-blue-200 text-blue-900 hover:bg-blue-50"
                 type="button"
                 variant="outline"
                 onClick={(e) => handleSubmit(e, 'create')}

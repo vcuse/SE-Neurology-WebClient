@@ -84,5 +84,13 @@
   }
   body {
     @apply bg-background text-foreground;
+    overscroll-behavior: none;
+    overflow: hidden;
+    height: 100vh;
+    position: fixed;
+    width: 100%;
+  }
+  html {
+    overscroll-behavior: none;
   }
 }

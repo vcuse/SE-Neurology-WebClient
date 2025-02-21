@@ -48,11 +48,23 @@ const PerlinNoiseBackground: React.FC<PerlinNoiseBackgroundProps> = ({ style, cl
         const ny = y / canvas.height - 0.5;
 
         const noise = noise2D(nx + time, ny + time);
-        const value = (noise + 1) * 0.5 * 255;
+        const value = (noise + 2) * 0.5;
 
-        data[i] = value; // red
-        data[i + 1] = value; // green
-        data[i + 2] = value; // blue
+        // // Light blue tones with more contrast
+        // const baseBlue = 75; // Lower base value for more contrast
+        // const blueVariation = 180; // More variation for visibility
+        
+        // Create more contrast between light and dark areas
+        const contrastValue = Math.pow(value, 1.5); // Increase contrast by applying power function
+        
+        // data[i] = Math.floor(baseBlue + contrastValue * 20); // red
+        // data[i + 1] = Math.floor(baseBlue + contrastValue * 30); // green
+        // data[i + 2] = Math.floor(baseBlue + contrastValue * blueVariation); // blue
+        // data[i + 3] = 255; // alpha
+
+        data[i] = Math.floor(contrastValue * 149); // red
+        data[i + 1] = Math.floor(contrastValue * 174); // green
+        data[i + 2] = Math.floor(contrastValue * 232); // blue
         data[i + 3] = 255; // alpha
       }
 
