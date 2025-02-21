@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useState } from 'react';
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 interface StrokeScaleFormProps {
@@ -19,7 +18,6 @@ interface FormData {
 }
 
 export function StrokeScaleForm({ onClose }: StrokeScaleFormProps) {
-  const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<FormData>({});
 
   const questions: Question[] = [
@@ -182,31 +180,6 @@ export function StrokeScaleForm({ onClose }: StrokeScaleFormProps) {
       ...prevData,
       [questionId]: optionIndex
     }));
-    
-    const question = questions.find(q => q.id === questionId);
-    if (question && questions.indexOf(question) < questions.length - 1) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  const renderQuestion = ({ question, selectedOption }: { question: Question; selectedOption: number | undefined }) => {
-    return (
-      <div key={question.id} className="space-y-4">
-        <h3 className="text-lg font-semibold">{question.text}</h3>
-        <div className="space-y-2">
-          {question.options.map((option: string, index: number) => (
-            <Button
-              key={index}
-              variant={selectedOption === index ? "default" : "outline"}
-              className="w-full justify-start text-left"
-              onClick={() => handleOptionSelect(question.id, index)}
-            >
-              {option}
-            </Button>
-          ))}
-        </div>
-      </div>
-    );
   };
 
   const calculateScore = () => {
@@ -220,38 +193,37 @@ export function StrokeScaleForm({ onClose }: StrokeScaleFormProps) {
   };
 
   return (
-    <Card className="w-full max-w-2xl p-6 space-y-6">
+    <div className="w-full p-6 space-y-8">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">NIH Stroke Scale Assessment</h2>
         {onClose && <Button variant="outline" onClick={onClose}>Close</Button>}
       </div>
 
-      {renderQuestion({
-        question: questions[currentStep],
-        selectedOption: formData[questions[currentStep].id]
-      })}
-
-      <div className="flex justify-between mt-6">
-        <Button
-          variant="outline"
-          onClick={() => setCurrentStep(prev => Math.max(0, prev - 1))}
-          disabled={currentStep === 0}
-        >
-          Previous
-        </Button>
-
-        <div className="text-center">
-          <p className="font-semibold">Question {currentStep + 1} of {questions.length}</p>
-          <p>Total Score: {calculateScore()}</p>
-        </div>
-
-        <Button
-          onClick={() => setCurrentStep(prev => Math.min(questions.length - 1, prev + 1))}
-          disabled={currentStep === questions.length - 1}
-        >
-          Next
-        </Button>
+      <div className="space-y-8">
+        {questions.map((question) => (
+          <div key={question.id} className="space-y-4">
+            <h3 className="text-lg font-semibold">{question.text}</h3>
+            <div className="space-y-2">
+              {question.options.map((option: string, index: number) => (
+                <Button
+                  key={index}
+                  variant={formData[question.id] === index ? "default" : "outline"}
+                  className="w-full justify-start text-left"
+                  onClick={() => handleOptionSelect(question.id, index)}
+                >
+                  {option}
+                </Button>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
-    </Card>
+
+      <div className="sticky bottom-0 bg-white py-4 border-t">
+        <div className="text-center">
+          <p className="text-lg font-semibold">Total Score: {calculateScore()}</p>
+        </div>
+      </div>
+    </div>
   );
 }

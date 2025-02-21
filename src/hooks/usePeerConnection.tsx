@@ -31,11 +31,56 @@ export function usePeerConnection() {
   const [isRinging, setIsRinging] = useState<boolean>(false);
   const [minimizedChat, setMinimizedChat] = useState<boolean>(false);
   const [isChatVisible, setIsChatVisible] = useState<boolean>(false);
+  const [isStrokeScaleVisible, setIsStrokeScaleVisible] = useState<boolean>(false);
 
   // References
   const peerRef = useRef<Peer | null>(null);
   const intervalRef = useRef<NodeJS.Timeout>();
   const currentPeerIdRef = useRef<string>("");
+
+  // Set up data connection handler
+  const setupDataConnection = (dataConnection: DataConnection) => {
+    console.log('Setting up data connection with:', dataConnection.peer);
+    
+    // Clean up existing connection if any
+    if (dataConnectionRef.current) {
+      dataConnectionRef.current.off('data');
+      dataConnectionRef.current.off('open');
+      dataConnectionRef.current.off('close');
+      dataConnectionRef.current.off('error');
+      dataConnectionRef.current.close();
+    }
+    
+    dataConnectionRef.current = dataConnection;
+    setCallerId(dataConnection.peer);
+    
+    dataConnection.on('open', () => {
+      console.log('Data channel opened');
+      setIsChatVisible(true);
+    });
+
+    dataConnection.on('data', (data: unknown) => {
+      if (typeof data === 'string') {
+        setMessages(prev => [...prev, {
+          id: Math.random().toString(36).substr(2, 9),
+          text: data,
+          sender: dataConnection.peer,
+          timestamp: new Date()
+        }]);
+        setIsChatVisible(true);
+      }
+    });
+
+    dataConnection.on('close', () => {
+      console.log('Data channel closed');
+      dataConnectionRef.current = null;
+    });
+
+    dataConnection.on('error', (err) => {
+      console.error('Data channel error:', err);
+      setError('Chat connection error. Please try again.');
+    });
+  };
 
   useEffect(() => {
     const storedPeerId = localStorage.getItem('peerId');
@@ -62,38 +107,7 @@ export function usePeerConnection() {
       setCallerId(call.peer);
     });
 
-    // Set up data channel receiver
-    peer.on('connection', (dataConnection) => {
-      console.log('Incoming data connection from:', dataConnection.peer);
-      dataConnectionRef.current = dataConnection;
-      setCallerId(dataConnection.peer);
-      
-      dataConnection.on('open', () => {
-        console.log('Data channel opened');
-      });
-
-      dataConnection.on('data', (data: unknown) => {
-        if (typeof data === 'string') {
-          setMessages(prev => [...prev, {
-            id: Math.random().toString(36).substr(2, 9),
-            text: data,
-            sender: dataConnection.peer,
-            timestamp: new Date()
-          }]);
-          setIsChatVisible(true);
-        }
-      });
-
-      dataConnection.on('close', () => {
-        console.log('Data channel closed');
-        dataConnectionRef.current = null;
-      });
-
-      dataConnection.on('error', (err) => {
-        console.error('Data channel error:', err);
-        setError('Chat connection error. Please try again.');
-      });
-    });
+    peer.on('connection', setupDataConnection);
 
     // Fetch peer IDs
     const fetchPeerIds = () => {
@@ -151,17 +165,7 @@ export function usePeerConnection() {
         
         // Setup data channel for chat
         const dataConnection = peer.connect(peerId);
-        dataConnectionRef.current = dataConnection;
-        dataConnection.on('data', (data: unknown) => {
-          if (typeof data === 'string') {
-            setMessages(prev => [...prev, {
-              id: Math.random().toString(36).substr(2, 9),
-              text: data,
-              sender: peerId,
-              timestamp: new Date()
-            }]);
-          }
-        });
+        setupDataConnection(dataConnection);
 
         call.on("stream", (remoteStream) => {
           if (videoEl.current) {
@@ -188,20 +192,7 @@ export function usePeerConnection() {
         setMediaConnection(incomingCall);
         setActiveView('activeCall');
         
-        // Setup data channel receiver
-        peerRef.current?.on('connection', (dataConnection) => {
-          dataConnectionRef.current = dataConnection;
-          dataConnection.on('data', (data: unknown) => {
-            if (typeof data === 'string') {
-              setMessages(prev => [...prev, {
-                id: Math.random().toString(36).substr(2, 9),
-                text: data,
-                sender: dataConnection.peer,
-                timestamp: new Date()
-              }]);
-            }
-          });
-        });
+        // Connection handler is already set up in the main peer.on('connection') handler
 
         incomingCall.on("stream", (remoteStream) => {
           if (videoEl.current) {
@@ -279,6 +270,16 @@ export function usePeerConnection() {
 
   const toggleChat = () => {
     setIsChatVisible(prev => !prev);
+    if (!isChatVisible) {
+      setIsStrokeScaleVisible(false);
+    }
+  };
+
+  const toggleStrokeScale = () => {
+    setIsStrokeScaleVisible(prev => !prev);
+    if (!isStrokeScaleVisible) {
+      setIsChatVisible(false);
+    }
   };
 
   const toggleMinimizeChat = () => {
@@ -295,37 +296,9 @@ export function usePeerConnection() {
       dataConnectionRef.current = null;
     }
 
-    // Create new data connection
+    // Create and set up new data connection
     const dataConnection = peer.connect(peerId);
-    dataConnectionRef.current = dataConnection;
-
-    // Set up connection event handlers
-    dataConnection.on('open', () => {
-      console.log('Data channel opened');
-      setIsChatVisible(true); // Show chat for sender when they initiate
-    });
-
-    dataConnection.on('data', (data: unknown) => {
-      if (typeof data === 'string') {
-        setMessages(prev => [...prev, {
-          id: Math.random().toString(36).substr(2, 9),
-          text: data,
-          sender: peerId,
-          timestamp: new Date()
-        }]);
-        setIsChatVisible(true);
-      }
-    });
-
-    dataConnection.on('close', () => {
-      console.log('Data channel closed');
-      dataConnectionRef.current = null;
-    });
-
-    dataConnection.on('error', (err) => {
-      console.error('Data channel error:', err);
-      setError('Chat connection error. Please try again.');
-    });
+    setupDataConnection(dataConnection);
   };
 
   return {
@@ -360,5 +333,7 @@ export function usePeerConnection() {
     toggleChat,
     toggleMinimizeChat,
     initializeChat,
+    isStrokeScaleVisible,
+    toggleStrokeScale,
   };
 }

@@ -18,6 +18,8 @@ import {
   MessageSquare,
   ChevronLeft,
   ChevronRight,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { StrokeScaleForm } from "@/components/stroke-scale/stroke-scale-form";
 import { usePeerConnection } from "@/hooks/usePeerConnection";
@@ -77,6 +79,8 @@ export default function Page() {
     initializeChat,
     messages,
     sendMessage,
+    isStrokeScaleVisible,
+    toggleStrokeScale,
   } = usePeerConnection();
 
   useEffect(() => {
@@ -300,32 +304,37 @@ export default function Page() {
           )}
 
           {activeView === 'activeCall' && (
-            <div className="mx-auto max-w-6xl">
-              <div className="grid grid-cols-[1fr,350px] gap-6">
+            <div className="w-full px-6">
+              <div className={cn(
+                "grid gap-6",
+                (isChatVisible || isStrokeScaleVisible) ? "grid-cols-[1fr,525px]" : "grid-cols-1"
+              )}>
                 <Card className="overflow-hidden border-blue-50 flex flex-col">
-                  <CardHeader className="border-b border-blue-50 bg-blue-50 p-4 flex-none">
+                  <CardHeader className="border-b border-blue-50 bg-blue-50 p-4">
                     <CardTitle className="flex items-center gap-2 text-blue-900">
                       <PhoneCall className="h-5 w-5" />
                       Ongoing Consultation
                     </CardTitle>
                   </CardHeader>
 
-                  <CardContent className="p-0 flex-1 flex flex-col">
-                    {isCallOnHold ? (
-                      <div className="flex-1 flex items-center justify-center bg-gray-100 text-gray-500">
-                        <Pause className="h-12 w-12" />
-                      </div>
-                    ) : (
-                      <video
-                        ref={videoEl}
-                        autoPlay
-                        playsInline
-                        className="flex-1 w-full object-cover"
-                        muted
-                      />
-                    )}
+                  <CardContent className="p-0 flex flex-col">
+                    <div className="relative">
+                      {isCallOnHold ? (
+                        <div className="flex items-center justify-center h-full bg-gray-100 text-gray-500">
+                          <Pause className="h-12 w-12" />
+                        </div>
+                      ) : (
+                        <video
+                          ref={videoEl}
+                          autoPlay
+                          playsInline
+                          className="w-full max-h-[calc(100vh-250px)] object-contain mx-auto"
+                          muted
+                        />
+                      )}
+                    </div>
 
-                    <div className="flex gap-2 p-4 border-t border-blue-50">
+                    <div className="flex gap-2 p-4 border-t border-blue-50 bg-white">
                       <Button
                         onClick={endCall}
                         variant="destructive"
@@ -355,25 +364,45 @@ export default function Page() {
                       >
                         {isChatVisible ? 'Hide Chat' : 'Show Chat'}
                       </Button>
+                      <Button
+                        onClick={toggleStrokeScale}
+                        variant="outline"
+                        className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
+                      >
+                        {isStrokeScaleVisible ? 'Hide Stroke Scale' : 'Show Stroke Scale'}
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
 
                 {isChatVisible && (
-                  <Card className="border-blue-50 h-[500px] flex flex-col">
+                  <Card className="border-blue-50 h-[calc(100vh-200px)] self-start flex flex-col">
                     <CardHeader className="border-b border-blue-50 bg-blue-50 p-4">
                       <CardTitle className="flex items-center gap-2 text-blue-900">
                         <MessageSquare className="h-5 w-5" />
                         Chat
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="p-0 flex-1 overflow-hidden">
+                    <CardContent className="p-0 flex-1 overflow-y-auto">
                       <CallViewChat
                         currentPeerId={currentPeerId}
                         remotePeerId={callerId}
                         messages={messages}
                         sendMessage={sendMessage}
                       />
+                    </CardContent>
+                  </Card>
+                )}
+                {isStrokeScaleVisible && (
+                  <Card className="border-blue-50 h-[calc(100vh-200px)] self-start flex flex-col">
+                    <CardHeader className="border-b border-blue-50 bg-blue-50 p-4">
+                      <CardTitle className="flex items-center gap-2 text-blue-900">
+                        <Stethoscope className="h-5 w-5" />
+                        Stroke Scale Assessment
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0 flex-1 overflow-y-auto">
+                      <StrokeScaleForm onClose={toggleStrokeScale} />
                     </CardContent>
                   </Card>
                 )}
