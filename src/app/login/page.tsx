@@ -69,12 +69,12 @@ export default function LoginPage() {
         style={{ filter: 'blur(8px)' }}
       />
       <div className="absolute inset-0 bg-blue-900/20 z-[0]"></div>
-      <Card className="w-full max-w-md z-10 border-blue-50 shadow-lg">
-        <CardHeader className="border-b border-blue-50 bg-blue-50">
+      <Card className="w-full max-w-md z-10 bg-white/95 shadow-lg">
+        <CardHeader className="border-b border-blue-100/50">
           <CardTitle className="text-2xl text-blue-900">NeuroConnect</CardTitle>
           <CardDescription className="text-blue-700">Enter your credentials to access your account</CardDescription>
         </CardHeader>
-        <CardContent className="p-6 bg-white">
+        <CardContent className="p-6">
           <form onSubmit={(e) => handleSubmit(e, 'login')} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="username" className="text-blue-900">Username</Label>
