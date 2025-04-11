@@ -329,7 +329,6 @@ export default function Page() {
                           autoPlay
                           playsInline
                           className="w-full max-h-[calc(100vh-250px)] object-contain mx-auto"
-                          muted
                         />
                       )}
                     </div>
