@@ -60,6 +60,7 @@ export default function Page() {
     callerId,
     setCallerId,
     videoEl,
+    audioEl,
     isCallOnHold,
     activeView,
     handleCall,
@@ -84,8 +85,9 @@ export default function Page() {
   } = usePeerConnection();
 
   useEffect(() => {
-    if (!isCallOnHold && videoEl.current && mediaConnection?.remoteStream) {
+    if (!isCallOnHold && videoEl.current && mediaConnection?.remoteStream && audioEl.current) {
       videoEl.current.srcObject = mediaConnection.remoteStream;
+      audioEl.current.srcObject = mediaConnection.remoteStream;
     }
   }, [isCallOnHold, mediaConnection, videoEl]);
 
@@ -324,12 +326,21 @@ export default function Page() {
                           <Pause className="h-12 w-12" />
                         </div>
                       ) : (
+
+                        <> 
                         <video
                           ref={videoEl}
                           autoPlay
                           playsInline
                           className="w-full max-h-[calc(100vh-250px)] object-contain mx-auto"
                         />
+                        <audio
+                          ref={audioEl}
+                          autoPlay
+                          playsInline
+                          className="hidden" // Hide the audio player controls
+                        />
+                        </>
                       )}
                     </div>
 

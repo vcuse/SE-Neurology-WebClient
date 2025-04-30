@@ -22,6 +22,7 @@ export function usePeerConnection() {
   const [myStream, setMyStream] = useState<MediaStream | null>(null);
   const [mediaConnection, setMediaConnection] = useState<MediaConnection | null>(null);
   const videoEl = useRef<HTMLVideoElement>(null);
+  const audioEl = useRef<HTMLAudioElement>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isIncomingCall, setIsIncomingCall] = useState<boolean>(false);
   const [callerId, setCallerId] = useState<string>("");
@@ -85,9 +86,9 @@ export function usePeerConnection() {
   useEffect(() => {
     const storedPeerId = localStorage.getItem('peerId');
     const peer = new Peer(storedPeerId || '', {
-      host: "videochat-signaling-app.ue.r.appspot.com",
-      port: 443,
-      secure: true,
+      host: "localhost",
+      port: 9000,
+      secure: false,
       path: "/",
       debug: 3,
     });
@@ -170,7 +171,13 @@ export function usePeerConnection() {
         call.on("stream", (remoteStream) => {
           if (videoEl.current) {
             videoEl.current.srcObject = remoteStream;
+           
           }
+          if (audioEl.current) {
+            audioEl.current.srcObject = remoteStream;
+            console.log("added audio stream");
+          }
+          
         });
 
         call.on("close", () => {
@@ -197,6 +204,11 @@ export function usePeerConnection() {
         incomingCall.on("stream", (remoteStream) => {
           if (videoEl.current) {
             videoEl.current.srcObject = remoteStream;
+            
+          }
+          if(audioEl.current){
+            audioEl.current.srcObject = remoteStream;
+            console.log("added audio stream");
           }
         });
 
@@ -314,6 +326,7 @@ export function usePeerConnection() {
     myStream,
     mediaConnection,
     videoEl,
+    audioEl,
     isCallOnHold,
     activeView,
     messages,

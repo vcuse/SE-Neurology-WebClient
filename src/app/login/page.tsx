@@ -28,12 +28,12 @@ export default function LoginPage() {
     }
 
     try {
-      const response = await fetch('http://localhost:9000/key=peerjs/post', {
+      const response = await fetch('https://devbranch-server-dot-videochat-signaling-app.ue.r.appspot.com/key=peerjs/post', {
         method: 'POST',
         credentials: 'include', // Include cookies
         headers: {
           'Content-Type': 'application/json',
-          Action: action, // Either 'login' or 'create'
+          Action: 'login', // Either 'login' or 'create'
         },
         body: JSON.stringify({
           username,
