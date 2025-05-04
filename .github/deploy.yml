@@ -1,3 +1,10 @@
+name: Auto-deploy Website
+
+on:
+  push:
+    branches:
+      - ui-revamp-authentication # Replace with the name of your branch
+
 jobs:
   deploy:
     runs-on: self-hosted
