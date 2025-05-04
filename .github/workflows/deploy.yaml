@@ -21,4 +21,15 @@ jobs:
         run: |
           npm install
           npm run build 
-          npm run dev
+      
+      # Method A: Using PM2 to manage the process
+      - name: Start/Restart Next.js server with PM2
+        run: |
+         
+          cd ${{ github.workspace }}
+ 
+          pm2 stop nextjs-app || true
+         
+          pm2 start npm --name nextjs-app -- run start
+       
+          pm2 save
