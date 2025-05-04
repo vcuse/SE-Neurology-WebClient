@@ -88,7 +88,7 @@ export function usePeerConnection() {
     const peer = new Peer(storedPeerId || '', {
       host: "localhost",
       port: 9000,
-      secure: false,
+      secure: true,
       path: "/",
       debug: 3,
     });
