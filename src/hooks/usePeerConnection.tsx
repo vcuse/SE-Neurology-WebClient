@@ -86,14 +86,15 @@ export function usePeerConnection() {
   useEffect(() => {
     const storedPeerId = localStorage.getItem('peerId');
     const peer = new Peer(storedPeerId || '', {
-      host: "devbranch-server-dot-videochat-signaling-app.ue.r.appspot.com",
+      host: "videochat-signaling-app.ue.r.appspot.com",
       port: 443,
       secure: true,
       path: "/",
       debug: 3,
     });
     peerRef.current = peer;
-
+    console.log(`created PeerRef with stored peerid ${storedPeerId}`);
+    
     peer.on("open", (id) => {
       if (!storedPeerId) {
         localStorage.setItem('peerId', id);
@@ -102,17 +103,24 @@ export function usePeerConnection() {
       currentPeerIdRef.current = id;
     });
 
-    peer.on("call", (call) => {
+    peer.on('call', (call) => {
+      console.log("We are receiving a call");
       setIncomingCall(call);
       setIsIncomingCall(true);
       setCallerId(call.peer);
+    });
+
+    // Optional: Also listen for errors to understand why it might *not* open
+    peer.on("error", (err) => {
+      console.error("PeerJS error:", err);
+      // Handle errors like server connection issues, invalid ID, etc.
     });
 
     peer.on('connection', setupDataConnection);
 
     // Fetch peer IDs
     const fetchPeerIds = () => {
-      fetch("https://devbranch-server-dot-videochat-signaling-app.ue.r.appspot.com/key=peerjs/peers")
+      fetch("https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/peers")
         .then((response) => {
           if (!response.ok) {
             throw new Error("Failed to fetch peer IDs");
@@ -138,6 +146,7 @@ export function usePeerConnection() {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
+      console.log("Destroying peerRef");
       peerRef.current?.destroy();
     };
   }, []);
