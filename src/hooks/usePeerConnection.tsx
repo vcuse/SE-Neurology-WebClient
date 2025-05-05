@@ -86,8 +86,8 @@ export function usePeerConnection() {
   useEffect(() => {
     const storedPeerId = localStorage.getItem('peerId');
     const peer = new Peer(storedPeerId || '', {
-      host: "localhost",
-      port: 9000,
+      host: "devbranch-server-dot-videochat-signaling-app.ue.r.appspot.com",
+      port: 443,
       secure: true,
       path: "/",
       debug: 3,
