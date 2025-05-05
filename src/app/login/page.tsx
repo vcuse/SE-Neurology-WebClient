@@ -30,7 +30,7 @@ export default function LoginPage() {
     try {
       const response = await fetch('https://devbranch-server-dot-videochat-signaling-app.ue.r.appspot.com/key=peerjs/post', {
         method: 'POST',
-        credentials: 'include', // Include cookies
+        credentials: 'omit', // Include cookies
         headers: {
           'Content-Type': 'application/json',
           Action: 'login', // Either 'login' or 'create'
