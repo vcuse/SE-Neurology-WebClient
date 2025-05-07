@@ -90,7 +90,7 @@ export function usePeerConnection() {
       port: 443,
       secure: true,
       path: "/",
-      debug: 3,
+      debug: 3, 
     });
     peerRef.current = peer;
     console.log(`created PeerRef with stored peerid ${storedPeerId}`);
