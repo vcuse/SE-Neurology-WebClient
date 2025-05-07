@@ -12,6 +12,7 @@
 # next.js
 /.next/
 /out/
+/peerjs/
 
 # production
 /build
@@ -734,3 +735,5 @@ ${tmpdir}/chrome-debug-profile/ZxcvbnData/3/ranked_dicts
 ${tmpdir}/chrome-debug-profile/ZxcvbnData/3/surnames.txt
 ${tmpdir}/chrome-debug-profile/ZxcvbnData/3/us_tv_and_film.txt
 ${tmpdir}/chrome-debug-profile/ZxcvbnData/3/_metadata/verified_contents.json
+peerjs
+peerjs

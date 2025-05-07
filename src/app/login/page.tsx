@@ -28,7 +28,7 @@ export default function LoginPage() {
     }
 
     try {
-      const response = await fetch('http://localhost:9000/key=peerjs/post', {
+      const response = await fetch('https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/post', {
         method: 'POST',
         credentials: 'include', // Include cookies
         headers: {
