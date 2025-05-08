@@ -120,7 +120,7 @@ export function usePeerConnection() {
 
     // Fetch peer IDs
     const fetchPeerIds = () => {
-      fetch("https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/peers",{ credentials: 'include'}) 
+      fetch("https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/peers",{ credentials: 'omit'}) 
         .then((response) => {
           if (!response.ok) {
             throw new Error("Failed to fetch peer IDs");
