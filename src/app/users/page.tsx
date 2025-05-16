@@ -20,20 +20,25 @@ import {
   ChevronRight,
   Maximize2,
   Minimize2,
+  Notebook,
+  NotebookIcon,
 } from "lucide-react";
 import { StrokeScaleForm } from "@/components/stroke-scale/stroke-scale-form";
 import { usePeerConnection } from "@/hooks/usePeerConnection";
 import { cn } from "@/lib/utils";
 import { HomeViewChat, CallViewChat } from "@/components/video-call";
+import Link from "next/link";
 
 type MenuItem = {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
+  href?: string;
   value: 'home' | 'strokeScale';
 };
 
 const menuItems: MenuItem[] = [
   { icon: Stethoscope, label: 'Consultations', value: 'home' },
+  { icon: NotebookIcon, label: 'Forms', href: '/forms', value: 'strokeScale' },
 ];
 
 export default function Page() {
@@ -327,19 +332,19 @@ export default function Page() {
                         </div>
                       ) : (
 
-                        <> 
-                        <video
-                          ref={videoEl}
-                          autoPlay
-                          playsInline
-                          className="w-full max-h-[calc(100vh-250px)] object-contain mx-auto"
-                        />
-                        <audio
-                          ref={audioEl}
-                          autoPlay
-                          playsInline
-                          className="hidden" // Hide the audio player controls
-                        />
+                        <>
+                          <video
+                            ref={videoEl}
+                            autoPlay
+                            playsInline
+                            className="w-full max-h-[calc(100vh-250px)] object-contain mx-auto"
+                          />
+                          <audio
+                            ref={audioEl}
+                            autoPlay
+                            playsInline
+                            className="hidden" // Hide the audio player controls
+                          />
                         </>
                       )}
                     </div>

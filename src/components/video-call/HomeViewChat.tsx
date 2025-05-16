@@ -13,11 +13,11 @@ interface Message {
 
 interface HomeViewChatProps {
   currentPeerId: string;
-  remotePeerId: string;
+  remotePeerId?: string;
   onClose?: () => void;
   minimized?: boolean;
   onMinimize?: () => void;
-  visible?: boolean;
+  visible: boolean;
   messages: Message[];
   sendMessage: (text: string) => void;
 }
