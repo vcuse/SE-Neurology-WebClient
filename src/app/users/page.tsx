@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Clipboard } from "lucide-react";
 import {
   Pause,
   LogOut,
@@ -32,13 +33,12 @@ import Link from "next/link";
 type MenuItem = {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
-  href?: string;
   value: 'home' | 'strokeScale';
 };
 
 const menuItems: MenuItem[] = [
   { icon: Stethoscope, label: 'Consultations', value: 'home' },
-  { icon: NotebookIcon, label: 'Forms', href: '/forms', value: 'strokeScale' },
+  { icon: NotebookIcon, label: 'Forms', value: 'strokeScale' },
 ];
 
 export default function Page() {
@@ -185,13 +185,14 @@ export default function Page() {
                 </Alert>
               )}
 
-              <Card className="border-blue-50 bg-white shadow-sm">
+              < Card className="border-blue-50 bg-white shadow-sm">
                 <CardHeader className="border-b border-blue-50">
                   <CardTitle className="flex items-center gap-2 text-blue-900">
                     <Video className="h-5 w-5" />
                     Active Consultations
                   </CardTitle>
                 </CardHeader>
+
 
                 <CardContent className="p-0">
                   {isLoading ? (
@@ -424,8 +425,34 @@ export default function Page() {
               </div>
             </div>
           )}
+
+          {activeView === 'strokeScale' && (
+            <div className="mx-auto max-w-2xl space-y-6">
+              <Card className="border-blue-50">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="flex items-center gap-2 text-blue-900"> <Clipboard className="h-5 w-5" />
+                    Stroke Scale Forms
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  { }
+                  {(
+                    <div className="p-6 text-center text-gray-500">
+                      No forms available
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <div className="fixed bottom-6 left-6">
+                <Button variant="outline" className="shadow-md hover:bg-blue-50 border-blue-200 text-blue-900"
+                  onClick={() => setActiveView('home')}><ChevronLeft className="mr-2 h-4 w-4" />
+                  Back to Consultations</Button>
+              </div>
+            </div>
+          )}
         </div>
-      </main>
-    </div>
+      </main >
+    </div >
   );
 }
