@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Clipboard } from "lucide-react";
+import { Clipboard, Filter, Sliders } from "lucide-react";
 import {
   Pause,
   LogOut,
@@ -29,6 +29,7 @@ import { usePeerConnection } from "@/hooks/usePeerConnection";
 import { cn } from "@/lib/utils";
 import { HomeViewChat, CallViewChat } from "@/components/video-call";
 import Link from "next/link";
+
 
 type MenuItem = {
   icon: React.ComponentType<{ className?: string }>;
@@ -96,6 +97,31 @@ export default function Page() {
     }
   }, [isCallOnHold, mediaConnection, videoEl]);
 
+  const [filterOpen, setFilterOpen] = React.useState(false);
+  const [selectedFilter, setSelectedFilter] = useState("");
+  const filterRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleclickOutside(event: MouseEvent): void {
+      if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
+        setFilterOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleclickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleclickOutside);
+    };
+  }, [filterRef]);
+
+  const handleFilterChange = (value: string) => {
+    setSelectedFilter(value);
+    setFilterOpen(false);
+
+    if (value === "date") { }
+
+    if (value === "A-Z") { }
+  }
+
   return (
     <div className="flex h-screen bg-[#f8fafc]">
       {/* Collapsible Sidebar */}
@@ -131,26 +157,47 @@ export default function Page() {
           </Button>
 
           <nav className="space-y-1">
-            {menuItems.map((item) => (
-              <Button
-                key={item.value}
-                variant={activeView === item.value ? "secondary" : "ghost"}
-                className={cn(
-                  "w-full",
-                  isSidebarExpanded ? "justify-start gap-3 px-3" : "p-0",
-                  activeView === item.value && "bg-blue-50 text-blue-900"
-                )}
-                onClick={() => {
-                  setActiveView(item.value)
-                }}
-              >
-                <item.icon className="h-5 w-5 text-blue-600" />
-                {isSidebarExpanded && item.label}
-              </Button>
-            ))}
+            {menuItems.map((item) => {
+              const isForms = item.value === 'strokeScale';
+
+              return (
+                <HoverCard key={item.value}>
+                  <HoverCardTrigger asChild>
+                    <Button
+                      key={item.value}
+                      variant={activeView === item.value ? "secondary" : "ghost"}
+                      className={cn(
+                        "w-full",
+                        isSidebarExpanded ? "justify-start gap-3 px-3" : "p-0",
+                        activeView === item.value && "bg-blue-100 text-blue-900 hover:bg-blue-200"
+                      )}
+                      onClick={() => {
+                        if (isForms && activeView === 'activeCall') {
+                          const confirm = window.confirm("Clicking this will end the current call. Do you wish to continue?");
+                          if (!confirm) {
+                            return;
+                          }
+                          endCall();
+                        }
+                        setActiveView(item.value);
+                      }}
+                    >
+                      <item.icon className="h-5 w-5 text-blue-600" />
+                      {isSidebarExpanded && <span>{item.label}</span>}
+                    </Button>
+                  </HoverCardTrigger>
+
+                  {!isSidebarExpanded && (
+                    <HoverCardContent side="right" className="w-auto text-sm px-2 py-1">
+                      {item.label}
+                    </HoverCardContent>
+                  )}
+                </HoverCard>
+              );
+            })}
           </nav>
         </div>
-      </div>
+      </div >
 
       <main className="flex-1 overflow-hidden">
         <header className="flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4">
@@ -175,6 +222,35 @@ export default function Page() {
           </Button>
         </header>
 
+        <div className="flex items-center gap-4 p-6 pb-0 relative">
+          {activeView === 'strokeScale' && (
+            <div ref={filterRef} className="relative">
+              <Button
+                variant="outline"
+                size="sm"
+                className="p-2"
+                onClick={() => setFilterOpen(open => !open)}
+              >
+                <Filter className="mr-2 h-4 w-4" />
+                {selectedFilter && <span>{selectedFilter === "Date"}</span>}
+              </Button>
+
+              {filterOpen && (
+                <div className="absolute top-full left-0 mt-1 z-50 w-64 rounded-md border border-gray-200 bg-white shadow-lg">
+                  <select value={selectedFilter}
+                    onChange={(e) => handleFilterChange(e.target.value)}
+                    className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-200 pr-10"
+                  >
+                    <option value="" disabled>Select Filter</option>
+                    <option value="date">Sort by Date</option>
+                    <option value="A-Z">Sort A-Z</option>
+                  </select>
+                </div>
+              )}
+            </div >
+          )}
+        </div>
+
         <div className="h-[calc(100vh-80px)] overflow-y-auto p-6">
           {activeView === 'home' && (
             <div className="mx-auto max-w-4xl space-y-6">
@@ -185,7 +261,7 @@ export default function Page() {
                 </Alert>
               )}
 
-              < Card className="border-blue-50 bg-white shadow-sm">
+              <Card className="border-blue-50 bg-white shadow-sm">
                 <CardHeader className="border-b border-blue-50">
                   <CardTitle className="flex items-center gap-2 text-blue-900">
                     <Video className="h-5 w-5" />
@@ -430,10 +506,25 @@ export default function Page() {
             <div className="mx-auto max-w-2xl space-y-6">
               <Card className="border-blue-50">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="flex items-center gap-2 text-blue-900"> <Clipboard className="h-5 w-5" />
-                    Stroke Scale Forms
-                  </CardTitle>
+                  <div className="flex w-full items-center justify-between">
+                    <CardTitle className="flex items-center gap-2 text-blue-900"> <Clipboard className="h-5 w-5" />
+                      Stroke Scale Forms
+                    </CardTitle>
+
+                    <div className="relative w-full sm:w-auto sm:min-w-[240px]">
+                      <input type="text"
+                        placeholder="Search..."
+                        className="w-full rounded-md border border-blue-500 bg-white px-3 py-2 text-sm
+                  placeholder:test-grey-400 focus:outline-none focus:ring-2 focus:ring-blue-200 pr-10"
+                        onChange={(e) => {
+                          console.log(e.target.value);
+
+                        }}
+                      />
+                    </div>
+                  </div>
                 </CardHeader>
+
                 <CardContent className="p-0">
                   { }
                   {(
@@ -450,8 +541,9 @@ export default function Page() {
                   Back to Consultations</Button>
               </div>
             </div>
-          )}
-        </div>
+          )
+          }
+        </div >
       </main >
     </div >
   );
