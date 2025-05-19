@@ -192,36 +192,6 @@ export function StrokeScaleForm({ onClose }: StrokeScaleFormProps) {
     return totalScore;
   };
 
-  const headers = ["question", "answer"];
-  const rows = questions.map((question) => {
-    const selected = formData[question.id];
-    let answer: string;
-    if (selected !== undefined) {
-      answer = question.options[selected];
-    } else {
-      answer = "Option not selected";
-    }
-    return [question.text, answer];
-  });
-
-
-  const toCSV = (headers: string[], rows: string[][]) => {
-    const lines = [headers, ...rows];
-    const content = lines
-      .map(row => row.map(((cell) => `"${cell}"`)).join(",")).join("\n");
-
-    const blob = new Blob([content], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "answers.csv";
-    link.click();
-  }
-
-  const exportAnswers = () => {
-    toCSV(headers, rows);
-  }
-
   return (
     <div className="w-full p-6 space-y-8">
       <div className="flex justify-between items-center">
@@ -253,11 +223,6 @@ export function StrokeScaleForm({ onClose }: StrokeScaleFormProps) {
         <div className="text-center">
           <p className="text-lg font-semibold">Total Score: {calculateScore()}</p>
         </div>
-        <Button onClick={exportAnswers}
-          disabled={Object.keys(formData).length < questions.length}
-          className="w-full mt-4">
-          Submit
-        </Button>
       </div>
     </div >
   );
