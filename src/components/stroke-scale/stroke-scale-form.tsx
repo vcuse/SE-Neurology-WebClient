@@ -224,6 +224,6 @@ export function StrokeScaleForm({ onClose }: StrokeScaleFormProps) {
           <p className="text-lg font-semibold">Total Score: {calculateScore()}</p>
         </div>
       </div>
-    </div>
+    </div >
   );
-}
+} 
