@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "localbuild": "BUILD_TARGET=localdevelopment next build",
+    "build": "BUILD_TARGET=production next build",
     "start": "next start",
     "lint": "next lint"
   },
@@ -34,6 +34,7 @@
     "@types/node": "^22.9.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "cross-env": "^7.0.3",
     "eslint": "^9.15.0",
     "eslint-config-next": "^15.0.3",
     "postcss": "^8.4.49",
