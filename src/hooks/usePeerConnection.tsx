@@ -42,7 +42,7 @@ export function usePeerConnection() {
   // Set up data connection handler
   const setupDataConnection = (dataConnection: DataConnection) => {
     console.log('Setting up data connection with:', dataConnection.peer);
-    
+
     // Clean up existing connection if any
     if (dataConnectionRef.current) {
       dataConnectionRef.current.off('data');
@@ -51,13 +51,13 @@ export function usePeerConnection() {
       dataConnectionRef.current.off('error');
       dataConnectionRef.current.close();
     }
-    
+
     dataConnectionRef.current = dataConnection;
     setCallerId(dataConnection.peer);
-    
+
     dataConnection.on('open', () => {
       console.log('Data channel opened');
-      setIsChatVisible(true);
+      // setIsChatVisible(true);
     });
 
     dataConnection.on('data', (data: unknown) => {
@@ -68,7 +68,7 @@ export function usePeerConnection() {
           sender: dataConnection.peer,
           timestamp: new Date()
         }]);
-        setIsChatVisible(true);
+        // setIsChatVisible(true);
       }
     });
 
@@ -90,11 +90,11 @@ export function usePeerConnection() {
       port: 443,
       secure: true,
       path: "/",
-      debug: 3, 
+      debug: 3,
     });
     peerRef.current = peer;
     console.log(`created PeerRef with stored peerid ${storedPeerId}`);
-    
+
     peer.on("open", (id) => {
       if (!storedPeerId) {
         localStorage.setItem('peerId', id);
@@ -120,7 +120,7 @@ export function usePeerConnection() {
 
     // Fetch peer IDs
     const fetchPeerIds = () => {
-      fetch("https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/peers",{ credentials: 'include'}) 
+      fetch("https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/peers", { credentials: 'include' })
         .then((response) => {
           if (!response.ok) {
             throw new Error("Failed to fetch peer IDs");
@@ -172,7 +172,7 @@ export function usePeerConnection() {
         const call = peer.call(peerId, stream);
         setMediaConnection(call);
         setActiveView('activeCall');
-        
+
         // Setup data channel for chat
         const dataConnection = peer.connect(peerId);
         setupDataConnection(dataConnection);
@@ -180,13 +180,13 @@ export function usePeerConnection() {
         call.on("stream", (remoteStream) => {
           if (videoEl.current) {
             videoEl.current.srcObject = remoteStream;
-           
+
           }
           if (audioEl.current) {
             audioEl.current.srcObject = remoteStream;
             console.log("added audio stream");
           }
-          
+
         });
 
         call.on("close", () => {
@@ -207,15 +207,15 @@ export function usePeerConnection() {
         incomingCall.answer(stream);
         setMediaConnection(incomingCall);
         setActiveView('activeCall');
-        
+
         // Connection handler is already set up in the main peer.on('connection') handler
 
         incomingCall.on("stream", (remoteStream) => {
           if (videoEl.current) {
             videoEl.current.srcObject = remoteStream;
-            
+
           }
-          if(audioEl.current){
+          if (audioEl.current) {
             audioEl.current.srcObject = remoteStream;
             console.log("added audio stream");
           }

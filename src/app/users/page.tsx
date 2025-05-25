@@ -390,92 +390,96 @@ export default function Page() {
           {activeView === 'activeCall' && (
             <div className="w-full px-6">
               <div className={cn(
-                "grid gap-6",
+                "flex gap-6",
                 (isChatVisible || isStrokeScaleVisible) ? "grid-cols-[1fr,525px]" : "grid-cols-1"
               )}>
-                <Card className="overflow-hidden border-blue-50 flex flex-col">
-                  <CardHeader className="border-b border-blue-50 bg-blue-50 p-4">
-                    <CardTitle className="flex items-center gap-2 text-blue-900">
-                      <PhoneCall className="h-5 w-5" />
-                      Ongoing Consultation
-                    </CardTitle>
-                  </CardHeader>
+                <div className="flex-shrink-0">
+                  <Card className="overflow-hidden border-blue-50 w-[720px]">
+                    <CardHeader className="border-b border-blue-50 bg-blue-50 p-4">
+                      <CardTitle className="flex items-center gap-2 text-blue-900">
+                        <PhoneCall className="h-5 w-5" />
+                        Ongoing Consultation
+                      </CardTitle>
+                    </CardHeader>
 
-                  <CardContent className="p-0 flex flex-col">
-                    <div className="relative">
-                      {isCallOnHold ? (
-                        <div className="flex items-center justify-center h-full bg-gray-100 text-gray-500">
-                          <Pause className="h-12 w-12" />
-                        </div>
-                      ) : (
+                    <CardContent className="p-4">
+                      <div className="flex justify-center mb-4">
+                        {isCallOnHold ? (
+                          <div className="flex items-center justify-center w-[720px] h-[560px] bg-gray-100 text-gray-500 rounded-lg">
+                            <Pause className="h-12 w-12" />
+                          </div>
+                        ) : (
 
-                        <>
-                          <video
-                            ref={videoEl}
-                            autoPlay
-                            playsInline
-                            className="w-full max-h-[calc(100vh-250px)] object-contain mx-auto"
-                          />
-                          <audio
-                            ref={audioEl}
-                            autoPlay
-                            playsInline
-                            className="hidden" // Hide the audio player controls
-                          />
-                        </>
-                      )}
-                    </div>
+                          <>
+                            {/* <div className="video-container"> */}
+                            <video
+                              ref={videoEl}
+                              autoPlay
+                              playsInline
+                              className="w-[720px] h-[560px] object-cover rounded-lg bg-black"
+                            />
+                            {/* </div> */}
+                            <audio
+                              ref={audioEl}
+                              autoPlay
+                              playsInline
+                              className="hidden" // Hide the audio player controls
+                            />
+                          </>
+                        )}
+                      </div>
 
-                    <div className="flex gap-2 p-4 border-t border-blue-50 bg-white">
-                      <Button
-                        onClick={endCall}
-                        variant="destructive"
-                        className="gap-2"
-                      >
-                        <PhoneCall className="h-4 w-4" />
-                        End Call
-                      </Button>
-                      <Button
-                        onClick={holdCall}
-                        variant="outline"
-                        className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
-                      >
-                        {isCallOnHold ? 'Resume' : 'Hold'}
-                      </Button>
-                      <Button
-                        onClick={toggleMute}
-                        variant="outline"
-                        className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
-                      >
-                        {isMuted ? 'Unmute' : 'Mute'}
-                      </Button>
-                      <Button
-                        onClick={toggleChat}
-                        variant="outline"
-                        className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
-                      >
-                        {isChatVisible ? 'Hide Chat' : 'Show Chat'}
-                      </Button>
-                      <Button
-                        onClick={toggleStrokeScale}
-                        variant="outline"
-                        className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
-                      >
-                        {isStrokeScaleVisible ? 'Hide Stroke Scale' : 'Show Stroke Scale'}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                      <div className="flex gap-2 pt-4 border-t border-blue-50 bg-white">
+                        <Button
+                          onClick={endCall}
+                          variant="destructive"
+                          className="gap-2"
+                        >
+                          <PhoneCall className="h-4 w-4" />
+                          End Call
+                        </Button>
+                        <Button
+                          onClick={holdCall}
+                          variant="outline"
+                          className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
+                        >
+                          {isCallOnHold ? 'Resume' : 'Hold'}
+                        </Button>
+                        <Button
+                          onClick={toggleMute}
+                          variant="outline"
+                          className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
+                        >
+                          {isMuted ? 'Unmute' : 'Mute'}
+                        </Button>
+                        <Button
+                          onClick={toggleChat}
+                          variant="outline"
+                          className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
+                        >
+                          {isChatVisible ? 'Hide Chat' : 'Show Chat'}
+                        </Button>
+                        <Button
+                          onClick={toggleStrokeScale}
+                          variant="outline"
+                          className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
+                        >
+                          {isStrokeScaleVisible ? 'Hide Stroke Scale' : 'Show Stroke Scale'}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
 
                 {isChatVisible && (
-                  <Card className="border-blue-50 h-[calc(100vh-200px)] self-start flex flex-col">
+                  <Card className="border-blue-50 h-[715px] w-[550px] self-start flex flex-col">
                     <CardHeader className="border-b border-blue-50 bg-blue-50 p-4">
                       <CardTitle className="flex items-center gap-2 text-blue-900">
                         <MessageSquare className="h-5 w-5" />
                         Chat
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="p-0 flex-1 overflow-y-auto">
+                    <CardContent className="p-0 flex-1 overflow-hidden">
                       <CallViewChat
                         currentPeerId={currentPeerId}
                         remotePeerId={callerId}
@@ -486,7 +490,7 @@ export default function Page() {
                   </Card>
                 )}
                 {isStrokeScaleVisible && (
-                  <Card className="border-blue-50 h-[calc(100vh-200px)] self-start flex flex-col">
+                  <Card className="border-blue-50 h-[715px] w-[550px] self-start flex flex-col">
                     <CardHeader className="border-b border-blue-50 bg-blue-50 p-4">
                       <CardTitle className="flex items-center gap-2 text-blue-900">
                         <Stethoscope className="h-5 w-5" />
