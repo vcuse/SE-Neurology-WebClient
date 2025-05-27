@@ -1,5 +1,5 @@
 "use client";
-
+// library imports
 import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -24,27 +24,34 @@ import {
   Notebook,
   NotebookIcon,
 } from "lucide-react";
+// custom imports 
 import { StrokeScaleForm } from "@/components/stroke-scale/stroke-scale-form";
 import { usePeerConnection } from "@/hooks/usePeerConnection";
 import { cn } from "@/lib/utils";
 import { HomeViewChat, CallViewChat } from "@/components/video-call";
 import Link from "next/link";
 
-
+// type defenition for sidebar menu items 
 type MenuItem = {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: 'home' | 'strokeScale';
 };
 
+// array of current menu items in the sidebar
 const menuItems: MenuItem[] = [
   { icon: Stethoscope, label: 'Consultations', value: 'home' },
   { icon: NotebookIcon, label: 'Forms', value: 'strokeScale' },
 ];
 
+//=====================================
+// SIDEBAR BEHAVIOR
+//=====================================
+
+// sidebar expand/collapse behavior
 export default function Page() {
   const [isSidebarExpanded, setIsSidebarExpanded] = React.useState(() => {
-    // Get initial state from localStorage, default to true if not set
+    // get initial state from localStorage, default to true if not set
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('sidebarExpanded');
       return saved !== null ? JSON.parse(saved) : true;
@@ -52,11 +59,16 @@ export default function Page() {
     return true;
   });
 
-  // Save sidebar state to localStorage whenever it changes
+  // save sidebar state to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('sidebarExpanded', JSON.stringify(isSidebarExpanded));
   }, [isSidebarExpanded]);
 
+  //=====================================
+  // VIDEO CONNECTION AND CALL LOGIC
+  //=====================================
+
+  // custom hooks
   const {
     currentPeerId,
     peerIds,
@@ -90,29 +102,40 @@ export default function Page() {
     toggleStrokeScale,
   } = usePeerConnection();
 
+  //=====================================
+  // VIDEO STREAM HANDLING
+  //=====================================
+
+  // manage remote video and audio streams
   useEffect(() => {
-    if (!isCallOnHold && videoEl.current && mediaConnection?.remoteStream && audioEl.current) {
+    if (!isCallOnHold && videoEl.current && mediaConnection?.remoteStream && audioEl.current) { // only set up streams if not on hold and the connectio is valid
       videoEl.current.srcObject = mediaConnection.remoteStream;
       audioEl.current.srcObject = mediaConnection.remoteStream;
     }
   }, [isCallOnHold, mediaConnection, videoEl]);
 
+  //=====================================
+  // FILTER DROPDOWN HANDLING
+  //=====================================
+
   const [filterOpen, setFilterOpen] = React.useState(false);
   const [selectedFilter, setSelectedFilter] = useState("");
   const filterRef = useRef<HTMLDivElement>(null);
 
+  // close the filter when you click outside 
   useEffect(() => {
-    function handleclickOutside(event: MouseEvent): void {
+    function handleClickOutside(event: MouseEvent): void {
       if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
         setFilterOpen(false);
       }
     }
-    document.addEventListener("mousedown", handleclickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener("mousedown", handleclickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [filterRef]);
 
+  // filtering handler (not yet implemented)
   const handleFilterChange = (value: string) => {
     setSelectedFilter(value);
     setFilterOpen(false);
@@ -122,13 +145,21 @@ export default function Page() {
     if (value === "A-Z") { }
   }
 
+
+  //=====================================
+  // MAIN RENDER
+  //=====================================
+
   return (
     <div className="flex h-screen bg-[#f8fafc]">
-      {/* Collapsible Sidebar */}
+      {/*=====================================
+        Collapsible Sidebar 
+        =====================================*/}
       <div className={cn(
         "transition-all duration-300 ease-in-out border-r border-gray-100 bg-white",
         isSidebarExpanded ? "w-[280px]" : "w-[80px]"
       )}>
+        {/*logo styling*/}
         <div className="relative p-4">
           <div className={cn(
             "flex items-center pb-6",
@@ -144,6 +175,7 @@ export default function Page() {
             )}
           </div>
 
+          {/*toggle sidebar*/}
           <Button
             variant="secondary"
             size="sm"
@@ -151,11 +183,12 @@ export default function Page() {
             onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
           >
             {isSidebarExpanded ?
-              <ChevronLeft className="h-5 w-5" /> :
-              <ChevronRight className="h-5 w-5" />
+              <ChevronLeft className="h-5 w-5" /> : // collapse
+              <ChevronRight className="h-5 w-5" /> // expand
             }
           </Button>
 
+          {/*navigation sidebar*/}
           <nav className="space-y-1">
             {menuItems.map((item) => {
               const isForms = item.value === 'strokeScale';
@@ -165,12 +198,13 @@ export default function Page() {
                   <HoverCardTrigger asChild>
                     <Button
                       key={item.value}
-                      variant={activeView === item.value ? "secondary" : "ghost"}
+                      variant={activeView === item.value ? "secondary" : "ghost"} // highlights active view
                       className={cn(
                         "w-full",
-                        isSidebarExpanded ? "justify-start gap-3 px-3" : "p-0",
+                        isSidebarExpanded ? "justify-start gap-3 px-3" : "p-0", // expand/change layout
                         activeView === item.value && "bg-blue-100 text-blue-900 hover:bg-blue-200"
                       )}
+                      // handle when trying to change view while on an active call
                       onClick={() => {
                         if (isForms && activeView === 'activeCall') {
                           const confirm = window.confirm("Clicking this will end the current call. Do you wish to continue?");
@@ -187,6 +221,7 @@ export default function Page() {
                     </Button>
                   </HoverCardTrigger>
 
+                  {/* shows tooltip if the sidebar is collapsed*/}
                   {!isSidebarExpanded && (
                     <HoverCardContent side="right" className="w-auto text-sm px-2 py-1">
                       {item.label}
@@ -199,9 +234,14 @@ export default function Page() {
         </div>
       </div >
 
+      {/*=====================================
+        MAIN AREA 
+        =====================================*/}
       <main className="flex-1 overflow-hidden">
+        {/*header bar at top*/}
         <header className="flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4">
           <div className="flex items-center gap-2">
+            {/* shows the user's ID*/}
             <Badge variant="outline" className="border-blue-100 bg-blue-50 text-blue-900">
               <User2 className="mr-2 h-4 w-4" />
               {currentPeerId ? (
@@ -212,6 +252,7 @@ export default function Page() {
             </Badge>
           </div>
 
+          {/* logout button */}
           <Button
             onClick={handleLogout}
             variant="ghost"
@@ -222,8 +263,9 @@ export default function Page() {
           </Button>
         </header>
 
+        {/* control bar for fitler */}
         <div className="flex items-center gap-4 p-6 pb-0 relative">
-          {activeView === 'strokeScale' && (
+          {activeView === 'strokeScale' && ( // only shows in stroke scale view
             <div ref={filterRef} className="relative">
               <Button
                 variant="outline"
@@ -235,6 +277,7 @@ export default function Page() {
                 {selectedFilter && <span>{selectedFilter === "Date"}</span>}
               </Button>
 
+              {/* dropdown menu */}
               {filterOpen && (
                 <div className="absolute top-full left-0 mt-1 z-50 w-64 rounded-md border border-gray-200 bg-white shadow-lg">
                   <select value={selectedFilter}
@@ -251,6 +294,11 @@ export default function Page() {
           )}
         </div>
 
+        {/*=====================================
+            DIFFERENT ACTIVE VIEWS
+          =====================================*/}
+
+        {/* home view (available consultations) */}
         <div className="h-[calc(100vh-80px)] overflow-y-auto p-6">
           {activeView === 'home' && (
             <div className="mx-auto max-w-4xl space-y-6">
@@ -277,6 +325,7 @@ export default function Page() {
                         <Skeleton key={i} className="h-20 w-full rounded-lg" />
                       ))}
                     </div>
+                    // list of available peers
                   ) : peerIds.length > 0 ? (
                     <div className="divide-y divide-blue-50">
                       {peerIds.map((peerId) => (
@@ -290,8 +339,10 @@ export default function Page() {
                               <p className="text-sm text-gray-500">Cardiology</p>
                             </div>
                           </div>
+                          {/* action buttons */}
                           <div className="flex gap-2">
                             <div className="flex gap-2">
+                              {/* video call button */}
                               <HoverCard>
                                 <HoverCardTrigger asChild>
                                   <Button
@@ -311,6 +362,7 @@ export default function Page() {
                                     </p>
                                   </div>
                                 </HoverCardContent>
+                                {/* chat button */}
                               </HoverCard>
                               <HoverCard>
                                 <HoverCardTrigger asChild>
@@ -349,6 +401,7 @@ export default function Page() {
                 </CardContent>
               </Card>
 
+              {/* chat widget in home view */}
               {isChatVisible && (
                 <div className="fixed bottom-6 right-6 w-[350px] z-50">
                   <HomeViewChat
@@ -366,6 +419,7 @@ export default function Page() {
             </div>
           )}
 
+          {/* incoming call popup */}
           {isIncomingCall && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
               <Card className="w-full max-w-md border-blue-50 bg-white shadow-sm">
@@ -387,95 +441,106 @@ export default function Page() {
             </div>
           )}
 
+          {/* active call view */}
           {activeView === 'activeCall' && (
             <div className="w-full px-6">
               <div className={cn(
-                "grid gap-6",
+                "flex gap-6",
                 (isChatVisible || isStrokeScaleVisible) ? "grid-cols-[1fr,525px]" : "grid-cols-1"
               )}>
-                <Card className="overflow-hidden border-blue-50 flex flex-col">
-                  <CardHeader className="border-b border-blue-50 bg-blue-50 p-4">
-                    <CardTitle className="flex items-center gap-2 text-blue-900">
-                      <PhoneCall className="h-5 w-5" />
-                      Ongoing Consultation
-                    </CardTitle>
-                  </CardHeader>
 
-                  <CardContent className="p-0 flex flex-col">
-                    <div className="relative">
-                      {isCallOnHold ? (
-                        <div className="flex items-center justify-center h-full bg-gray-100 text-gray-500">
-                          <Pause className="h-12 w-12" />
-                        </div>
-                      ) : (
+                {/* call panel */}
+                <div className="flex-shrink-0">
+                  <Card className="overflow-hidden border-blue-50 w-[720px]">
+                    <CardHeader className="border-b border-blue-50 bg-blue-50 p-4">
+                      <CardTitle className="flex items-center gap-2 text-blue-900">
+                        <PhoneCall className="h-5 w-5" />
+                        Ongoing Consultation
+                      </CardTitle>
+                    </CardHeader>
 
-                        <>
-                          <video
-                            ref={videoEl}
-                            autoPlay
-                            playsInline
-                            className="w-full max-h-[calc(100vh-250px)] object-contain mx-auto"
-                          />
-                          <audio
-                            ref={audioEl}
-                            autoPlay
-                            playsInline
-                            className="hidden" // Hide the audio player controls
-                          />
-                        </>
-                      )}
-                    </div>
+                    {/* video display area */}
+                    <CardContent className="p-4">
+                      <div className="flex justify-center mb-4">
+                        {isCallOnHold ? (
+                          // on hold
+                          <div className="flex items-center justify-center w-[720px] h-[560px] bg-gray-100 text-gray-500 rounded-lg">
+                            <Pause className="h-12 w-12" />
+                          </div>
+                        ) : (
+                          // active call
+                          <>
+                            {/* remote video stream */}
+                            <video
+                              ref={videoEl}
+                              autoPlay
+                              playsInline
+                              className="w-[720px] h-[560px] object-cover rounded-lg bg-black"
+                            />
+                            {/* remote audio stream */}
+                            <audio
+                              ref={audioEl}
+                              autoPlay
+                              playsInline
+                              className="hidden" // hide the audio player controls
+                            />
+                          </>
+                        )}
+                      </div>
 
-                    <div className="flex gap-2 p-4 border-t border-blue-50 bg-white">
-                      <Button
-                        onClick={endCall}
-                        variant="destructive"
-                        className="gap-2"
-                      >
-                        <PhoneCall className="h-4 w-4" />
-                        End Call
-                      </Button>
-                      <Button
-                        onClick={holdCall}
-                        variant="outline"
-                        className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
-                      >
-                        {isCallOnHold ? 'Resume' : 'Hold'}
-                      </Button>
-                      <Button
-                        onClick={toggleMute}
-                        variant="outline"
-                        className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
-                      >
-                        {isMuted ? 'Unmute' : 'Mute'}
-                      </Button>
-                      <Button
-                        onClick={toggleChat}
-                        variant="outline"
-                        className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
-                      >
-                        {isChatVisible ? 'Hide Chat' : 'Show Chat'}
-                      </Button>
-                      <Button
-                        onClick={toggleStrokeScale}
-                        variant="outline"
-                        className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
-                      >
-                        {isStrokeScaleVisible ? 'Hide Stroke Scale' : 'Show Stroke Scale'}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                      {/* call control buttons */}
+                      <div className="flex gap-2 pt-4 border-t border-blue-50 bg-white">
+                        <Button
+                          onClick={endCall}
+                          variant="destructive"
+                          className="gap-2"
+                        >
+                          <PhoneCall className="h-4 w-4" />
+                          End Call
+                        </Button>
+                        <Button
+                          onClick={holdCall}
+                          variant="outline"
+                          className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
+                        >
+                          {isCallOnHold ? 'Resume' : 'Hold'}
+                        </Button>
+                        <Button
+                          onClick={toggleMute}
+                          variant="outline"
+                          className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
+                        >
+                          {isMuted ? 'Unmute' : 'Mute'}
+                        </Button>
+                        <Button
+                          onClick={toggleChat}
+                          variant="outline"
+                          className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
+                        >
+                          {isChatVisible ? 'Hide Chat' : 'Show Chat'}
+                        </Button>
+                        <Button
+                          onClick={toggleStrokeScale}
+                          variant="outline"
+                          className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
+                        >
+                          {isStrokeScaleVisible ? 'Hide Stroke Scale' : 'Show Stroke Scale'}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
 
+                {/* chat panel during video call */}
                 {isChatVisible && (
-                  <Card className="border-blue-50 h-[calc(100vh-200px)] self-start flex flex-col">
+                  <Card className="border-blue-50 h-[715px] w-[550px] self-start flex flex-col">
                     <CardHeader className="border-b border-blue-50 bg-blue-50 p-4">
                       <CardTitle className="flex items-center gap-2 text-blue-900">
                         <MessageSquare className="h-5 w-5" />
                         Chat
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="p-0 flex-1 overflow-y-auto">
+                    <CardContent className="p-0 flex-1 overflow-hidden">
                       <CallViewChat
                         currentPeerId={currentPeerId}
                         remotePeerId={callerId}
@@ -485,8 +550,9 @@ export default function Page() {
                     </CardContent>
                   </Card>
                 )}
+                {/* stroke assessment scale during video call */}
                 {isStrokeScaleVisible && (
-                  <Card className="border-blue-50 h-[calc(100vh-200px)] self-start flex flex-col">
+                  <Card className="border-blue-50 h-[715px] w-[550px] self-start flex flex-col">
                     <CardHeader className="border-b border-blue-50 bg-blue-50 p-4">
                       <CardTitle className="flex items-center gap-2 text-blue-900">
                         <Stethoscope className="h-5 w-5" />
@@ -502,6 +568,7 @@ export default function Page() {
             </div>
           )}
 
+          {/* stroke scale forms view */}
           {activeView === 'strokeScale' && (
             <div className="mx-auto max-w-2xl space-y-6">
               <Card className="border-blue-50">
@@ -511,13 +578,14 @@ export default function Page() {
                       Stroke Scale Forms
                     </CardTitle>
 
+                    {/* search bar*/}
                     <div className="relative w-full sm:w-auto sm:min-w-[240px]">
                       <input type="text"
                         placeholder="Search..."
                         className="w-full rounded-md border border-blue-500 bg-white px-3 py-2 text-sm
                   placeholder:test-grey-400 focus:outline-none focus:ring-2 focus:ring-blue-200 pr-10"
                         onChange={(e) => {
-                          console.log(e.target.value);
+                          {/* logic not yet implemented */ }
 
                         }}
                       />
@@ -526,7 +594,7 @@ export default function Page() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                  { }
+                  { } {/* logic not yet implemented */}
                   {(
                     <div className="p-6 text-center text-gray-500">
                       No forms available
@@ -535,6 +603,7 @@ export default function Page() {
                 </CardContent>
               </Card>
 
+              {/* button that takes you back to consultations / home page */}
               <div className="fixed bottom-6 left-6">
                 <Button variant="outline" className="shadow-md hover:bg-blue-50 border-blue-200 text-blue-900"
                   onClick={() => setActiveView('home')}><ChevronLeft className="mr-2 h-4 w-4" />
