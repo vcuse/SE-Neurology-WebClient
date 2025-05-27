@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "localbuild": "BUILD_TARGET=localdevelopment next build",
-    "build": "BUILD_TARGET=production next build",
+    "localbuild": "cross-env BUILD_TARGET=localdevelopment next build",
+    "build": "cross-env BUILD_TARGET=production next build",
     "start": "next start",
     "lint": "next lint"
   },
@@ -32,6 +32,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.9.0",
+    "@types/peerjs": "^0.0.30",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "cross-env": "^7.0.3",
