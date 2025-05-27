@@ -1,5 +1,5 @@
 "use client";
-// Library Imports
+// library imports
 import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -24,7 +24,7 @@ import {
   Notebook,
   NotebookIcon,
 } from "lucide-react";
-// custom Imports 
+// custom imports 
 import { StrokeScaleForm } from "@/components/stroke-scale/stroke-scale-form";
 import { usePeerConnection } from "@/hooks/usePeerConnection";
 import { cn } from "@/lib/utils";
