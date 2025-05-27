@@ -1,0 +1,204 @@
+[33mcommit b7f9ddc865c49e07af94f912c7aaae67ed3ce19c[m[33m ([m[1;32mmain[m[33m)[m
+Author: Christiana <cnardi@southern.edu>
+Date:   Tue May 27 11:13:44 2025 -0400
+
+    updated commented code for better readability
+
+[1mdiff --git a/git b/git[m
+[1mnew file mode 100644[m
+[1mindex 0000000..e69de29[m
+[1mdiff --git a/src/app/users/page.tsx b/src/app/users/page.tsx[m
+[1mindex 5b45fa2..f752b2c 100644[m
+[1m--- a/src/app/users/page.tsx[m
+[1m+++ b/src/app/users/page.tsx[m
+[36m@@ -1,5 +1,5 @@[m
+ "use client";[m
+[31m-// Library Imports[m
+[32m+[m[32m// library imports[m
+ import React, { useEffect, useRef, useState } from "react";[m
+ import { Button } from "@/components/ui/button";[m
+ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";[m
+[36m@@ -24,7 +24,7 @@[m [mimport {[m
+   Notebook,[m
+   NotebookIcon,[m
+ } from "lucide-react";[m
+[31m-// custom Imports [m
+[32m+[m[32m// custom imports[m[41m [m
+ import { StrokeScaleForm } from "@/components/stroke-scale/stroke-scale-form";[m
+ import { usePeerConnection } from "@/hooks/usePeerConnection";[m
+ import { cn } from "@/lib/utils";[m
+[1mdiff --git a/src/hooks/usePeerConnection.tsx b/src/hooks/usePeerConnection.tsx[m
+[1mindex 0bf2a28..7168a81 100644[m
+[1m--- a/src/hooks/usePeerConnection.tsx[m
+[1m+++ b/src/hooks/usePeerConnection.tsx[m
+[36m@@ -1,7 +1,9 @@[m
+[32m+[m[32m// library imports[m
+ import { useState, useRef, useEffect } from "react";[m
+ import { useRouter } from "next/navigation";[m
+ import Peer, { DataConnection, MediaConnection } from "peerjs";[m
+ [m
+[32m+[m[32m// interface defenition for chat messages[m
+ interface Message {[m
+   id: string;[m
+   sender: string;[m
+[36m@@ -9,37 +11,55 @@[m [minterface Message {[m
+   timestamp: Date;[m
+ }[m
+ [m
+[32m+[m[32m// custom react hook for calls[m
+ export function usePeerConnection() {[m
+   const router = useRouter();[m
+ [m
+[31m-  // State variables[m
+[32m+[m[32m  //=====================================[m
+[32m+[m[32m  // STATE VARIABLES[m
+[32m+[m[32m  //=====================================[m
+[32m+[m
+[32m+[m[32m  // peer connection states[m
+   const [currentPeerId, setCurrentPeerId] = useState<string>("");[m
+   const [peerIds, setPeerIds] = useState<string[]>([]);[m
+   const [error, setError] = useState<string | null>(null);[m
+   const [isLoading, setIsLoading] = useState<boolean>(true);[m
+[32m+[m
+[32m+[m[32m  // call management states[m
+   const [isMuted, setIsMuted] = useState<boolean>(false);[m
+   const [incomingCall, setIncomingCall] = useState<MediaConnection | null>(null);[m
+   const [myStream, setMyStream] = useState<MediaStream | null>(null);[m
+   const [mediaConnection, setMediaConnection] = useState<MediaConnection | null>(null);[m
+[31m-  const videoEl = useRef<HTMLVideoElement>(null);[m
+[31m-  const audioEl = useRef<HTMLAudioElement>(null);[m
+[31m-  const [messages, setMessages] = useState<Message[]>([]);[m
+   const [isIncomingCall, setIsIncomingCall] = useState<boolean>(false);[m
+   const [callerId, setCallerId] = useState<string>("");[m
+[31m-  const dataConnectionRef = useRef<DataConnection | null>(null);[m
+   const [isCallOnHold, setIsCallOnHold] = useState<boolean>(false);[m
+[31m-  const [activeView, setActiveView] = useState<'home' | 'strokeScale' | 'files' | 'activeCall'>('home');[m
+   const [isRinging, setIsRinging] = useState<boolean>(false);[m
+[32m+[m
+[32m+[m[32m  // UI states[m
+[32m+[m[32m  const [activeView, setActiveView] = useState<'home' | 'strokeScale' | 'files' | 'activeCall'>('home');[m
+   const [minimizedChat, setMinimizedChat] = useState<boolean>(false);[m
+   const [isChatVisible, setIsChatVisible] = useState<boolean>(false);[m
+   const [isStrokeScaleVisible, setIsStrokeScaleVisible] = useState<boolean>(false);[m
+ [m
+[31m-  // References[m
+[32m+[m[32m  // messaging states[m
+[32m+[m[32m  const [messages, setMessages] = useState<Message[]>([]);[m
+[32m+[m
+[32m+[m[32m  //=====================================[m
+[32m+[m[32m  // REFERENCES[m
+[32m+[m[32m  //=====================================[m
+[32m+[m
+[32m+[m[32m  // remote video and audio refs[m[41m [m
+[32m+[m[32m  const videoEl = useRef<HTMLVideoElement>(null);[m
+[32m+[m[32m  const audioEl = useRef<HTMLAudioElement>(null);[m
+[32m+[m
+[32m+[m[32m  // peer connection refs[m
+   const peerRef = useRef<Peer | null>(null);[m
+   const intervalRef = useRef<NodeJS.Timeout>();[m
+   const currentPeerIdRef = useRef<string>("");[m
+[32m+[m[32m  const dataConnectionRef = useRef<DataConnection | null>(null);[m
+[32m+[m
+ [m
+[31m-  // Set up data connection handler[m
+[32m+[m[32m  // set up data connection handler[m
+   const setupDataConnection = (dataConnection: DataConnection) => {[m
+     console.log('Setting up data connection with:', dataConnection.peer);[m
+ [m
+[36m@@ -52,14 +72,17 @@[m [mexport function usePeerConnection() {[m
+       dataConnectionRef.current.close();[m
+     }[m
+ [m
+[32m+[m[32m    // store new connection and set it to caller id[m
+     dataConnectionRef.current = dataConnection;[m
+     setCallerId(dataConnection.peer);[m
+ [m
+[32m+[m[32m    // handling for when a channel is opened[m[41m [m
+     dataConnection.on('open', () => {[m
+       console.log('Data channel opened');[m
+       // setIsChatVisible(true);[m
+     });[m
+ [m
+[32m+[m[32m    // handling for incoming chat messages[m[41m [m
+     dataConnection.on('data', (data: unknown) => {[m
+       if (typeof data === 'string') {[m
+         setMessages(prev => [...prev, {[m
+[36m@@ -72,18 +95,22 @@[m [mexport function usePeerConnection() {[m
+       }[m
+     });[m
+ [m
+[32m+[m[32m    // handling for when a channel is closed[m[41m [m
+     dataConnection.on('close', () => {[m
+       console.log('Data channel closed');[m
+       dataConnectionRef.current = null;[m
+     });[m
+ [m
+[32m+[m[32m    // handling for when a connection error occurs[m
+     dataConnection.on('error', (err) => {[m
+       console.error('Data channel error:', err);[m
+       setError('Chat connection error. Please try again.');[m
+     });[m
+   };[m
+ [m
+[32m+[m[32m  // main hook to initialize connections[m
+   useEffect(() => {[m
+[32m+[m[32m    // create a PeerJS object with ID retrieved from storage (or make a new one if none exist)[m
+     const storedPeerId = localStorage.getItem('peerId');[m
+     const peer = new Peer(storedPeerId || '', {[m
+       host: "videochat-signaling-app.ue.r.appspot.com",[m
+[36m@@ -92,17 +119,19 @@[m [mexport function usePeerConnection() {[m
+       path: "/",[m
+       debug: 3,[m
+     });[m
+[31m-    peerRef.current = peer;[m
+[32m+[m[32m    peerRef.current = peer; // saves the object for reuse[m
+     console.log(`created PeerRef with stored peerid ${storedPeerId}`);[m
+ [m
+     peer.on("open", (id) => {[m
+[32m+[m[32m      // if no ID was saved in storage, store the new one[m
+       if (!storedPeerId) {[m
+         localStorage.setItem('peerId', id);[m
+       }[m
+       setCurrentPeerId(id);[m
+[31m-      currentPeerIdRef.current = id;[m
+[32m+[m[32m      currentPeerIdRef.current = id; //saves for reuse[m
+     });[m
+ [m
+[32m+[m[32m    //handle incoming calls[m
+     peer.on('call', (call) => {[m
+       console.log("We are receiving a call");[m
+       setIncomingCall(call);[m
+[36m@@ -140,8 +169,13 @@[m [mexport function usePeerConnection() {[m
+     };[m
+ [m
+     fetchPeerIds();[m
+[31m-    intervalRef.current = setInterval(fetchPeerIds, 5000);[m
+[32m+[m[32m    intervalRef.current = setInterval(fetchPeerIds, 5000); // updates every 5 seconds[m
+ [m
+[32m+[m[32m    //=====================================[m
+[32m+[m[32m    // CLEANUP CODE[m
+[32m+[m[32m    //=====================================[m
+[32m+[m
+[32m+[m[32m    // clean up object after unmounting[m[41m  [m
+     return () => {[m
+       if (intervalRef.current) {[m
+         clearInterval(intervalRef.current);[m
+[36m@@ -151,6 +185,7 @@[m [mexport function usePeerConnection() {[m
+     };[m
+   }, []);[m
+ [m
+[32m+[m[32m  // clean up effect after stream or media connection change[m
+   useEffect(() => {[m
+     return () => {[m
+       if (myStream) {[m
+[36m@@ -162,6 +197,10 @@[m [mexport function usePeerConnection() {[m
+     };[m
+   }, [myStream, mediaConnection]);[m
+ [m
+[32m+[m[32m  //=====================================[m
+[32m+[m[32m  // CALL MANAGEMENT[m
+[32m+[m[32m  //=====================================[m
+[32m+[m
+   const handleCall = (peerId: string) => {[m
+     console.log(`Calling peer ${peerId}`);[m
+     const peer = peerRef.current;[m
