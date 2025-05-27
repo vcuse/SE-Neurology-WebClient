@@ -1,0 +1,35 @@
+name: Auto-deploy Website
+
+on:
+  push:
+    branches: 
+    - ui-revamp-authentication
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js (if needed)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18' # Specify your Node.js version
+
+      - name: Build website (if needed)
+        run: |
+          npm install
+          npm run build 
+      
+      # Method A: Using PM2 to manage the process
+      - name: Start/Restart Next.js server with PM2
+        run: |
+         
+          cd ${{ github.workspace }}
+ 
+          pm2 stop nextjs-app || true 
+          
+          pm2 start npm --name nextjs-app -- run start
+       
+          pm2 save
