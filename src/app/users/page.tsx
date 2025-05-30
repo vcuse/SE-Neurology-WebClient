@@ -24,7 +24,7 @@ import {
   Notebook,
   NotebookIcon,
 } from "lucide-react";
-import { StrokeScaleForm } from "@/components/stroke-scale/stroke-scale-form";
+import NewStrokeScaleForm from "@/app/stroke-scale/new-stroke-scale-form";
 import { usePeerConnection } from "@/hooks/usePeerConnection";
 import { cn } from "@/lib/utils";
 import { HomeViewChat, CallViewChat } from "@/components/video-call";
@@ -39,7 +39,7 @@ type MenuItem = {
 
 const menuItems: MenuItem[] = [
   { icon: Stethoscope, label: 'Consultations', value: 'home' },
-  { icon: NotebookIcon, label: 'Forms', value: 'strokeScale' },
+  { icon: NotebookIcon, label: 'Stroke Scale Forms', value: 'strokeScale' },
 ];
 
 export default function Page() {
@@ -56,6 +56,8 @@ export default function Page() {
   useEffect(() => {
     localStorage.setItem('sidebarExpanded', JSON.stringify(isSidebarExpanded));
   }, [isSidebarExpanded]);
+
+  const [isNewFormVisible, setIsNewFormVisible] = useState(false);
 
   const {
     currentPeerId,
@@ -222,8 +224,9 @@ export default function Page() {
           </Button>
         </header>
 
-        <div className="flex items-center gap-4 p-6 pb-0 relative">
-          {activeView === 'strokeScale' && (
+        {activeView === 'strokeScale' && !isNewFormVisible && (
+          <div className="flex justify-between items-center px-6 pt-4">
+            {/* Filter button on the left */}
             <div ref={filterRef} className="relative">
               <Button
                 variant="outline"
@@ -232,12 +235,12 @@ export default function Page() {
                 onClick={() => setFilterOpen(open => !open)}
               >
                 <Filter className="mr-2 h-4 w-4" />
-                {selectedFilter && <span>{selectedFilter === "Date"}</span>}
               </Button>
 
               {filterOpen && (
                 <div className="absolute top-full left-0 mt-1 z-50 w-64 rounded-md border border-gray-200 bg-white shadow-lg">
-                  <select value={selectedFilter}
+                  <select
+                    value={selectedFilter}
                     onChange={(e) => handleFilterChange(e.target.value)}
                     className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-200 pr-10"
                   >
@@ -247,9 +250,32 @@ export default function Page() {
                   </select>
                 </div>
               )}
-            </div >
-          )}
-        </div>
+            </div>
+
+            {/* Search + New Form on the right */}
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                className="bg-blue-600 text-white hover:bg-blue-700"
+                onClick={() => setIsNewFormVisible(true)}
+              >
+                + New Form
+              </Button>
+            </div>
+          </div>
+        )}
+
+
+        {isNewFormVisible && (
+          <Card className="border-blue-50">
+            <CardContent>
+              <NewStrokeScaleForm onCancel={() => {
+                setIsNewFormVisible(false);
+                setActiveView("strokeScale");
+              }} />
+            </CardContent>
+          </Card>
+        )}
 
         <div className="h-[calc(100vh-80px)] overflow-y-auto p-6">
           {activeView === 'home' && (
@@ -494,7 +520,7 @@ export default function Page() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0 flex-1 overflow-y-auto">
-                      <StrokeScaleForm onClose={toggleStrokeScale} />
+                      <NewStrokeScaleForm onCancel={toggleStrokeScale} />
                     </CardContent>
                   </Card>
                 )}
