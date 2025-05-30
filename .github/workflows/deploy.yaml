@@ -19,6 +19,7 @@ jobs:
 
       - name: Build website (if needed)
         run: |
+          cd ${{ github.workspace }}
           npm install
           npm run build 
       
