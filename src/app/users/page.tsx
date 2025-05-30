@@ -299,7 +299,7 @@ export default function Page() {
           =====================================*/}
 
         {/* home view (available consultations) */}
-        <div className="h-[calc(100vh-80px)] overflow-y-auto p-6">
+        <div className="h-[calc(100vh-140px)] overflow-hidden p-6">
           {activeView === 'home' && (
             <div className="mx-auto max-w-4xl space-y-6">
               {error && (
@@ -443,16 +443,16 @@ export default function Page() {
 
           {/* active call view */}
           {activeView === 'activeCall' && (
-            <div className="w-full px-6">
+            <div className="h-[calc(100vh-140px)] overflow-y-auto p-6">
               <div className={cn(
-                "flex gap-6",
-                (isChatVisible || isStrokeScaleVisible) ? "grid-cols-[1fr,525px]" : "grid-cols-1"
+                "flex gap-6 grid-cols-1",
+                (isChatVisible || isStrokeScaleVisible) ? "flex-col lg:flex-row" : "flex-col"
               )}>
 
                 {/* call panel */}
-                <div className="flex-shrink-0">
-                  <Card className="overflow-hidden border-blue-50 w-[720px]">
-                    <CardHeader className="border-b border-blue-50 bg-blue-50 p-4">
+                <div className="flex-1 min-w-0">
+                  <Card className="h-full flex flex-col overflow-hidden border-blue-50">
+                    <CardHeader className="border-b border-blue-50 bg-blue-50 p-4 flex-shrink-0">
                       <CardTitle className="flex items-center gap-2 text-blue-900">
                         <PhoneCall className="h-5 w-5" />
                         Ongoing Consultation
@@ -460,22 +460,22 @@ export default function Page() {
                     </CardHeader>
 
                     {/* video display area */}
-                    <CardContent className="p-4">
-                      <div className="flex justify-center mb-4">
+                    <CardContent className="p-4 flex-1 flex flex-col">
+                      <div className="flex-1 flex items-center justify-center mb-4 min-h-0 p-2">
                         {isCallOnHold ? (
-                          // on hold
-                          <div className="flex items-center justify-center w-[720px] h-[560px] bg-gray-100 text-gray-500 rounded-lg">
+                          // on hold  
+                          <div className="flex items-center justify-center bg-gray-100 text-gray-500 rounded-lg w-full">
                             <Pause className="h-12 w-12" />
                           </div>
                         ) : (
                           // active call
-                          <>
+                          <div className="w-full max-w-[800px] aspect-[900/570] mx-auto" style={{ maxHeight: 'calc(100vh - 160px)' }}>
                             {/* remote video stream */}
                             <video
                               ref={videoEl}
                               autoPlay
                               playsInline
-                              className="w-[720px] h-[560px] object-cover rounded-lg bg-black"
+                              className="w-full h-full object-cover rounded-lg bg-black"
                             />
                             {/* remote audio stream */}
                             <audio
@@ -484,12 +484,12 @@ export default function Page() {
                               playsInline
                               className="hidden" // hide the audio player controls
                             />
-                          </>
+                          </div>
                         )}
                       </div>
 
                       {/* call control buttons */}
-                      <div className="flex gap-2 pt-4 border-t border-blue-50 bg-white">
+                      <div className="flex gap-2 pt-4 border-t border-blue-50 bg-white flex-wrap">
                         <Button
                           onClick={endCall}
                           variant="destructive"
@@ -533,8 +533,8 @@ export default function Page() {
 
                 {/* chat panel during video call */}
                 {isChatVisible && (
-                  <Card className="border-blue-50 h-[715px] w-[550px] self-start flex flex-col">
-                    <CardHeader className="border-b border-blue-50 bg-blue-50 p-4">
+                  <Card className="border-blue-50 w-full lg:w-[400px] h-[675px] flex-shrink-0 flex flex-col">
+                    <CardHeader className="border-b border-blue-50 bg-blue-50 p-4 flex-shrink-0">
                       <CardTitle className="flex items-center gap-2 text-blue-900">
                         <MessageSquare className="h-5 w-5" />
                         Chat
@@ -552,8 +552,8 @@ export default function Page() {
                 )}
                 {/* stroke assessment scale during video call */}
                 {isStrokeScaleVisible && (
-                  <Card className="border-blue-50 h-[715px] w-[550px] self-start flex flex-col">
-                    <CardHeader className="border-b border-blue-50 bg-blue-50 p-4">
+                  <Card className="border-blue-50 w-full lg:w-[400px] h-[675px] flex-shrink-0 flex flex-col">
+                    <CardHeader className="border-b border-blue-50 bg-blue-50 p-4 flex-shrink-0">
                       <CardTitle className="flex items-center gap-2 text-blue-900">
                         <Stethoscope className="h-5 w-5" />
                         Stroke Scale Assessment
