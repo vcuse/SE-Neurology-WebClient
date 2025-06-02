@@ -1,0 +1,41 @@
+// .vscode/tasks.json
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "npm: build (development)",
+            "type": "shell",
+            "command": "npm run build", // This calls the unified 'build' script
+            "options": {
+                "env": {
+                    "NODE_ENV": "development" // Set NODE_ENV for this task
+                }
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true // Make this the default build task
+            },
+            "presentation": {
+                "reveal": "silent", // Don't always show the terminal
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "npm: build (production)",
+            "type": "shell",
+            "command": "npm run build", // This calls the unified 'build' script
+            "options": {
+                "env": {
+                    "NODE_ENV": "production" // Set NODE_ENV for this task
+                }
+            },
+            "group": "build",
+            "presentation": {
+                "reveal": "silent",
+                "clear": true
+            },
+            "problemMatcher": []
+        }
+    ]
+}
