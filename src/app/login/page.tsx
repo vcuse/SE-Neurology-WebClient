@@ -46,6 +46,7 @@ export default function LoginPage() {
 
       if (response.ok) {
         if (action === 'login') {
+          localStorage.setItem("username", username);
           // Navigate to the user dashboard
           console.log('Login successful:', result);
           router.push(`/users?username=${encodeURIComponent(username)}`);
