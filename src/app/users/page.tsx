@@ -32,12 +32,14 @@ import { HomeViewChat, CallViewChat } from "@/components/video-call";
 import Link from "next/link";
 
 // type defenition for sidebar menu items 
+// type defenition for sidebar menu items 
 type MenuItem = {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: 'home' | 'strokeScale';
 };
 
+// array of current menu items in the sidebar
 // array of current menu items in the sidebar
 const menuItems: MenuItem[] = [
   { icon: Stethoscope, label: 'Consultations', value: 'home' },
@@ -49,8 +51,14 @@ const menuItems: MenuItem[] = [
 //=====================================
 
 // sidebar expand/collapse behavior
+//=====================================
+// SIDEBAR BEHAVIOR
+//=====================================
+
+// sidebar expand/collapse behavior
 export default function Page() {
   const [isSidebarExpanded, setIsSidebarExpanded] = React.useState(() => {
+    // get initial state from localStorage, default to true if not set
     // get initial state from localStorage, default to true if not set
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('sidebarExpanded');
@@ -59,6 +67,7 @@ export default function Page() {
     return true;
   });
 
+  // save sidebar state to localStorage whenever it changes
   // save sidebar state to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('sidebarExpanded', JSON.stringify(isSidebarExpanded));
@@ -105,7 +114,13 @@ export default function Page() {
   //=====================================
 
   // manage remote video and audio streams
+  //=====================================
+  // VIDEO STREAM HANDLING
+  //=====================================
+
+  // manage remote video and audio streams
   useEffect(() => {
+    if (!isCallOnHold && videoEl.current && mediaConnection?.remoteStream && audioEl.current) { // only set up streams if not on hold and the connectio is valid
     if (!isCallOnHold && videoEl.current && mediaConnection?.remoteStream && audioEl.current) { // only set up streams if not on hold and the connectio is valid
       videoEl.current.srcObject = mediaConnection.remoteStream;
       audioEl.current.srcObject = mediaConnection.remoteStream;
@@ -116,23 +131,32 @@ export default function Page() {
   // FILTER DROPDOWN HANDLING
   //=====================================
 
+  //=====================================
+  // FILTER DROPDOWN HANDLING
+  //=====================================
+
   const [filterOpen, setFilterOpen] = React.useState(false);
   const [selectedFilter, setSelectedFilter] = useState("");
   const filterRef = useRef<HTMLDivElement>(null);
 
   // close the filter when you click outside 
+  // close the filter when you click outside 
   useEffect(() => {
+    function handleClickOutside(event: MouseEvent): void {
     function handleClickOutside(event: MouseEvent): void {
       if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
         setFilterOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [filterRef]);
 
+  // filtering handler (not yet implemented)
   // filtering handler (not yet implemented)
   const handleFilterChange = (value: string) => {
     setSelectedFilter(value);
@@ -187,10 +211,14 @@ export default function Page() {
       {/*=====================================
         Collapsible Sidebar 
         =====================================*/}
+      {/*=====================================
+        Collapsible Sidebar 
+        =====================================*/}
       <div className={cn(
         "transition-all duration-300 ease-in-out border-r border-gray-100 bg-white",
         isSidebarExpanded ? "w-[280px]" : "w-[80px]"
       )}>
+        {/*logo styling*/}
         {/*logo styling*/}
         <div className="relative p-4">
           <div className={cn(
@@ -208,6 +236,7 @@ export default function Page() {
           </div>
 
           {/*toggle sidebar*/}
+          {/*toggle sidebar*/}
           <Button
             variant="secondary"
             size="sm"
@@ -217,9 +246,12 @@ export default function Page() {
             {isSidebarExpanded ?
               <ChevronLeft className="h-5 w-5" /> : // collapse
               <ChevronRight className="h-5 w-5" /> // expand
+              <ChevronLeft className="h-5 w-5" /> : // collapse
+              <ChevronRight className="h-5 w-5" /> // expand
             }
           </Button>
 
+          {/*navigation sidebar*/}
           {/*navigation sidebar*/}
           <nav className="space-y-1">
             {menuItems.map((item) => {
@@ -231,11 +263,14 @@ export default function Page() {
                     <Button
                       key={item.value}
                       variant={activeView === item.value ? "secondary" : "ghost"} // highlights active view
+                      variant={activeView === item.value ? "secondary" : "ghost"} // highlights active view
                       className={cn(
                         "w-full",
                         isSidebarExpanded ? "justify-start gap-3 px-3" : "p-0", // expand/change layout
+                        isSidebarExpanded ? "justify-start gap-3 px-3" : "p-0", // expand/change layout
                         activeView === item.value && "bg-blue-100 text-blue-900 hover:bg-blue-200"
                       )}
+                      // handle when trying to change view while on an active call
                       // handle when trying to change view while on an active call
                       onClick={() => {
                         if (isForms && activeView === 'activeCall') {
@@ -254,6 +289,7 @@ export default function Page() {
                   </HoverCardTrigger>
 
                   {/* shows tooltip if the sidebar is collapsed*/}
+                  {/* shows tooltip if the sidebar is collapsed*/}
                   {!isSidebarExpanded && (
                     <HoverCardContent side="right" className="w-auto text-sm px-2 py-1">
                       {item.label}
@@ -269,10 +305,15 @@ export default function Page() {
       {/*=====================================
         MAIN AREA 
         =====================================*/}
+      {/*=====================================
+        MAIN AREA 
+        =====================================*/}
       <main className="flex-1 overflow-hidden">
+        {/*header bar at top*/}
         {/*header bar at top*/}
         <header className="flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4">
           <div className="flex items-center gap-2">
+            {/* shows the user's ID*/}
             {/* shows the user's ID*/}
             <Badge variant="outline" className="border-blue-100 bg-blue-50 text-blue-900">
               <User2 className="mr-2 h-4 w-4" />
@@ -284,6 +325,7 @@ export default function Page() {
             </Badge>
           </div>
 
+          {/* logout button */}
           {/* logout button */}
           <Button
             onClick={handleLogout}
@@ -308,6 +350,7 @@ export default function Page() {
                 <Filter className="mr-2 h-4 w-4" />
               </Button>
 
+              {/* dropdown menu */}
               {/* dropdown menu */}
               {filterOpen && (
                 <div className="absolute top-full left-0 mt-1 z-50 w-64 rounded-md border border-gray-200 bg-white shadow-lg">
@@ -376,6 +419,7 @@ export default function Page() {
                       ))}
                     </div>
                     // list of available peers
+                    // list of available peers
                   ) : peerIds.length > 0 ? (
                     <div className="divide-y divide-blue-50">
                       {peerIds.map((peerId) => (
@@ -390,8 +434,10 @@ export default function Page() {
                             </div>
                           </div>
                           {/* action buttons */}
+                          {/* action buttons */}
                           <div className="flex gap-2">
                             <div className="flex gap-2">
+                              {/* video call button */}
                               {/* video call button */}
                               <HoverCard>
                                 <HoverCardTrigger asChild>
@@ -412,6 +458,7 @@ export default function Page() {
                                     </p>
                                   </div>
                                 </HoverCardContent>
+                                {/* chat button */}
                                 {/* chat button */}
                               </HoverCard>
                               <HoverCard>
@@ -452,6 +499,7 @@ export default function Page() {
               </Card>
 
               {/* chat widget in home view */}
+              {/* chat widget in home view */}
               {isChatVisible && (
                 <div className="fixed bottom-6 right-6 w-[350px] z-50">
                   <HomeViewChat
@@ -469,6 +517,7 @@ export default function Page() {
             </div>
           )}
 
+          {/* incoming call popup */}
           {/* incoming call popup */}
           {isIncomingCall && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -491,6 +540,7 @@ export default function Page() {
             </div>
           )}
 
+          {/* active call view */}
           {/* active call view */}
           {activeView === 'activeCall' && (
             <div className="h-[calc(100vh-140px)] overflow-y-auto p-6">
@@ -582,14 +632,18 @@ export default function Page() {
                 </div>
 
                 {/* chat panel during video call */}
+                {/* chat panel during video call */}
                 {isChatVisible && (
                   <Card className="border-blue-50 w-full lg:w-[400px] h-[675px] flex-shrink-0 flex flex-col">
                     <CardHeader className="border-b border-blue-50 bg-blue-50 p-4 flex-shrink-0">
+                  <Card className="border-blue-50 h-[715px] w-[550px] self-start flex flex-col">
+                    <CardHeader className="border-b border-blue-50 bg-blue-50 p-4">
                       <CardTitle className="flex items-center gap-2 text-blue-900">
                         <MessageSquare className="h-5 w-5" />
                         Chat
                       </CardTitle>
                     </CardHeader>
+                    <CardContent className="p-0 flex-1 overflow-hidden">
                     <CardContent className="p-0 flex-1 overflow-hidden">
                       <CallViewChat
                         currentPeerId={currentPeerId}
@@ -600,6 +654,7 @@ export default function Page() {
                     </CardContent>
                   </Card>
                 )}
+                {/* stroke assessment scale during video call */}
                 {/* stroke assessment scale during video call */}
                 {isStrokeScaleVisible && (
                   <Card className="border-blue-50 w-full lg:w-[400px] h-[675px] flex-shrink-0 flex flex-col">
@@ -619,6 +674,7 @@ export default function Page() {
           )}
 
           {/* stroke scale forms view */}
+          {/* stroke scale forms view */}
           {activeView === 'strokeScale' && (
             <div className="mx-auto max-w-2xl space-y-6">
               <Card className="border-blue-50">
@@ -628,6 +684,7 @@ export default function Page() {
                       Stroke Scale Forms
                     </CardTitle>
 
+                    {/* search bar*/}
                     {/* search bar*/}
                     <div className="relative w-full sm:w-auto sm:min-w-[240px]">
                       <input type="text"

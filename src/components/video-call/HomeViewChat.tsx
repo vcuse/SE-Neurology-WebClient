@@ -33,7 +33,7 @@ export function HomeViewChat({
   sendMessage,
 }: HomeViewChatProps) {
   return (
-    <Card className={`mt-4 ${!visible ? 'hidden' : ''}`}>
+    <Card className={`mt-4 flex-shrink-0 w-full max-w-md ${!visible ? 'hidden' : ''}`}>
       <CardContent className="p-4 border-b">
         <div className="flex justify-between items-center">
           <div className="text-sm font-medium truncate">
@@ -62,11 +62,13 @@ export function HomeViewChat({
         </div>
       </CardContent>
       <CardContent className={`p-4 ${minimized ? 'hidden' : ''}`}>
-        <ChatBoxCore
-          messages={messages}
-          sendMessage={sendMessage}
-          currentPeerId={currentPeerId}
-        />
+        <div className="h-96 flex flex-col">
+          <ChatBoxCore
+            messages={messages}
+            sendMessage={sendMessage}
+            currentPeerId={currentPeerId}
+          />
+        </div>
       </CardContent>
     </Card>
   );

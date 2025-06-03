@@ -50,6 +50,7 @@
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
   }
+
   .dark {
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
@@ -76,12 +77,20 @@
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
   }
+
+  .video-container {
+    width: 640px;
+    height: 360px;
+    object-fit: cover;
+  }
+
 }
 
 @layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
     overscroll-behavior: none;
@@ -90,6 +99,7 @@
     position: fixed;
     width: 100%;
   }
+
   html {
     overscroll-behavior: none;
   }
