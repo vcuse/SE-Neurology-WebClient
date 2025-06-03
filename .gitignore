@@ -1,7 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
+/node_modules/
 /.pnp
 .pnp.js
 .yarn/install-state.gz
@@ -737,3 +737,4 @@ ${tmpdir}/chrome-debug-profile/ZxcvbnData/3/us_tv_and_film.txt
 ${tmpdir}/chrome-debug-profile/ZxcvbnData/3/_metadata/verified_contents.json
 peerjs
 peerjs
+node_modules/@eslint-community/regexpp/package.json
