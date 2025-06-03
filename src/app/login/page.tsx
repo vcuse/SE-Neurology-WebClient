@@ -28,7 +28,7 @@ export default function LoginPage() {
     }
 
     try {
-      const fetchUrl = process.env.NEXT_PUBLIC_SERVER_FETCH_URL!
+      const fetchUrl = 'https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/post'
       const response = await fetch(fetchUrl, {
         method: 'POST',
         credentials: 'include', // must be set to omit (for firefox)

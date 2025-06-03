@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "dev": "next dev",
     "localbuild": "cross-env BUILD_TARGET=localdevelopment next build",
     "build": "cross-env BUILD_TARGET=production next build",
     "start": "next start",
