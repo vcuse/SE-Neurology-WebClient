@@ -42,6 +42,11 @@ const menuItems: MenuItem[] = [
   { icon: NotebookIcon, label: 'Forms', value: 'strokeScale' },
 ];
 
+//interface that stores responses
+interface data {
+  [key: number]: number;
+}
+
 export default function Page() {
   const [isSidebarExpanded, setIsSidebarExpanded] = React.useState(() => {
     // Get initial state from localStorage, default to true if not set
@@ -51,6 +56,9 @@ export default function Page() {
     }
     return true;
   });
+
+  // store and persist answer data
+  const [formData, setFormData] = useState<data>({});
 
   // Save sidebar state to localStorage whenever it changes
   useEffect(() => {
@@ -120,6 +128,11 @@ export default function Page() {
     if (value === "date") { }
 
     if (value === "A-Z") { }
+  }
+
+  // updates form data
+  const handleDataChange = (formData: data) => {
+    setFormData(formData);
   }
 
   return (
@@ -494,7 +507,11 @@ export default function Page() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0 flex-1 overflow-y-auto">
-                      <StrokeScaleForm onClose={toggleStrokeScale} />
+                      <StrokeScaleForm // recieve form data and update parent state
+                        onClose={toggleStrokeScale}
+                        initialData={formData}
+                        onDataChange={handleDataChange}
+                      />
                     </CardContent>
                   </Card>
                 )}
