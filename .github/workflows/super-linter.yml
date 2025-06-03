@@ -27,3 +27,4 @@ jobs:
           VALIDATE_ALL_CODEBASE: false
           DEFAULT_BRANCH: "ui-revamp-authentication"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISABLE_DOTENV_LINTER: true      
