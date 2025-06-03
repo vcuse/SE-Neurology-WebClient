@@ -25,7 +25,7 @@ import {
   NotebookIcon,
 } from "lucide-react";
 // custom imports 
-import { StrokeScaleForm } from "@/components/stroke-scale/stroke-scale-form";
+import NewStrokeScaleForm from "@/app/stroke-scale/new-stroke-scale-form";
 import { usePeerConnection } from "@/hooks/usePeerConnection";
 import { cn } from "@/lib/utils";
 import { HomeViewChat, CallViewChat } from "@/components/video-call";
@@ -41,7 +41,7 @@ type MenuItem = {
 // array of current menu items in the sidebar
 const menuItems: MenuItem[] = [
   { icon: Stethoscope, label: 'Consultations', value: 'home' },
-  { icon: NotebookIcon, label: 'Forms', value: 'strokeScale' },
+  { icon: NotebookIcon, label: 'Stroke Scale Forms', value: 'strokeScale' },
 ];
 
 //=====================================
@@ -64,11 +64,9 @@ export default function Page() {
     localStorage.setItem('sidebarExpanded', JSON.stringify(isSidebarExpanded));
   }, [isSidebarExpanded]);
 
-  //=====================================
-  // VIDEO CONNECTION AND CALL LOGIC
-  //=====================================
+  const [isNewFormVisible, setIsNewFormVisible] = useState(false);
+  const [savedForms, setSavedForms] = useState<any[]>([]);
 
-  // custom hooks
   const {
     currentPeerId,
     peerIds,
@@ -144,6 +142,40 @@ export default function Page() {
 
     if (value === "A-Z") { }
   }
+
+  useEffect(() => {
+    if (activeView === 'strokeScale') {
+      fetchSavedForms();
+    }
+  }, [activeView]);
+
+  const fetchSavedForms = async () => {
+    const username = localStorage.getItem("username");
+    if (!username) {
+      alert("Username missing. Please log in again.");
+      return;
+    }
+
+    try {
+      const response = await fetch("https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/post", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Action": "getUsersForms",
+        },
+        body: JSON.stringify({ username }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch forms");
+      }
+
+      const forms = await response.json();
+      setSavedForms(forms);
+    } catch (error) {
+      console.error("Error fetching forms:", error);
+    }
+  };
 
 
   //=====================================
@@ -263,9 +295,9 @@ export default function Page() {
           </Button>
         </header>
 
-        {/* control bar for fitler */}
-        <div className="flex items-center gap-4 p-6 pb-0 relative">
-          {activeView === 'strokeScale' && ( // only shows in stroke scale view
+        {activeView === 'strokeScale' && !isNewFormVisible && (
+          <div className="flex justify-between items-center px-6 pt-4">
+            {/* Filter button on the left */}
             <div ref={filterRef} className="relative">
               <Button
                 variant="outline"
@@ -274,13 +306,13 @@ export default function Page() {
                 onClick={() => setFilterOpen(open => !open)}
               >
                 <Filter className="mr-2 h-4 w-4" />
-                {selectedFilter && <span>{selectedFilter === "Date"}</span>}
               </Button>
 
               {/* dropdown menu */}
               {filterOpen && (
                 <div className="absolute top-full left-0 mt-1 z-50 w-64 rounded-md border border-gray-200 bg-white shadow-lg">
-                  <select value={selectedFilter}
+                  <select
+                    value={selectedFilter}
                     onChange={(e) => handleFilterChange(e.target.value)}
                     className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-200 pr-10"
                   >
@@ -290,16 +322,34 @@ export default function Page() {
                   </select>
                 </div>
               )}
-            </div >
-          )}
-        </div>
+            </div>
 
-        {/*=====================================
-            DIFFERENT ACTIVE VIEWS
-          =====================================*/}
+            {/* Search + New Form on the right */}
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                className="bg-blue-600 text-white hover:bg-blue-700"
+                onClick={() => setIsNewFormVisible(true)}
+              >
+                + New Form
+              </Button>
+            </div>
+          </div>
+        )}
 
-        {/* home view (available consultations) */}
-        <div className="h-[calc(100vh-140px)] overflow-hidden p-6">
+
+        {isNewFormVisible && (
+          <Card className="border-blue-50">
+            <CardContent>
+              <NewStrokeScaleForm onCancel={() => {
+                setIsNewFormVisible(false);
+                setActiveView("strokeScale");
+              }} />
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="h-[calc(100vh-80px)] overflow-y-auto p-6">
           {activeView === 'home' && (
             <div className="mx-auto max-w-4xl space-y-6">
               {error && (
@@ -560,7 +610,7 @@ export default function Page() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0 flex-1 overflow-y-auto">
-                      <StrokeScaleForm onClose={toggleStrokeScale} />
+                      <NewStrokeScaleForm onCancel={toggleStrokeScale} />
                     </CardContent>
                   </Card>
                 )}
@@ -594,13 +644,29 @@ export default function Page() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                  { } {/* logic not yet implemented */}
-                  {(
-                    <div className="p-6 text-center text-gray-500">
-                      No forms available
-                    </div>
-                  )}
-                </CardContent>
+  {savedForms.length > 0 ? (
+    savedForms.map((form, index) => (
+      <div
+        key={index}
+        className="border border-blue-200 rounded-lg p-4 m-4 flex items-center justify-between"
+      >
+        <div>
+          <h2 className="text-xl font-semibold text-blue-900">{form.name}</h2>
+          <p className="text-gray-600">DOB: {form.dob}</p>
+          <p className="text-gray-600">Date: {form.form_date}</p>
+        </div>
+        <Button className="bg-blue-600 text-white hover:bg-blue-700">
+          View Form
+        </Button>
+      </div>
+    ))
+  ) : (
+    <div className="p-6 text-center text-gray-500">
+      No forms available
+    </div>
+  )}
+</CardContent>
+
               </Card>
 
               {/* button that takes you back to consultations / home page */}
