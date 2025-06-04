@@ -49,11 +49,6 @@ interface data {
   [key: number]: number;
 }
 
-//interface that stores responses
-interface data {
-  [key: number]: number;
-}
-
 //=====================================
 // SIDEBAR BEHAVIOR
 //=====================================
@@ -68,9 +63,6 @@ export default function Page() {
     }
     return true;
   });
-
-  // store and persist answer data
-  const [formData, setFormData] = useState<data>({});
 
   // store and persist answer data
   const [formData, setFormData] = useState<data>({});
@@ -652,7 +644,7 @@ export default function Page() {
                     <CardTitle className="flex items-center gap-2 text-blue-900"> <Clipboard className="h-5 w-5" />
                       Stroke Scale Forms
                     </CardTitle>
- 
+
                     {/* search bar*/}
                     <div className="relative w-full sm:w-auto sm:min-w-[240px]">
                       <input type="text"
