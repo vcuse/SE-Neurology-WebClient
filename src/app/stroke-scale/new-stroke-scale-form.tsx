@@ -42,6 +42,7 @@ export default function NewStrokeScaleForm({ onCancel }: { onCancel: () => void 
     };
 
     try {
+      console.log("fetch url is",process.env.NEXT_PUBLIC_SERVER_FETCH_URL! );
       const response = await fetch(process.env.NEXT_PUBLIC_SERVER_FETCH_URL!, {
         method: "POST",
         headers: {
