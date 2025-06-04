@@ -44,6 +44,11 @@ const menuItems: MenuItem[] = [
   { icon: NotebookIcon, label: 'Stroke Scale Forms', value: 'strokeScale' },
 ];
 
+//interface that stores responses
+interface data {
+  [key: number]: number;
+}
+
 //=====================================
 // SIDEBAR BEHAVIOR
 //=====================================
@@ -58,6 +63,9 @@ export default function Page() {
     }
     return true;
   });
+
+  // store and persist answer data
+  const [formData, setFormData] = useState<data>({});
 
   // save sidebar state to localStorage whenever it changes
   useEffect(() => {
@@ -181,6 +189,11 @@ export default function Page() {
   //=====================================
   // MAIN RENDER
   //=====================================
+
+  // updates form data
+  const handleDataChange = (formData: data) => {
+    setFormData(formData);
+  }
 
   return (
     <div className="flex h-screen bg-[#f8fafc]">
@@ -610,7 +623,11 @@ export default function Page() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0 flex-1 overflow-y-auto">
-                      <NewStrokeScaleForm onCancel={toggleStrokeScale} />
+                      <NewStrokeScaleForm // recieve form data and update parent state
+                        onCancel={toggleStrokeScale}
+                        initialData={formData}
+                        onDataChange={handleDataChange}
+                      />
                     </CardContent>
                   </Card>
                 )}
@@ -644,28 +661,28 @@ export default function Page() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-  {savedForms.length > 0 ? (
-    savedForms.map((form, index) => (
-      <div
-        key={index}
-        className="border border-blue-200 rounded-lg p-4 m-4 flex items-center justify-between"
-      >
-        <div>
-          <h2 className="text-xl font-semibold text-blue-900">{form.name}</h2>
-          <p className="text-gray-600">DOB: {form.dob}</p>
-          <p className="text-gray-600">Date: {form.form_date}</p>
-        </div>
-        <Button className="bg-blue-600 text-white hover:bg-blue-700">
-          View Form
-        </Button>
-      </div>
-    ))
-  ) : (
-    <div className="p-6 text-center text-gray-500">
-      No forms available
-    </div>
-  )}
-</CardContent>
+                  {savedForms.length > 0 ? (
+                    savedForms.map((form, index) => (
+                      <div
+                        key={index}
+                        className="border border-blue-200 rounded-lg p-4 m-4 flex items-center justify-between"
+                      >
+                        <div>
+                          <h2 className="text-xl font-semibold text-blue-900">{form.name}</h2>
+                          <p className="text-gray-600">DOB: {form.dob}</p>
+                          <p className="text-gray-600">Date: {form.form_date}</p>
+                        </div>
+                        <Button className="bg-blue-600 text-white hover:bg-blue-700">
+                          View Form
+                        </Button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-6 text-center text-gray-500">
+                      No forms available
+                    </div>
+                  )}
+                </CardContent>
 
               </Card>
 
