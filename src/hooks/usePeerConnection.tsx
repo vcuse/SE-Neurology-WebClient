@@ -1,7 +1,9 @@
+// library imports
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Peer, { DataConnection, MediaConnection } from "peerjs";
 
+// interface defenition for chat messages
 interface Message {
   id: string;
   sender: string;
@@ -9,40 +11,58 @@ interface Message {
   timestamp: Date;
 }
 
+// custom react hook for calls
 export function usePeerConnection() {
   const router = useRouter();
 
-  // State variables
+  //=====================================
+  // STATE VARIABLES
+  //=====================================
+
+  // peer connection states
   const [currentPeerId, setCurrentPeerId] = useState<string>("");
   const [peerIds, setPeerIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // call management states
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [incomingCall, setIncomingCall] = useState<MediaConnection | null>(null);
   const [myStream, setMyStream] = useState<MediaStream | null>(null);
   const [mediaConnection, setMediaConnection] = useState<MediaConnection | null>(null);
-  const videoEl = useRef<HTMLVideoElement>(null);
-  const audioEl = useRef<HTMLAudioElement>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
   const [isIncomingCall, setIsIncomingCall] = useState<boolean>(false);
   const [callerId, setCallerId] = useState<string>("");
-  const dataConnectionRef = useRef<DataConnection | null>(null);
   const [isCallOnHold, setIsCallOnHold] = useState<boolean>(false);
-  const [activeView, setActiveView] = useState<'home' | 'strokeScale' | 'files' | 'activeCall'>('home');
   const [isRinging, setIsRinging] = useState<boolean>(false);
+
+  // UI states
+  const [activeView, setActiveView] = useState<'home' | 'strokeScale' | 'files' | 'activeCall'>('home');
   const [minimizedChat, setMinimizedChat] = useState<boolean>(false);
   const [isChatVisible, setIsChatVisible] = useState<boolean>(false);
   const [isStrokeScaleVisible, setIsStrokeScaleVisible] = useState<boolean>(false);
 
-  // References
+  // messaging states
+  const [messages, setMessages] = useState<Message[]>([]);
+
+  //=====================================
+  // REFERENCES
+  //=====================================
+
+  // remote video and audio refs 
+  const videoEl = useRef<HTMLVideoElement>(null);
+  const audioEl = useRef<HTMLAudioElement>(null);
+
+  // peer connection refs
   const peerRef = useRef<Peer | null>(null);
   const intervalRef = useRef<NodeJS.Timeout>();
   const currentPeerIdRef = useRef<string>("");
+  const dataConnectionRef = useRef<DataConnection | null>(null);
 
-  // Set up data connection handler
+
+  // set up data connection handler
   const setupDataConnection = (dataConnection: DataConnection) => {
     console.log('Setting up data connection with:', dataConnection.peer);
-    
+
     // Clean up existing connection if any
     if (dataConnectionRef.current) {
       dataConnectionRef.current.off('data');
@@ -51,15 +71,18 @@ export function usePeerConnection() {
       dataConnectionRef.current.off('error');
       dataConnectionRef.current.close();
     }
-    
+
+    // store new connection and set it to caller id
     dataConnectionRef.current = dataConnection;
     setCallerId(dataConnection.peer);
-    
+
+    // handling for when a channel is opened 
     dataConnection.on('open', () => {
       console.log('Data channel opened');
-      setIsChatVisible(true);
+      // setIsChatVisible(true);
     });
 
+    // handling for incoming chat messages 
     dataConnection.on('data', (data: unknown) => {
       if (typeof data === 'string') {
         setMessages(prev => [...prev, {
@@ -68,41 +91,47 @@ export function usePeerConnection() {
           sender: dataConnection.peer,
           timestamp: new Date()
         }]);
-        setIsChatVisible(true);
+        // setIsChatVisible(true);
       }
     });
 
+    // handling for when a channel is closed 
     dataConnection.on('close', () => {
       console.log('Data channel closed');
       dataConnectionRef.current = null;
     });
 
+    // handling for when a connection error occurs
     dataConnection.on('error', (err) => {
       console.error('Data channel error:', err);
       setError('Chat connection error. Please try again.');
     });
   };
 
+  // main hook to initialize connections
   useEffect(() => {
+    // create a PeerJS object with ID retrieved from storage (or make a new one if none exist)
     const storedPeerId = localStorage.getItem('peerId');
     const peer = new Peer(storedPeerId || '', {
       host: "videochat-signaling-app.ue.r.appspot.com",
       port: 443,
       secure: true,
       path: "/",
-      debug: 3, 
+      debug: 3,
     });
-    peerRef.current = peer;
+    peerRef.current = peer; // saves the object for reuse
     console.log(`created PeerRef with stored peerid ${storedPeerId}`);
-    
+
     peer.on("open", (id) => {
+      // if no ID was saved in storage, store the new one
       if (!storedPeerId) {
         localStorage.setItem('peerId', id);
       }
       setCurrentPeerId(id);
-      currentPeerIdRef.current = id;
+      currentPeerIdRef.current = id; //saves for reuse
     });
 
+    //handle incoming calls
     peer.on('call', (call) => {
       console.log("We are receiving a call");
       setIncomingCall(call);
@@ -120,7 +149,7 @@ export function usePeerConnection() {
 
     // Fetch peer IDs
     const fetchPeerIds = () => {
-      fetch("https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/peers",{ credentials: 'include'}) 
+      fetch("https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/peers", { credentials: 'include' })
         .then((response) => {
           if (!response.ok) {
             throw new Error("Failed to fetch peer IDs");
@@ -140,8 +169,13 @@ export function usePeerConnection() {
     };
 
     fetchPeerIds();
-    intervalRef.current = setInterval(fetchPeerIds, 5000);
+    intervalRef.current = setInterval(fetchPeerIds, 5000); // updates every 5 seconds
 
+    //=====================================
+    // CLEANUP CODE
+    //=====================================
+
+    // clean up object after unmounting  
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -151,6 +185,7 @@ export function usePeerConnection() {
     };
   }, []);
 
+  // clean up effect after stream or media connection change
   useEffect(() => {
     return () => {
       if (myStream) {
@@ -162,6 +197,10 @@ export function usePeerConnection() {
     };
   }, [myStream, mediaConnection]);
 
+  //=====================================
+  // CALL MANAGEMENT
+  //=====================================
+
   const handleCall = (peerId: string) => {
     console.log(`Calling peer ${peerId}`);
     const peer = peerRef.current;
@@ -172,7 +211,7 @@ export function usePeerConnection() {
         const call = peer.call(peerId, stream);
         setMediaConnection(call);
         setActiveView('activeCall');
-        
+
         // Setup data channel for chat
         const dataConnection = peer.connect(peerId);
         setupDataConnection(dataConnection);
@@ -180,13 +219,13 @@ export function usePeerConnection() {
         call.on("stream", (remoteStream) => {
           if (videoEl.current) {
             videoEl.current.srcObject = remoteStream;
-           
+
           }
           if (audioEl.current) {
             audioEl.current.srcObject = remoteStream;
             console.log("added audio stream");
           }
-          
+
         });
 
         call.on("close", () => {
@@ -207,15 +246,15 @@ export function usePeerConnection() {
         incomingCall.answer(stream);
         setMediaConnection(incomingCall);
         setActiveView('activeCall');
-        
+
         // Connection handler is already set up in the main peer.on('connection') handler
 
         incomingCall.on("stream", (remoteStream) => {
           if (videoEl.current) {
             videoEl.current.srcObject = remoteStream;
-            
+
           }
-          if(audioEl.current){
+          if (audioEl.current) {
             audioEl.current.srcObject = remoteStream;
             console.log("added audio stream");
           }
