@@ -7,16 +7,28 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 //===================================
-// INTERFACES 
+// INTERFACES AND TYPE DEFENITIONS
 //===================================
 
-interface NewStrokeScaleFormProps {
+interface NewStrokeScaleFormProps { // defines props for the form
   onCancel?: () => void;
   initialData?: StrokeScaleFormData;
-  onDataChange?: (formData: StrokeScaleFormData) => void;
+  onDataChange?: (formData: StrokeScaleFormData) => void; // uses updated form data as argument
 }
 
-type StrokeScaleFormData = { [key: number]: number };
+type StrokeScaleFormData = { [key: number]: number }; // maps question index to score
+
+type Option = {
+  title: string;
+  score: number;
+};
+
+type StrokeScaleQuestion = {
+  id: number;
+  questionHeader: string;
+  subHeader?: string | null;
+  options: Option[];
+};
 
 
 //===================================
@@ -25,12 +37,14 @@ type StrokeScaleFormData = { [key: number]: number };
 
 export default function NewStrokeScaleForm({
   onCancel,
-  initialData = {},
+  initialData = {}, // initially empty
   onDataChange
 }: NewStrokeScaleFormProps) {
-  const [selectedOptions, setSelectedOptions] = useState<(number | null)[]>(
-    strokeScaleQuestions.map((_, index) => {
-      return initialData[index] !== undefined ? initialData[index] : null;
+
+  // tracks options selected 
+  const [selectedOptions, setSelectedOptions] = useState<(number | null)[]>( // stores index of selected answers
+    strokeScaleQuestions.map((_, index) => { // checks for prefilled answers
+      return initialData[index] !== undefined ? initialData[index] : null; // if a prefilled answer exists, use it, else set to null
     })
   );
 
@@ -38,18 +52,20 @@ export default function NewStrokeScaleForm({
   const [dob, setDob] = useState("");
   const [message, setMessage] = useState<string | null>(null);
 
+  // when data changes, calculate score
   useEffect(() => {
     if (onDataChange) {
       const formData: StrokeScaleFormData = {};
-      selectedOptions.forEach((option, index) => {
-        if (option !== null) {
-          formData[index] = strokeScaleQuestions[index].options[option].score;
+      selectedOptions.forEach((option, index) => { // loop through selected options 
+        if (option !== null) { // skip not selected options
+          formData[index] = strokeScaleQuestions[index].options[option].score; // store score into formdata 
         }
       });
-      onDataChange(formData);
+      onDataChange(formData); // pass updated data 
     }
   }, [selectedOptions, onDataChange]);
 
+  // handle saving the form
   const handleSave = async () => {
     const formatter = new Intl.DateTimeFormat("en-US", {
       month: "2-digit",
@@ -59,16 +75,19 @@ export default function NewStrokeScaleForm({
 
     const today = formatter.format(new Date());
     const dobFormatted = dob;
-    const username = localStorage.getItem("username") ?? "unknown";
+    const username = localStorage.getItem("username") ?? "unknown"; // get username if it exists else use unknown
 
+    // builds a string of scores
     const resultsString = selectedOptions
       .map((index, qIdx) => {
-        if (index === null) return "9";
-        const score = strokeScaleQuestions[qIdx].options[index]?.score;
-        return score !== undefined ? String(score) : "9";
+        if (index === null) return "9"; // return 9 if unanswered 
+        const score = strokeScaleQuestions[qIdx].options[index]?.score; // retrieve the score 
+        return score !== undefined ? String(score) : "9"; // convert score to string, or 9 if unanswered 
       })
-      .join("");
+      .join(""); // join all scores into one string
 
+
+    // object to send to the server
     const payload = {
       patientName,
       DOB: dobFormatted,
@@ -77,6 +96,7 @@ export default function NewStrokeScaleForm({
       username,
     };
 
+    // sends payload to the server
     try {
       const response = await fetch(process.env.NEXT_PUBLIC_SERVER_FETCH_URL!, {
         method: "POST",
@@ -97,14 +117,15 @@ export default function NewStrokeScaleForm({
     } catch (error) {
       console.error("Save error:", error);
       alert("Error saving form.");
-      onCancel?.();
+      onCancel?.(); // still allow cancel
     }
   };
 
+  // function to update the option when clicked on
   const handleOptionSelect = (questionIndex: number, optionIndex: number) => {
-    const updated = [...selectedOptions];
-    updated[questionIndex] = optionIndex;
-    setSelectedOptions(updated);
+    const updated = [...selectedOptions]; // copy current selected options
+    updated[questionIndex] = optionIndex; // update the index
+    setSelectedOptions(updated); // apply
   }
 
 
@@ -113,14 +134,18 @@ export default function NewStrokeScaleForm({
   //===================================
 
   return (
+    // main container card
     <Card className="border-blue-50 max-w-3xl mx-auto flex flex-col h-[calc(100vh-150px)]">
       {/* Top sticky header */}
       <CardHeader className="sticky top-0 z-10 border-b border-blue-50 bg-white">
+        {/* form title */}
         <CardTitle className="text-center text-blue-900 text-lg">
           New NIH Stroke Scale Form
         </CardTitle>
 
+        {/* patient info section */}
         <div className="flex flex-col gap-3 mt-4">
+          {/* patient name input field */}
           <input
             type="text"
             placeholder="Patient Name"
@@ -128,6 +153,7 @@ export default function NewStrokeScaleForm({
             className="w-full rounded-md border px-3 py-2 text-sm border-gray-300"
             onChange={(e) => setPatientName(e.target.value)}
           />
+          {/* patient birth date input field */}
           <input
             type="text"
             placeholder="Patient DOB (MM/DD/YYYY)"
@@ -135,6 +161,7 @@ export default function NewStrokeScaleForm({
             onChange={(e) => setDob(e.target.value)}
             className="w-full rounded-md border px-3 py-2 text-sm border-gray-300"
           />
+          {/* current date */}
           <p className="text-sm text-gray-500 text-center">
             Date: {new Date().toLocaleDateString("en-US")}
           </p>
@@ -144,11 +171,14 @@ export default function NewStrokeScaleForm({
       {/* Scrollable questions */}
       <CardContent className="flex-1 overflow-y-auto bg-gray-50 p-4">
         <div className="space-y-6">
+          {/* question mappings to create question cards */}
           {strokeScaleQuestions.map((question, index) => {
-            const selectedOption = selectedOptions[index];
+            const selectedOption = selectedOptions[index]; // get currently selected question
 
             return (
+              // question container
               <div key={question.id} className="bg-purple-200 p-4 rounded-md">
+                {/* question header */}
                 <h3 className="font-semibold text-blue-900">
                   {question.questionHeader}
                 </h3>
@@ -159,24 +189,28 @@ export default function NewStrokeScaleForm({
 
                 <div className="space-y-2">
                   {question.options.map((option, optionIndex) => {
-                    const isSelected = selectedOption === optionIndex;
+                    const isSelected = selectedOption === optionIndex; // check if option is selected 
 
                     return (
                       <button
                         key={optionIndex}
                         onClick={() => {
-                          const updated = [...selectedOptions];
+                          const updated = [...selectedOptions]; // store copy of current selected
                           updated[index] = optionIndex;
-                          setSelectedOptions(updated);
+                          setSelectedOptions(updated); // update state with new selection
                         }}
                         className={cn(
+                          // button style
                           "w-full flex justify-between items-center px-4 py-2 rounded border transition-colors text-left",
+                          // button style after selected 
                           isSelected
                             ? "bg-purple-400 text-white border-purple-500"
                             : "bg-white text-black border-gray-200 hover:bg-purple-100"
                         )}
                       >
+                        {/* option text */}
                         <span>{option.title}</span>
+                        {/* display '+' and score */}
                         <span className="text-sm">
                           {option.score >= 0 ? `+${option.score}` : option.score}
                         </span>
@@ -199,17 +233,9 @@ export default function NewStrokeScaleForm({
   );
 }
 
-type Option = {
-  title: string;
-  score: number;
-};
-
-type StrokeScaleQuestion = {
-  id: number;
-  questionHeader: string;
-  subHeader?: string | null;
-  options: Option[];
-};
+//===================================
+// QUESTIONS
+//===================================
 
 export const strokeScaleQuestions = [
   {
