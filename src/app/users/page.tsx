@@ -159,6 +159,7 @@ export default function Page() {
     try {
       const response = await fetch(process.env.NEXT_PUBLIC_SERVER_FETCH_URL!, {
         method: "POST",
+        credentials: 'include', // must be set to omit (for firefox),
         headers: {
           "Content-Type": "application/json",
           "Action": "getUsersForms",
