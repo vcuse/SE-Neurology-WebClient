@@ -74,6 +74,9 @@ export default function Page() {
 
   const [isNewFormVisible, setIsNewFormVisible] = useState(false);
   const [savedForms, setSavedForms] = useState<any[]>([]);
+  const [savedAns, setSavedAns] = useState<data>({}); // store answers when minimized
+  const [isNewFormMinimized, setIsNewFormMinimized] = useState(false);
+  const [savedPatient, setSavedPatient] = useState({ name: '', DOB: '' });
 
   const {
     currentPeerId,
@@ -151,6 +154,7 @@ export default function Page() {
     if (value === "A-Z") { }
   }
 
+
   useEffect(() => {
     if (activeView === 'strokeScale') {
       fetchSavedForms();
@@ -193,6 +197,19 @@ export default function Page() {
   // updates form data
   const handleDataChange = (formData: data) => {
     setFormData(formData);
+    setSavedAns(formData);
+  }
+
+  const handlePatientChange = (name: string, DOB: string) => {
+    setSavedPatient({ name, DOB });
+  }
+
+  const minForm = () => {
+    setIsNewFormMinimized(true);
+  }
+
+  const maxForm = () => {
+    setIsNewFormMinimized(false);
   }
 
   return (
@@ -308,6 +325,7 @@ export default function Page() {
           </Button>
         </header>
 
+
         {activeView === 'strokeScale' && !isNewFormVisible && (
           <div className="flex justify-between items-center px-6 pt-4">
             {/* Filter button on the left */}
@@ -351,20 +369,84 @@ export default function Page() {
         )}
 
 
-        {isNewFormVisible && (
+
+        {/* renders new form */}
+        {isNewFormVisible && !isNewFormMinimized && (
           <Card className="border-blue-50">
             <CardContent>
-              <NewStrokeScaleForm onCancel={() => {
+              <NewStrokeScaleForm onCancel={() => { // clear data after cancel
                 setIsNewFormVisible(false);
                 setActiveView("strokeScale");
-              }} />
+                setSavedAns({});
+                setSavedPatient({ name: '', DOB: '' });
+              }}
+
+                onMinimize={minForm}
+                initialData={savedAns}
+                onDataChange={handleDataChange}
+                onPatientChange={handlePatientChange}
+                initialPatient={savedPatient}
+              />
             </CardContent>
           </Card>
         )}
 
+        {/* minimized form */}
+        {isNewFormVisible && isNewFormMinimized && (
+          <div className="fixed bottom-6 right-6 z-50">
+            {/*form card*/}
+            <Card className="w-96 border-blue-200 shadow-lg">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  {/*form title*/}
+                  <div className="flex items-center gap-2">
+                    <Notebook className="h-5 w-5 text-blue-600"></Notebook>
+                    <span className="font-medium text-blue-900">New NIH Stroke Scale Form </span>
+                  </div>
+                  <div className="flex gap-2">
+
+                    {/*reopen form button*/}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={maxForm}
+                      className="border-blue-200 text-red-600 hover:bg-blue-50"
+                      title="Reopen"
+                    >
+                      <Maximize2 className="h-4 w-4" />
+                    </Button>
+
+                    {/*close form button*/}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        maxForm();
+                        setIsNewFormVisible(false);
+                        setActiveView("strokeScale");
+                        setSavedAns({});
+                        setSavedPatient({ name: '', DOB: '' });
+                      }}
+                      className="border-blue-200 text-red-600 hover:bg-red-50"
+                      title="Close"
+                    >
+                      X
+                    </Button>
+                  </div>
+                </div>
+                <p className="">Patient: {savedPatient.name || 'not entered'}</p>
+                <p className="">DOB: {savedPatient.DOB || 'not entered'}</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+
         <div className="h-[calc(100vh-80px)] overflow-y-auto p-6">
           {activeView === 'home' && (
             <div className="mx-auto max-w-4xl space-y-6">
+
+              {/* alert if error */}
               {error && (
                 <Alert variant="destructive">
                   <AlertTitle>Connection Error</AlertTitle>
@@ -372,6 +454,7 @@ export default function Page() {
                 </Alert>
               )}
 
+              {/* active consultations card */}
               <Card className="border-blue-50 bg-white shadow-sm">
                 <CardHeader className="border-b border-blue-50">
                   <CardTitle className="flex items-center gap-2 text-blue-900">
@@ -384,7 +467,7 @@ export default function Page() {
                 <CardContent className="p-0">
                   {isLoading ? (
                     <div className="space-y-4 p-6">
-                      {[1, 2, 3].map((i) => (
+                      {[1, 2, 3].map((i) => ( // 3 skeleton placeholders if data is loading
                         <Skeleton key={i} className="h-20 w-full rounded-lg" />
                       ))}
                     </div>

@@ -5,15 +5,19 @@ import React, { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Minimize2 } from "lucide-react";
 
 //===================================
 // INTERFACES AND TYPE DEFENITIONS
 //===================================
 
 interface NewStrokeScaleFormProps { // defines props for the form
+  onMinimize?: () => void;
   onCancel?: () => void;
   initialData?: StrokeScaleFormData;
   onDataChange?: (formData: StrokeScaleFormData) => void; // uses updated form data as argument
+  onPatientChange?: (name: string, DOB: string) => void;
+  initialPatient?: { name: string, DOB: string };
 }
 
 type StrokeScaleFormData = { [key: number]: number }; // maps question index to score
@@ -30,15 +34,17 @@ type StrokeScaleQuestion = {
   options: Option[];
 };
 
-
 //===================================
 // MAIN COMPONENT
 //===================================
 
 export default function NewStrokeScaleForm({
+  onMinimize,
   onCancel,
   initialData = {}, // initially empty
-  onDataChange
+  onDataChange,
+  onPatientChange,
+  initialPatient = { name: '', DOB: '' }
 }: NewStrokeScaleFormProps) {
 
   // tracks options selected 
@@ -48,8 +54,8 @@ export default function NewStrokeScaleForm({
     })
   );
 
-  const [patientName, setPatientName] = useState("");
-  const [dob, setDob] = useState("");
+  const [patientName, setPatientName] = useState(initialPatient.name);
+  const [dob, setDob] = useState(initialPatient.DOB);
   const [message, setMessage] = useState<string | null>(null);
 
   // when data changes, calculate score
@@ -64,6 +70,18 @@ export default function NewStrokeScaleForm({
       onDataChange(formData); // pass updated data 
     }
   }, [selectedOptions, onDataChange]);
+
+  // handle name change
+  const handleNameChange = (newWame: string) => {
+    setPatientName(newWame);
+    onPatientChange?.(newWame, dob);
+  }
+
+  // handle DOB change
+  const handleDOBChange = (newDOB: string) => {
+    setDob(newDOB);
+    onPatientChange?.(patientName, newDOB);
+  }
 
   // handle saving the form
   const handleSave = async () => {
@@ -143,6 +161,20 @@ export default function NewStrokeScaleForm({
           New NIH Stroke Scale Form
         </CardTitle>
 
+        {onMinimize && (
+          <div className="absolute top-4 right-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onMinimize}
+              className="border-blue-200 text-blue-900 hover:bg-blue-50"
+              title="Minimize"
+            >
+              <Minimize2 className="h-4 w-4"></Minimize2>
+            </Button>
+          </div>
+        )}
+
         {/* patient info section */}
         <div className="flex flex-col gap-3 mt-4">
           {/* patient name input field */}
@@ -151,14 +183,14 @@ export default function NewStrokeScaleForm({
             placeholder="Patient Name"
             value={patientName}
             className="w-full rounded-md border px-3 py-2 text-sm border-gray-300"
-            onChange={(e) => setPatientName(e.target.value)}
+            onChange={(e) => handleNameChange(e.target.value)}
           />
           {/* patient birth date input field */}
           <input
             type="text"
             placeholder="Patient DOB (MM/DD/YYYY)"
             value={dob}
-            onChange={(e) => setDob(e.target.value)}
+            onChange={(e) => handleDOBChange(e.target.value)}
             className="w-full rounded-md border px-3 py-2 text-sm border-gray-300"
           />
           {/* current date */}
