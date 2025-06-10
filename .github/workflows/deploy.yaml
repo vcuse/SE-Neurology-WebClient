@@ -35,7 +35,6 @@ jobs:
       - name: Start/Restart Next.js server with PM2
         run: |
          
-          cd ${{ github.workspace }}
  
           pm2 stop nextjs-app|| true 
           echo "past pm2 stop command"
