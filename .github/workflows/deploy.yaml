@@ -38,6 +38,7 @@ jobs:
           cd ${{ github.workspace }}
  
           pm2 stop nextjs-app || true 
+          echo "past pm2 stop command"
           
           pm2 start npm --name nextjs-app -- run start
        
