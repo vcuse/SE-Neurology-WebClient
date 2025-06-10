@@ -34,3 +34,24 @@ jobs:
           pm2 start npm --name nextjs-app -- run start
        
           pm2 save
+          
+      - name: Clear Nginx cache and reload configuration
+        # This step assumes Nginx is running and its cache directory is accessible
+        # by the user running the GitHub Actions runner.
+        # You might need 'sudo' depending on your server's permissions.
+        # Make sure the user running the self-hosted runner has the necessary
+        # permissions to execute these commands, e.g., via sudoers.
+        run: |
+          echo "Clearing Nginx proxy cache..."
+          # The exact path to your Nginx cache directory might vary.
+          # Common paths include /var/cache/nginx, /data/nginx/cache, etc.
+          # Adjust this command if your cache is located elsewhere.
+          sudo rm -rf /var/cache/nginx/*
+          echo "Nginx proxy cache cleared."
+
+          echo "Reloading Nginx configuration..."
+          # This command reloads Nginx configuration without dropping connections.
+          # Use 'sudo systemctl reload nginx' for systemd-based systems
+          # or 'sudo service nginx reload' for older init systems.
+          sudo systemctl reload nginx
+          echo "Nginx configuration reloaded."
