@@ -28,7 +28,8 @@ export default function LoginPage() {
     }
 
     try {
-      const response = await fetch('https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/post', {
+      const fetchUrl = 'https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/post'
+      const response = await fetch(fetchUrl, {
         method: 'POST',
         credentials: 'include', // must be set to omit (for firefox)
         headers: {
@@ -45,6 +46,7 @@ export default function LoginPage() {
 
       if (response.ok) {
         if (action === 'login') {
+          localStorage.setItem("username", username);
           // Navigate to the user dashboard
           console.log('Login successful:', result);
           router.push(`/users?username=${encodeURIComponent(username)}`);

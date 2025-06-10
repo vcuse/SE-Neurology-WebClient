@@ -1,25 +1,47 @@
 "use client"
-
-import React, { useState } from 'react';
+//library imports 
+import React, { useEffect, useState } from 'react';
+//custom imports 
 import { Button } from "@/components/ui/button";
 
+//===================================
+// INTERFACES 
+//===================================
+
+// interface that defines optional props
 interface StrokeScaleFormProps {
   onClose?: () => void;
+  initialData?: FormData;
+  onDataChange?: (formData: FormData) => void;
 }
 
+// interface that defines questions
 interface Question {
   id: number;
   text: string;
   options: string[];
 }
 
+//interface that stores responses
 interface FormData {
   [key: number]: number;
 }
 
-export function StrokeScaleForm({ onClose }: StrokeScaleFormProps) {
-  const [formData, setFormData] = useState<FormData>({});
+//===================================
+// MAIN COMPONENT
+//===================================
 
+export function StrokeScaleForm({ onClose, initialData = {}, onDataChange }: StrokeScaleFormProps) {
+  // state management
+  const [formData, setFormData] = useState<FormData>(initialData);
+
+  useEffect(() => {
+    if (onDataChange) {
+      onDataChange(formData);
+    }
+  }, [formData, onDataChange]);
+
+  // questions
   const questions: Question[] = [
     {
       id: 1,
@@ -175,6 +197,12 @@ export function StrokeScaleForm({ onClose }: StrokeScaleFormProps) {
     }
   ];
 
+
+  //===================================
+  // FUNCTIONS 
+  //===================================
+
+  //handles when user clicks an option
   const handleOptionSelect = (questionId: number, optionIndex: number) => {
     setFormData(prevData => ({
       ...prevData,
@@ -182,6 +210,7 @@ export function StrokeScaleForm({ onClose }: StrokeScaleFormProps) {
     }));
   };
 
+  // calculates total NIH score 
   const calculateScore = () => {
     let totalScore = 0;
     Object.entries(formData).forEach(([questionId, score]) => {
@@ -192,13 +221,20 @@ export function StrokeScaleForm({ onClose }: StrokeScaleFormProps) {
     return totalScore;
   };
 
+
+  //===================================
+  // COMPONENT RENDER
+  //===================================
+
   return (
     <div className="w-full p-6 space-y-8">
+      {/* HEADER AREA */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">NIH Stroke Scale Assessment</h2>
         {onClose && <Button variant="outline" onClick={onClose}>Close</Button>}
       </div>
 
+      {/* FORM CONTENT */}
       <div className="space-y-8">
         {questions.map((question) => (
           <div key={question.id} className="space-y-4">
@@ -207,9 +243,9 @@ export function StrokeScaleForm({ onClose }: StrokeScaleFormProps) {
               {question.options.map((option: string, index: number) => (
                 <Button
                   key={index}
-                  variant={formData[question.id] === index ? "default" : "outline"}
+                  variant={formData[question.id] === index ? "default" : "outline"} // changes style for selected option
                   className="w-full justify-start text-left"
-                  onClick={() => handleOptionSelect(question.id, index)}
+                  onClick={() => handleOptionSelect(question.id, index)} // stores option on click
                 >
                   {option}
                 </Button>
@@ -219,6 +255,7 @@ export function StrokeScaleForm({ onClose }: StrokeScaleFormProps) {
         ))}
       </div>
 
+      {/* DISPLAY SCORE */}
       <div className="sticky bottom-0 bg-white py-4 border-t">
         <div className="text-center">
           <p className="text-lg font-semibold">Total Score: {calculateScore()}</p>
