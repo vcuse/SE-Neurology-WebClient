@@ -23,7 +23,7 @@ jobs:
     # The specific command might vary slightly based on the default shell configured
     # for your runner, but 'whoami' is generally cross-platform compatible in this context.
         run: |
-          echo "Current user is: $(whoami)
+          echo "Current user is: $(whoami)"
 
       - name: Build website (if needed)
         run: |
