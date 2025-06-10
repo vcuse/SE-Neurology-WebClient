@@ -61,5 +61,5 @@ jobs:
           # This command reloads Nginx configuration without dropping connections.
           # Use 'sudo systemctl reload nginx' for systemd-based systems
           # or 'sudo service nginx reload' for older init systems.
-          systemctl reload nginx
+          sudo systemctl reload nginx
           echo "Nginx configuration reloaded."
