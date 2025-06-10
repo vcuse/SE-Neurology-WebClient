@@ -1,6 +1,6 @@
 "use client";
 //library imports 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 //custom imports 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -57,6 +57,7 @@ export default function NewStrokeScaleForm({
   const [patientName, setPatientName] = useState(initialPatient.name);
   const [dob, setDob] = useState(initialPatient.DOB);
   const [message, setMessage] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
 
   // when data changes, calculate score
   useEffect(() => {
@@ -72,9 +73,9 @@ export default function NewStrokeScaleForm({
   }, [selectedOptions, onDataChange]);
 
   // handle name change
-  const handleNameChange = (newWame: string) => {
-    setPatientName(newWame);
-    onPatientChange?.(newWame, dob);
+  const handleNameChange = (newName: string) => {
+    setPatientName(newName);
+    onPatientChange?.(newName, dob);
   }
 
   // handle DOB change
@@ -146,122 +147,208 @@ export default function NewStrokeScaleForm({
     setSelectedOptions(updated); // apply
   }
 
+  // resizing  functionality
+  const containerRef = useRef<HTMLDivElement>(null);
+  const resizing = useRef(false); // resizing flag 
+  const position = useRef({ x: 0, y: 0 }); // start position
+  const size = useRef({ w: 0, h: 0 }); // start size
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault; // prevent text selection and event bubbing
+    e.stopPropagation;
+
+    resizing.current = true;
+    position.current = { x: e.clientX, y: e.clientY }; // record start when resizing 
+
+    const container = containerRef.current!;
+    const rect = container.getBoundingClientRect(); // get size and position of container
+    size.current = { w: rect.width, h: rect.height }; // record box start size
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  }
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!resizing.current || !containerRef.current) {
+      return;
+    }
+
+    // calculate how far cursor moved since mousedown 
+    const dx = position.current.x - e.clientX;
+    const dy = position.current.y - e.clientY;
+
+    // minimum width/height
+    const newWidth = Math.max(400, size.current.w + dx);
+    const newHeight = Math.max(400, size.current.h + dy);
+
+    // apply new size
+    containerRef.current.style.width = `${newWidth}px`;
+    containerRef.current.style.height = `${newHeight}px`;
+
+  };
+
+  // handle when no longer resizing
+  const handleMouseUp = () => {
+    resizing.current = false;
+    document.removeEventListener("mousemove", handleMouseMove);
+    document.removeEventListener("mouseup", handleMouseUp);
+  }
+
+  // center the container
+  useEffect(() => {
+    if (containerRef.current) {
+      const container = containerRef.current;
+      const rect = container.getBoundingClientRect();
+      const vpWidth = window.innerWidth;
+      const vpHeight = window.innerHeight;
+
+      // calculate offset
+      const centerLeft = (vpWidth - rect.width) / 2;
+      const centerTop = (vpHeight - rect.height) / 2;
+
+      // apply position
+      container.style.left = `${Math.max(0, centerLeft)}px`;
+      container.style.top = `${Math.max(0, centerTop)}px`;
+    }
+  }, [])
+
 
   //===================================
   // COMPONENT RENDER
   //===================================
 
   return (
-    // main container card
-    <Card className="border-blue-50 max-w-3xl mx-auto flex flex-col h-[calc(100vh-150px)]">
-      {/* Top sticky header */}
-      <CardHeader className="sticky top-0 z-10 border-b border-blue-50 bg-white">
-        {/* form title */}
-        <CardTitle className="text-center text-blue-900 text-lg">
-          New NIH Stroke Scale Form
-        </CardTitle>
+    // outer container
+    <div
+      ref={containerRef} // reference to use for manipulation
+      className="min-w-[400px] max-w-[90vw] w-[800px] h-screen relative bg-white rounded-lg shadow-2xl"
+      style={{
+        position: 'fixed',
+        top: '50px',
+        bottom: '50px',
+        zIndex: '1000'
+      }}
+    >
+      {/*resizing handle*/}
+      <div
+        onMouseDown={handleMouseDown}
+        className="absolute top-0 left-0 w-4 h-4 bg-blue-100 cursor-nw-resize z-50"
+        title="Resize"
+        style={{
+          clipPath: 'polygon(100% 0%, 100% 100%, 0% 100%)' /*triangle shape to drag*/
+        }}
+      ></div>
+      {/* main container card */}
+      <Card className="border-blue-50 w-full h-full flex flex-col overflow-hidden">
+        {/* Top sticky header */}
+        <CardHeader className="flex-shrink-0 sticky top-0 z-10 border-b border-blue-50 bg-white">
+          {/* form title */}
+          <CardTitle className="text-center text-blue-900 text-lg">
+            New NIH Stroke Scale Form
+          </CardTitle>
 
-        {onMinimize && (
-          <div className="absolute top-4 right-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onMinimize}
-              className="border-blue-200 text-blue-900 hover:bg-blue-50"
-              title="Minimize"
-            >
-              <Minimize2 className="h-4 w-4"></Minimize2>
-            </Button>
+          {onMinimize && (
+            <div className="absolute top-4 right-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onMinimize}
+                className="border-blue-200 text-blue-900 hover:bg-blue-50"
+                title="Minimize"
+              >
+                <Minimize2 className="h-4 w-4"></Minimize2>
+              </Button>
+            </div>
+          )}
+
+          {/* patient info section */}
+          <div className="flex flex-col gap-3 mt-4">
+            {/* patient name input field */}
+            <input
+              type="text"
+              placeholder="Patient Name"
+              value={patientName}
+              className="w-full rounded-md border px-3 py-2 text-sm border-gray-300"
+              onChange={(e) => handleNameChange(e.target.value)}
+            />
+            {/* patient birth date input field */}
+            <input
+              type="text"
+              placeholder="Patient DOB (MM/DD/YYYY)"
+              value={dob}
+              onChange={(e) => handleDOBChange(e.target.value)}
+              className="w-full rounded-md border px-3 py-2 text-sm border-gray-300"
+            />
+            {/* current date */}
+            <p className="text-sm text-gray-500 text-center">
+              Date: {new Date().toLocaleDateString("en-US")}
+            </p>
           </div>
-        )}
+        </CardHeader>
 
-        {/* patient info section */}
-        <div className="flex flex-col gap-3 mt-4">
-          {/* patient name input field */}
-          <input
-            type="text"
-            placeholder="Patient Name"
-            value={patientName}
-            className="w-full rounded-md border px-3 py-2 text-sm border-gray-300"
-            onChange={(e) => handleNameChange(e.target.value)}
-          />
-          {/* patient birth date input field */}
-          <input
-            type="text"
-            placeholder="Patient DOB (MM/DD/YYYY)"
-            value={dob}
-            onChange={(e) => handleDOBChange(e.target.value)}
-            className="w-full rounded-md border px-3 py-2 text-sm border-gray-300"
-          />
-          {/* current date */}
-          <p className="text-sm text-gray-500 text-center">
-            Date: {new Date().toLocaleDateString("en-US")}
-          </p>
-        </div>
-      </CardHeader>
+        {/* Scrollable questions */}
+        <CardContent className="flex-1 overflow-y-auto bg-gray-50 p-4 min-h-0">
+          <div className="space-y-6">
+            {/* question mappings to create question cards */}
+            {strokeScaleQuestions.map((question, index) => {
+              const selectedOption = selectedOptions[index]; // get currently selected question
 
-      {/* Scrollable questions */}
-      <CardContent className="flex-1 overflow-y-auto bg-gray-50 p-4">
-        <div className="space-y-6">
-          {/* question mappings to create question cards */}
-          {strokeScaleQuestions.map((question, index) => {
-            const selectedOption = selectedOptions[index]; // get currently selected question
+              return (
+                // question container
+                <div key={question.id} className="bg-purple-200 p-4 rounded-md">
+                  {/* question header */}
+                  <h3 className="font-semibold text-blue-900">
+                    {question.questionHeader}
+                  </h3>
 
-            return (
-              // question container
-              <div key={question.id} className="bg-purple-200 p-4 rounded-md">
-                {/* question header */}
-                <h3 className="font-semibold text-blue-900">
-                  {question.questionHeader}
-                </h3>
+                  {question.subHeader && (
+                    <p className="text-sm text-gray-700 mb-2">{question.subHeader}</p>
+                  )}
 
-                {question.subHeader && (
-                  <p className="text-sm text-gray-700 mb-2">{question.subHeader}</p>
-                )}
+                  <div className="space-y-2">
+                    {question.options.map((option, optionIndex) => {
+                      const isSelected = selectedOption === optionIndex; // check if option is selected 
 
-                <div className="space-y-2">
-                  {question.options.map((option, optionIndex) => {
-                    const isSelected = selectedOption === optionIndex; // check if option is selected 
-
-                    return (
-                      <button
-                        key={optionIndex}
-                        onClick={() => {
-                          const updated = [...selectedOptions]; // store copy of current selected
-                          updated[index] = optionIndex;
-                          setSelectedOptions(updated); // update state with new selection
-                        }}
-                        className={cn(
-                          // button style
-                          "w-full flex justify-between items-center px-4 py-2 rounded border transition-colors text-left",
-                          // button style after selected 
-                          isSelected
-                            ? "bg-purple-400 text-white border-purple-500"
-                            : "bg-white text-black border-gray-200 hover:bg-purple-100"
-                        )}
-                      >
-                        {/* option text */}
-                        <span>{option.title}</span>
-                        {/* display '+' and score */}
-                        <span className="text-sm">
-                          {option.score >= 0 ? `+${option.score}` : option.score}
-                        </span>
-                      </button>
-                    );
-                  })}
+                      return (
+                        <button
+                          key={optionIndex}
+                          onClick={() => {
+                            const updated = [...selectedOptions]; // store copy of current selected
+                            updated[index] = optionIndex;
+                            setSelectedOptions(updated); // update state with new selection
+                          }}
+                          className={cn(
+                            // button style
+                            "w-full flex justify-between items-center px-4 py-2 rounded border transition-colors text-left",
+                            // button style after selected 
+                            isSelected
+                              ? "bg-purple-400 text-white border-purple-500"
+                              : "bg-white text-black border-gray-200 hover:bg-purple-100"
+                          )}
+                        >
+                          {/* option text */}
+                          <span>{option.title}</span>
+                          {/* display '+' and score */}
+                          <span className="text-sm">
+                            {option.score >= 0 ? `+${option.score}` : option.score}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      </CardContent>
+              );
+            })}
+          </div>
+        </CardContent>
 
-      {/* Bottom sticky save/cancel */}
-      <div className="sticky bottom-0 bg-white border-t border-blue-50 flex justify-center gap-4 p-4">
-        <Button className="bg-green-600 text-white hover:bg-green-700" onClick={handleSave}>Save</Button>
-        <Button className="bg-red-600 text-white hover:bg-red-700" onClick={() => onCancel?.()}>Cancel</Button>
-      </div>
-    </Card>
+        {/* Bottom sticky save/cancel */}
+        <div className="sticky bottom-0 bg-white border-t border-blue-50 flex justify-center gap-4 p-4">
+          <Button className="bg-green-600 text-white hover:bg-green-700" onClick={handleSave}>Save</Button>
+          <Button className="bg-red-600 text-white hover:bg-red-700" onClick={() => onCancel?.()}>Cancel</Button>
+        </div>
+      </Card>
+    </div>
   );
 }
 

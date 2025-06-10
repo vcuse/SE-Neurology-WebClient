@@ -372,8 +372,8 @@ export default function Page() {
 
         {/* renders new form */}
         {isNewFormVisible && !isNewFormMinimized && (
-          <Card className="border-blue-50">
-            <CardContent>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 border-blue-50">
+            <div className="relative">
               <NewStrokeScaleForm onCancel={() => { // clear data after cancel
                 setIsNewFormVisible(false);
                 setActiveView("strokeScale");
@@ -387,8 +387,8 @@ export default function Page() {
                 onPatientChange={handlePatientChange}
                 initialPatient={savedPatient}
               />
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         {/* minimized form */}
