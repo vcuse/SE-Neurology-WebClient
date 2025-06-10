@@ -17,6 +17,14 @@ jobs:
         with:
           node-version: '20' # Specify your Node.js version
 
+      - name: Report current user
+    # This step will print the username that the runner is currently operating as.
+    # Use 'whoami' for Linux/macOS or 'whoami' (in PowerShell/CMD) for Windows.
+    # The specific command might vary slightly based on the default shell configured
+    # for your runner, but 'whoami' is generally cross-platform compatible in this context.
+        run: |
+          echo "Current user is: $(whoami)
+
       - name: Build website (if needed)
         run: |
           cd ${{ github.workspace }}
