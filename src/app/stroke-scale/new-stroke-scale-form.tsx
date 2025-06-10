@@ -117,8 +117,10 @@ export default function NewStrokeScaleForm({
 
     // sends payload to the server
     try {
+      console.log("fetch url is",process.env.NEXT_PUBLIC_SERVER_FETCH_URL! );
       const response = await fetch(process.env.NEXT_PUBLIC_SERVER_FETCH_URL!, {
         method: "POST",
+        credentials: 'include', // must be set to omit (for firefox)
         headers: {
           "Content-Type": "application/json",
           "Action": "submitStrokeScale",

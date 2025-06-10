@@ -110,12 +110,14 @@ export function usePeerConnection() {
 
   // main hook to initialize connections
   useEffect(() => {
+    const secure = process.env.NEXT_PUBLIC_SERVER_SECURE
+    const isSecure = secure == 'true';
     // create a PeerJS object with ID retrieved from storage (or make a new one if none exist)
     const storedPeerId = localStorage.getItem('peerId');
     const peer = new Peer(storedPeerId || '', {
-      host: "videochat-signaling-app.ue.r.appspot.com",
-      port: 443,
-      secure: true,
+      host: process.env.NEXT_PUBLIC_SERVER_URL!,
+      port: Number(process.env.NEXT_PUBLIC_SERVER_PORT),
+      secure: isSecure,
       path: "/",
       debug: 3,
     });
@@ -149,7 +151,7 @@ export function usePeerConnection() {
 
     // Fetch peer IDs
     const fetchPeerIds = () => {
-      fetch("https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/peers", { credentials: 'include' })
+      fetch(process.env.NEXT_PUBLIC_SERVER_FETCH_PEERS!, { credentials: 'include' })
         .then((response) => {
           if (!response.ok) {
             throw new Error("Failed to fetch peer IDs");
