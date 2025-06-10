@@ -22,7 +22,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.460.0",
-    "next": "^15.0.3",
+    "next": "^15.2.4",
     "npm-check-updates": "^17.1.11",
     "peerjs": "^1.5.4",
     "react": "^18.3.1",
