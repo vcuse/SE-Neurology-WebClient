@@ -46,12 +46,12 @@ jobs:
           # The exact path to your Nginx cache directory might vary.
           # Common paths include /var/cache/nginx, /data/nginx/cache, etc.
           # Adjust this command if your cache is located elsewhere.
-          sudo rm -rf /var/cache/nginx/*
+          rm -rf /var/cache/nginx/*
           echo "Nginx proxy cache cleared."
 
           echo "Reloading Nginx configuration..."
           # This command reloads Nginx configuration without dropping connections.
           # Use 'sudo systemctl reload nginx' for systemd-based systems
           # or 'sudo service nginx reload' for older init systems.
-          sudo systemctl reload nginx
+          systemctl reload nginx
           echo "Nginx configuration reloaded."
