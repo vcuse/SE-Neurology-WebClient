@@ -29,7 +29,9 @@ import {
   Plus
 } from "lucide-react";
 // custom imports 
+
 import NewStrokeScaleForm from "@/app/stroke-scale/new-stroke-scale-form";
+import { StrokeScaleForm } from "@/components/stroke-scale/stroke-scale-form";
 import { usePeerConnection } from "@/hooks/usePeerConnection";
 import { cn } from "@/lib/utils";
 import { HomeViewChat, CallViewChat } from "@/components/video-call";
@@ -71,10 +73,12 @@ export default function Page() {
   // store and persist answer data
   const [formData, setFormData] = useState<data>({});
 
+
   // save sidebar state to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('sidebarExpanded', JSON.stringify(isSidebarExpanded));
   }, [isSidebarExpanded]);
+
 
   const [isNewFormVisible, setIsNewFormVisible] = useState(false);
   const [savedForms, setSavedForms] = useState<any[]>([]);
@@ -82,6 +86,13 @@ export default function Page() {
   const [isNewFormMinimized, setIsNewFormMinimized] = useState(false);
   const [savedPatient, setSavedPatient] = useState({ name: '', DOB: '' });
   const [isOnPopout, setIsOnPopout] = useState(false);
+
+  //=====================================
+  // VIDEO CONNECTION AND CALL LOGIC
+  //=====================================
+
+  // custom hooks
+
   const {
     currentPeerId,
     peerIds,
@@ -159,6 +170,7 @@ export default function Page() {
     if (value === "A-Z") { }
   }
 
+
   useEffect(() => {
     if (activeView === 'strokeScale') {
       fetchSavedForms();
@@ -193,10 +205,10 @@ export default function Page() {
     }
   };
 
-
   //=====================================
   // MAIN RENDER
   //=====================================
+
 
   // updates form data
   const handleDataChange = (formData: data) => {
@@ -337,6 +349,7 @@ export default function Page() {
         {activeView === 'strokeScale' && !isNewFormVisible && (
           <div className="flex justify-between items-center px-6 pt-4">
             {/* Filter button on the left */}
+
             <div ref={filterRef} className="relative">
               <Button
                 variant="outline"
@@ -473,6 +486,11 @@ export default function Page() {
         )}
 
 
+        {/*=====================================
+            DIFFERENT ACTIVE VIEWS
+          =====================================*/}
+
+        {/* home view (available consultations) */}
         <div className="h-[calc(100vh-80px)] overflow-y-auto p-6">
           {activeView === 'home' && (
             <div className="mx-auto max-w-4xl space-y-6">
@@ -622,6 +640,7 @@ export default function Page() {
           {activeView === 'activeCall' && (
             <div className="h-[calc(100vh-140px)] overflow-y-auto p-6">
               <div className={cn(
+
                 "flex gap-6 grid-cols-1",
                 (isChatVisible || isStrokeScaleVisible) ? "flex-col lg:flex-row" : "flex-col"
               )}>
@@ -630,29 +649,35 @@ export default function Page() {
                 <div className="flex-1 min-w-0">
                   <Card className="h-full flex flex-col overflow-hidden border-blue-50">
                     <CardHeader className="border-b border-blue-50 bg-blue-50 p-4 flex-shrink-0">
+
                       <CardTitle className="flex items-center gap-2 text-blue-900">
                         <PhoneCall className="h-5 w-5" />
                         Ongoing Consultation
                       </CardTitle>
                     </CardHeader>
 
-                    {/* video display area */}
+
                     <CardContent className="p-4 flex-1 flex flex-col">
                       <div className="flex-1 flex items-center justify-center mb-4 min-h-0 p-2">
                         {isCallOnHold ? (
                           // on hold  
                           <div className="flex items-center justify-center bg-gray-100 text-gray-500 rounded-lg w-full">
+
                             <Pause className="h-12 w-12" />
                           </div>
                         ) : (
                           // active call
+
                           <div className="w-full max-w-[800px] aspect-[900/570] mx-auto" style={{ maxHeight: 'calc(100vh - 160px)' }}>
+
                             {/* remote video stream */}
                             <video
                               ref={videoEl}
                               autoPlay
                               playsInline
+
                               className="w-full h-full object-cover rounded-lg bg-black"
+
                             />
                             {/* remote audio stream */}
                             <audio
@@ -661,12 +686,16 @@ export default function Page() {
                               playsInline
                               className="hidden" // hide the audio player controls
                             />
+
                           </div>
+
                         )}
                       </div>
 
                       {/* call control buttons */}
+
                       <div className="flex gap-2 pt-4 border-t border-blue-50 bg-white flex-wrap">
+
                         <Button
                           onClick={endCall}
                           variant="destructive"
@@ -710,8 +739,10 @@ export default function Page() {
 
                 {/* chat panel during video call */}
                 {isChatVisible && (
+
                   <Card className="border-blue-50 w-full lg:w-[400px] h-[675px] flex-shrink-0 flex flex-col">
                     <CardHeader className="border-b border-blue-50 bg-blue-50 p-4 flex-shrink-0">
+
                       <CardTitle className="flex items-center gap-2 text-blue-900">
                         <MessageSquare className="h-5 w-5" />
                         Chat
@@ -729,8 +760,10 @@ export default function Page() {
                 )}
                 {/* stroke assessment scale during video call */}
                 {isStrokeScaleVisible && (
+
                   <Card className="border-blue-50 w-full lg:w-[400px] h-[675px] flex-shrink-0 flex flex-col">
                     <CardHeader className="border-b border-blue-50 bg-blue-50 p-4 flex-shrink-0">
+
                       <CardTitle className="flex items-center gap-2 text-blue-900">
                         <Stethoscope className="h-5 w-5" />
                         Stroke Scale Assessment
@@ -775,6 +808,7 @@ export default function Page() {
                 </CardHeader>
 
                 <CardContent className="p-0">
+
                   {savedForms.length > 0 ? (
                     savedForms.map((form, index) => (
                       <div
@@ -792,6 +826,7 @@ export default function Page() {
                       </div>
                     ))
                   ) : (
+
                     <div className="p-6 text-center text-gray-500">
                       No forms available
                     </div>
