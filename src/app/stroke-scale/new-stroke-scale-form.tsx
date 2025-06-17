@@ -98,7 +98,7 @@ export default function NewStrokeScaleForm({
 
     const today = formatter.format(new Date());
     const dobFormatted = dob;
-    const username = localStorage.getItem("username") ?? "unknown"; // get username if it exists else use unknown
+    const username = localStorage.getItem("peerId") ?? "unknown"; // get peerID if it exists else use unknown
 
     // builds a string of scores
     const resultsString = selectedOptions
