@@ -57,7 +57,7 @@ export default function NewStrokeScaleForm({
   const [patientName, setPatientName] = useState(initialPatient.name);
   const [dob, setDob] = useState(initialPatient.DOB);
   const [message, setMessage] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
+  const [activeForm, setActiveForm] = useState<any | null>(null);
 
   // when data changes, calculate score
   useEffect(() => {
@@ -129,8 +129,8 @@ export default function NewStrokeScaleForm({
       });
 
       if (response.ok) {
-        // SUCCESS: Just go back
-        onCancel?.();
+        alert("Form saved.");
+        window.location.reload();
       } else {
         // FAILURE: Show error
         alert("Error saving form. Please try again.");
