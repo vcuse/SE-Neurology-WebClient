@@ -17,6 +17,14 @@ jobs:
         with:
           node-version: '20' # Specify your Node.js version
 
+      - name: Report current user
+    # This step will print the username that the runner is currently operating as.
+    # Use 'whoami' for Linux/macOS or 'whoami' (in PowerShell/CMD) for Windows.
+    # The specific command might vary slightly based on the default shell configured
+    # for your runner, but 'whoami' is generally cross-platform compatible in this context.
+        run: |
+          echo "Current user is: $(whoami)"
+
       - name: Build website (if needed)
         run: |
           cd ${{ github.workspace }}
@@ -27,10 +35,31 @@ jobs:
       - name: Start/Restart Next.js server with PM2
         run: |
          
-          cd ${{ github.workspace }}
  
-          pm2 stop nextjs-app || true 
+          pm2 stop nextjs-app|| true 
+          echo "past pm2 stop command"
           
           pm2 start npm --name nextjs-app -- run start
        
           pm2 save
+          
+      - name: Clear Nginx cache and reload configuration
+        # This step assumes Nginx is running and its cache directory is accessible
+        # by the user running the GitHub Actions runner.
+        # You might need 'sudo' depending on your server's permissions.
+        # Make sure the user running the self-hosted runner has the necessary
+        # permissions to execute these commands, e.g., via sudoers.
+        run: |
+          echo "Clearing Nginx proxy cache..."
+          # The exact path to your Nginx cache directory might vary.
+          # Common paths include /var/cache/nginx, /data/nginx/cache, etc.
+          # Adjust this command if your cache is located elsewhere.
+          rm -rf /var/cache/nginx/*
+          echo "Nginx proxy cache cleared."
+
+          echo "Reloading Nginx configuration..."
+          # This command reloads Nginx configuration without dropping connections.
+          # Use 'sudo systemctl reload nginx' for systemd-based systems
+          # or 'sudo service nginx reload' for older init systems.
+          sudo systemctl reload nginx
+          echo "Nginx configuration reloaded."
