@@ -47,10 +47,10 @@ export default function LoginPage() {
 
       if (response.ok) {
         if (action === 'login') {
-          localStorage.setItem("username", username);
+          localStorage.setItem("peerId", username);
           // Navigate to the user dashboard
           console.log('Login successful:', result);
-          router.push(`/users?username=${encodeURIComponent(username)}`);
+          router.push(`/users?peerId=${encodeURIComponent(username)}`);
         } else if (action === 'create') {
           setError('Account created successfully. You may now log in');
         }
