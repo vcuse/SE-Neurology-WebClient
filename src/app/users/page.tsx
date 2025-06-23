@@ -9,6 +9,7 @@ import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/h
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Clipboard, Filter, Sliders } from "lucide-react";
+import ViewStrokeScaleForm from "../stroke-scale/view-stroke-scale-form"; 
 import {
   Pause,
   LogOut,
@@ -69,7 +70,6 @@ export default function Page() {
   // store and persist answer data
   const [formData, setFormData] = useState<data>({});
 
-
   // save sidebar state to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('sidebarExpanded', JSON.stringify(isSidebarExpanded));
@@ -81,7 +81,8 @@ export default function Page() {
   const [savedAns, setSavedAns] = useState<data>({}); // store answers when minimized
   const [isNewFormMinimized, setIsNewFormMinimized] = useState(false);
   const [savedPatient, setSavedPatient] = useState({ name: '', DOB: '' });
-
+  const [selectedOldForm, setSelectedOldForm] = useState<any | null>(null);
+  const [isOldFormVisible, setIsOldFormVisible] = useState(false);
 
   //=====================================
   // VIDEO CONNECTION AND CALL LOGIC
@@ -766,8 +767,7 @@ export default function Page() {
                     <div className="relative w-full sm:w-auto sm:min-w-[240px]">
                       <input type="text"
                         placeholder="Search..."
-                        className="w-full rounded-md border border-blue-500 bg-white px-3 py-2 text-sm
-                  placeholder:test-grey-400 focus:outline-none focus:ring-2 focus:ring-blue-200 pr-10"
+                        className="w-full rounded-md border border-blue-500 bg-white px-3 py-2 text-sm placeholder:test-grey-400 focus:outline-none focus:ring-2 focus:ring-blue-200 pr-10"
                         onChange={(e) => {
                           {/* logic not yet implemented */ }
 
@@ -778,30 +778,49 @@ export default function Page() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-
                   {savedForms.length > 0 ? (
                     savedForms.map((form, index) => (
                       <div
                         key={index}
-                        className="border border-blue-200 rounded-lg p-4 m-4 flex items-center justify-between"
+                        className="border border-blue-200 rounded-md p-2 mx-4 my-2 flex items-center justify-between"
                       >
-                        <div>
-                          <h2 className="text-xl font-semibold text-blue-900">{form.name}</h2>
-                          <p className="text-gray-600">DOB: {form.dob}</p>
+                        <div className="text-sm">
+                          <h2 className="text-base font-semibold text-blue-900">{form.name}</h2>
+                          <p className="text-gray-600">DOB: {form.dob || "N/A"}</p>
                           <p className="text-gray-600">Date: {form.form_date}</p>
                         </div>
-                        <Button className="bg-blue-600 text-white hover:bg-blue-700">
+                        <Button
+                          className="bg-blue-600 text-white hover:bg-blue-700 h-8 px-3 text-sm"
+                          onClick={() => {
+                            setSelectedOldForm(form);
+                            setIsOldFormVisible(true);
+                          }}
+                        >
                           View Form
                         </Button>
                       </div>
                     ))
                   ) : (
 
-                    <div className="p-6 text-center text-gray-500">
+                    <div className="p-6 text-center text-gray-500 text-sm">
                       No forms available
                     </div>
                   )}
                 </CardContent>
+
+                {isOldFormVisible && selectedOldForm && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div className="relative">
+                      <ViewStrokeScaleForm
+                        form={selectedOldForm}
+                        onBack={() => {
+                          setIsOldFormVisible(false);
+                          setSelectedOldForm(null);
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
 
               </Card>
 
