@@ -19,10 +19,14 @@ import {
   MessageSquare,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
   Maximize2,
   Minimize2,
   Notebook,
   NotebookIcon,
+  Minus,
+  Plus
 } from "lucide-react";
 // custom imports 
 
@@ -81,7 +85,7 @@ export default function Page() {
   const [savedAns, setSavedAns] = useState<data>({}); // store answers when minimized
   const [isNewFormMinimized, setIsNewFormMinimized] = useState(false);
   const [savedPatient, setSavedPatient] = useState({ name: '', DOB: '' });
-
+  const [isOnPopout, setIsOnPopout] = useState(false);
 
   //=====================================
   // VIDEO CONNECTION AND CALL LOGIC
@@ -120,6 +124,7 @@ export default function Page() {
     sendMessage,
     isStrokeScaleVisible,
     toggleStrokeScale,
+
   } = usePeerConnection();
 
   //=====================================
@@ -164,7 +169,6 @@ export default function Page() {
 
     if (value === "A-Z") { }
   }
-
 
 
   useEffect(() => {
@@ -225,6 +229,10 @@ export default function Page() {
     setIsNewFormMinimized(false);
   }
 
+  const togglePopout = () => {
+    setIsOnPopout(!isOnPopout);
+  };
+
   return (
     <div className="flex h-screen bg-[#f8fafc]">
       {/*=====================================
@@ -258,8 +266,8 @@ export default function Page() {
             onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
           >
             {isSidebarExpanded ?
-              <ChevronLeft className="h-5 w-5" /> : // collapse
-              <ChevronRight className="h-5 w-5" /> // expand
+              <ChevronLeft className="h-5 w-5" /> : // collapse symbol
+              <ChevronRight className="h-5 w-5" /> // expand symbol
             }
           </Button>
 
@@ -383,16 +391,16 @@ export default function Page() {
         )}
 
 
-
-        {/* renders new form */}
-        {isNewFormVisible && !isNewFormMinimized && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 border-blue-50">
-            <div className="relative">
+        {/* renders new regular form */}
+        {isNewFormVisible && !isNewFormMinimized && !isOnPopout && (
+          <Card className="border-blue-50">
+            <CardContent>
               <NewStrokeScaleForm onCancel={() => { // clear data after cancel
                 setIsNewFormVisible(false);
                 setActiveView("strokeScale");
                 setSavedAns({});
                 setSavedPatient({ name: '', DOB: '' });
+                setIsOnPopout(false);
               }}
 
                 onMinimize={minForm}
@@ -400,9 +408,31 @@ export default function Page() {
                 onDataChange={handleDataChange}
                 onPatientChange={handlePatientChange}
                 initialPatient={savedPatient}
+                onTogglePopout={togglePopout}
               />
-            </div>
-          </div>
+            </CardContent>
+          </Card>
+        )}
+
+
+        {/* renders popout form */}
+        {isNewFormVisible && !isNewFormMinimized && isOnPopout && (
+          <NewStrokeScaleForm onCancel={() => { // clear data after cancel
+            setIsNewFormVisible(false);
+            setActiveView("strokeScale");
+            setSavedAns({});
+            setSavedPatient({ name: '', DOB: '' });
+            setIsOnPopout(false);
+          }}
+
+            onMinimize={minForm}
+            initialData={savedAns}
+            onDataChange={handleDataChange}
+            onPatientChange={handlePatientChange}
+            initialPatient={savedPatient}
+            onTogglePopout={togglePopout}
+            isPopout={true}
+          />
         )}
 
         {/* minimized form */}
@@ -426,8 +456,8 @@ export default function Page() {
                       onClick={maxForm}
                       className="border-blue-200 text-red-600 hover:bg-blue-50"
                       title="Reopen"
-                    >
-                      <Maximize2 className="h-4 w-4" />
+                    >{/*plus symbol */}
+                      <Plus className="h-4 w-4" />
                     </Button>
 
                     {/*close form button*/}
@@ -440,6 +470,7 @@ export default function Page() {
                         setActiveView("strokeScale");
                         setSavedAns({});
                         setSavedPatient({ name: '', DOB: '' });
+                        setIsOnPopout(false);
                       }}
                       className="border-blue-200 text-red-600 hover:bg-red-50"
                       title="Close"
