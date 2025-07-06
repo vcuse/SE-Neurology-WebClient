@@ -322,10 +322,32 @@ export function usePeerConnection() {
     }
   };
 
-  const handleLogout = () => {
-    document.cookie = "isLoggedIn=false; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    localStorage.removeItem('peerId');
-    router.push('/login');
+  // logout handler
+  const handleLogout = async () => {
+    console.log("handleLogout called");
+    try {
+      const isProd = window.location.hostname !== 'localhost'; // use to determine whether running in production or not
+      const fetchUrl = isProd ? 'https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/logout' : 'http://localhost:9000/key=peerjs/logout'; // on port 3000, listen on 9000
+
+      console.log("logging out to " + fetchUrl);
+
+      const response = await fetch(fetchUrl, { // fetch request to /logout in server
+        method: 'POST',
+        credentials: 'include', // include cookies
+      });
+
+      const result = await response.text();
+
+      if (response.ok) {
+        console.log('isProd:', isProd);
+        localStorage.removeItem('peerId');
+        router.push('/login'); // redirect to login page
+      } else {
+        setError(result || 'An error occurred. Please try again.');
+      }
+    } catch (error) {
+      console.log('Logout failed: ', error);
+    }
   };
 
   const toggleChat = () => {
