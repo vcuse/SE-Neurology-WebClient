@@ -113,7 +113,7 @@ export default function NewStrokeScaleForm({
     // object to send to the server
     const payload = {
       patientName,
-      DOB: dobFormatted,
+      patientDob: dobFormatted,
       formDate: today,
       results: resultsString,
       username,
