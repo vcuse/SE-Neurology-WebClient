@@ -36,7 +36,7 @@ export default function ViewStrokeScaleForm({ form, onBack }: Props) {
 
     const payload = {
       patientName: patientName,
-      dob: dob,
+      patientDob: dob,
       formDate: form.form_date,
       results: resultsString,
       id: form.id,
