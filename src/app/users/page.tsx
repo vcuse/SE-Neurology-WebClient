@@ -9,6 +9,7 @@ import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/h
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Clipboard, Filter, Sliders } from "lucide-react";
+import { TbDashboard } from "react-icons/tb";
 import {
   Pause,
   LogOut,
@@ -28,8 +29,8 @@ import {
   Minus,
   Plus
 } from "lucide-react";
-// custom imports 
 
+// custom imports 
 import NewStrokeScaleForm from "@/app/stroke-scale/new-stroke-scale-form";
 import { StrokeScaleForm } from "@/components/stroke-scale/stroke-scale-form";
 import { usePeerConnection } from "@/hooks/usePeerConnection";
@@ -41,13 +42,14 @@ import Link from "next/link";
 type MenuItem = {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
-  value: 'home' | 'strokeScale';
+  value: 'home' | 'strokeScale' | 'adminDash';
 };
 
 // array of current menu items in the sidebar
 const menuItems: MenuItem[] = [
   { icon: Stethoscope, label: 'Consultations', value: 'home' },
   { icon: NotebookIcon, label: 'Stroke Scale Forms', value: 'strokeScale' },
+  //{ icon: TbDashboard, label: 'Admin Dashboard', value: 'adminDash' },
 ];
 
 //interface that stores responses
@@ -79,7 +81,7 @@ export default function Page() {
     localStorage.setItem('sidebarExpanded', JSON.stringify(isSidebarExpanded));
   }, [isSidebarExpanded]);
 
-
+  // state hooks
   const [isNewFormVisible, setIsNewFormVisible] = useState(false);
   const [savedForms, setSavedForms] = useState<any[]>([]);
   const [savedAns, setSavedAns] = useState<data>({}); // store answers when minimized
@@ -274,6 +276,7 @@ export default function Page() {
           <nav className="space-y-1">
             {menuItems.map((item) => {
               const isForms = item.value === 'strokeScale';
+              const isAdminDash = item.value === 'adminDash';
 
               return (
                 <HoverCard key={item.value}>
@@ -844,6 +847,40 @@ export default function Page() {
             </div>
           )
           }
+
+          {/* admin dashboard view */}
+          {/*
+          {activeView === 'adminDash' &&
+            (
+              <div className="mx-auto max-w-2xl space-y-6">
+                <Card className="border-blue-50">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <div className="flex w-full items-center justify-between">
+                      <CardTitle className="flex items-center gap-2 text-blue-900"> <TbDashboard className="h-5 w-5" />
+                        Admin Dashboard
+                      </CardTitle>
+                    </div>
+                  </CardHeader>
+
+                  <CardContent className="p-0">
+
+                  </CardContent>
+
+                </Card>
+
+                // button that takes you back to consultations / home page 
+          <div className="fixed bottom-6 left-6">
+            <Button variant="outline" className="shadow-md hover:bg-blue-50 border-blue-200 text-blue-900"
+              onClick={() => setActiveView('home')}><ChevronLeft className="mr-2 h-4 w-4" />
+              Back to Consultations</Button>
+          </div>
+          <div className="p-6 text-center text-gray-500">
+            ...
+          </div>
+        </div>
+        )}
+        */}
+
         </div >
       </main >
     </div >

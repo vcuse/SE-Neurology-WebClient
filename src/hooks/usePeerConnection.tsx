@@ -24,6 +24,7 @@ export function usePeerConnection() {
   const [peerIds, setPeerIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [username, setUsername] = useState<string>("");
 
   // call management states
   const [isMuted, setIsMuted] = useState<boolean>(false);
@@ -36,10 +37,11 @@ export function usePeerConnection() {
   const [isRinging, setIsRinging] = useState<boolean>(false);
 
   // UI states
-  const [activeView, setActiveView] = useState<'home' | 'strokeScale' | 'files' | 'activeCall'>('home');
+  const [activeView, setActiveView] = useState<'home' | 'strokeScale' | 'files' | 'activeCall' | 'adminDash'>('home');
   const [minimizedChat, setMinimizedChat] = useState<boolean>(false);
   const [isChatVisible, setIsChatVisible] = useState<boolean>(false);
   const [isStrokeScaleVisible, setIsStrokeScaleVisible] = useState<boolean>(false);
+  // const [isadminDashVisible, set] = useState<boolean>(false);
 
   // messaging states
   const [messages, setMessages] = useState<Message[]>([]);
@@ -57,7 +59,6 @@ export function usePeerConnection() {
   const intervalRef = useRef<NodeJS.Timeout>();
   const currentPeerIdRef = useRef<string>("");
   const dataConnectionRef = useRef<DataConnection | null>(null);
-
 
   // set up data connection handler
   const setupDataConnection = (dataConnection: DataConnection) => {
@@ -108,31 +109,66 @@ export function usePeerConnection() {
     });
   };
 
+
   // main hook to initialize connections
   useEffect(() => {
     // create a PeerJS object with ID retrieved from storage (or make a new one if none exist)
-    const storedPeerId = localStorage.getItem('peerId');
-    const peer = new Peer(storedPeerId || '', {
+    const storedUsername = localStorage.getItem('username');
+    if (storedUsername) {
+      setUsername(storedUsername);
+    }
+
+    const isProd = window.location.hostname !== 'localhost'; // use to determine whether running in production or not
+    const config = isProd ? {
       host: "videochat-signaling-app.ue.r.appspot.com",
       port: 443,
       secure: true,
       path: "/",
       debug: 3,
-    });
-    peerRef.current = peer; // saves the object for reuse
+    } : {
+      host: "localhost",
+      port: 9000,
+      secure: false,
+      path: "/",
+      debug: 3,
+    };
+
+    const storedPeerId = localStorage.getItem('peerId');
+
+    const peer = storedPeerId ? new Peer(storedPeerId || '', {
+      host: "videochat-signaling-app.ue.r.appspot.com",
+      port: 443,
+      secure: true,
+      path: "/",
+      debug: 3,
+    }) :
+      new Peer({
+        host: "videochat-signaling-app.ue.r.appspot.com",
+        port: 443,
+        secure: true,
+        path: "/",
+        debug: 3,
+      })
+      ;
+    console.log("created with id:" + storedPeerId);
+    console.log("peer object:" + peer);
+    console.log("username: " + storedUsername);
+
+    peerRef.current = peer;
+
+    // saves the object for reuse
     console.log(`created PeerRef with stored peerid ${storedPeerId}`);
 
-    peer.on("open", (id) => {
+    peer.on("open", (id: string) => {
+      console.log("Peer opened with id " + id);
       // if no ID was saved in storage, store the new one
-      if (!storedPeerId) {
-        localStorage.setItem('peerId', id);
-      }
+      localStorage.setItem('peerId', id);
       setCurrentPeerId(id);
       currentPeerIdRef.current = id; //saves for reuse
     });
 
     //handle incoming calls
-    peer.on('call', (call) => {
+    peer.on('call', (call: MediaConnection) => {
       console.log("We are receiving a call");
       setIncomingCall(call);
       setIsIncomingCall(true);
@@ -140,23 +176,31 @@ export function usePeerConnection() {
     });
 
     // Optional: Also listen for errors to understand why it might *not* open
-    peer.on("error", (err) => {
+    peer.on("error", (err: Error) => {
       console.error("PeerJS error:", err);
       // Handle errors like server connection issues, invalid ID, etc.
     });
 
-    peer.on('connection', setupDataConnection);
+    peer.on('connection', (dataConnection: DataConnection) => setupDataConnection(dataConnection));
 
     // Fetch peer IDs
     const fetchPeerIds = () => {
-      fetch("https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/peers", { credentials: 'include' })
+      const isProd = window.location.hostname !== 'localhost'; // use to determine whether running in production or not
+      const fetchUrl = isProd ? 'https://videochat-signaling-app.ue.r.appspot.com/key=peerjs/peers' : 'http://localhost:9000/key=peerjs/peers';
+      fetch(fetchUrl, {
+        credentials: 'include'
+      })
         .then((response) => {
+
           if (!response.ok) {
             throw new Error("Failed to fetch peer IDs");
           }
           return response.json();
         })
         .then((data) => {
+          if (!data) {
+            return;
+          }
           const otherPeerIds = data.filter((id: string) => id !== currentPeerIdRef.current);
           setPeerIds(otherPeerIds);
           setIsLoading(false);
@@ -170,23 +214,33 @@ export function usePeerConnection() {
 
     fetchPeerIds();
     intervalRef.current = setInterval(fetchPeerIds, 5000); // updates every 5 seconds
+  }, []);
 
-    //=====================================
-    // CLEANUP CODE
-    //=====================================
+  //=====================================
+  // CLEANUP CODE
+  //=====================================
 
-    // clean up object after unmounting  
+  // clean up timers and peer connections
+  useEffect(() => {
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
-      console.log("Destroying peerRef");
-      peerRef.current?.destroy();
+
+      // if (logoutTimerRef.current) {
+      //   clearTimeout(logoutTimerRef.current);
+      // }
+
+      if (peerRef.current) {
+        console.log("Destroying peerRef");
+        peerRef.current.destroy();
+      }
     };
   }, []);
 
   // clean up effect after stream or media connection change
   useEffect(() => {
+
     return () => {
       if (myStream) {
         myStream.getTracks().forEach((track) => track.stop());
@@ -324,6 +378,8 @@ export function usePeerConnection() {
 
   // logout handler
   const handleLogout = async () => {
+    console.log("Current username:", username);
+    console.log("Username from localStorage:", localStorage.getItem('username'));
     console.log("handleLogout called");
     try {
       const isProd = window.location.hostname !== 'localhost'; // use to determine whether running in production or not
@@ -338,10 +394,12 @@ export function usePeerConnection() {
 
       const result = await response.text();
 
+
       if (response.ok) {
         console.log('isProd:', isProd);
         localStorage.removeItem('peerId');
         router.push('/login'); // redirect to login page
+
       } else {
         setError(result || 'An error occurred. Please try again.');
       }
@@ -384,6 +442,7 @@ export function usePeerConnection() {
   };
 
   return {
+    username,
     currentPeerId,
     peerIds,
     error,
