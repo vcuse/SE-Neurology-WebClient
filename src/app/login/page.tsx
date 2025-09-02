@@ -48,6 +48,7 @@ export default function LoginPage() {
       if (response.ok) {
         if (action === 'login') {
           localStorage.setItem("peerId", username);
+          localStorage.setItem("username", username);
           // Navigate to the user dashboard
           console.log('Login successful:', result);
           router.push(`/users?peerId=${encodeURIComponent(username)}`);
