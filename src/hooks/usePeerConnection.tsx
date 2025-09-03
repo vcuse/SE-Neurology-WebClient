@@ -3,6 +3,9 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Peer, { DataConnection, MediaConnection } from "peerjs";
 
+// Heartbeat intervals 
+type IntervalId = ReturnType<typeof setInterval>;
+
 // interface defenition for chat messages
 interface Message {
   id: string;
@@ -55,6 +58,7 @@ export function usePeerConnection() {
   // peer connection refs
   const peerRef = useRef<Peer | null>(null);
   const intervalRef = useRef<NodeJS.Timeout>();
+  const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const currentPeerIdRef = useRef<string>("");
   const dataConnectionRef = useRef<DataConnection | null>(null);
 
@@ -108,6 +112,67 @@ export function usePeerConnection() {
     });
   };
 
+  // --- Presence heartbeat to your server ---
+  const startHeartbeat = () => {
+    const fetchUrl = process.env.NEXT_PUBLIC_SERVER_FETCH_URL;
+    const username =
+      (typeof window !== "undefined" && localStorage.getItem("username")) ||
+      currentPeerIdRef.current;
+
+    if (!fetchUrl || !username) return;
+
+    const send = () => {
+      const payload = JSON.stringify({ username });
+
+      // Prefer sendBeacon for hidden tabs / unload
+      if (navigator.sendBeacon) {
+        try {
+          const url = new URL(fetchUrl);
+          url.searchParams.set("action", "heartbeat"); // server can read from query
+          const blob = new Blob([payload], { type: "application/json" });
+          navigator.sendBeacon(url.toString(), blob);
+          return;
+        } catch {
+          // fall through
+        }
+      }
+
+      // Fallback: fetch with keepalive
+      fetch(fetchUrl, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "Action": "heartbeat",
+        },
+        keepalive: true,
+        body: payload,
+      }).catch(() => { });
+    };
+
+    // fire now, then repeat
+    send();
+    heartbeatIntervalRef.current = setInterval(send, 25_000);
+
+    const onVis = () => {
+      if (document.visibilityState === "hidden") send();
+    };
+    const onUnload = () => send();
+
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("beforeunload", onUnload);
+
+    // cleanup
+    return () => {
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+        heartbeatIntervalRef.current = null;
+      }
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("beforeunload", onUnload);
+    };
+  };
+
   // main hook to initialize connections
   useEffect(() => {
     const secure = process.env.NEXT_PUBLIC_SERVER_SECURE
@@ -149,6 +214,15 @@ export function usePeerConnection() {
 
     peer.on('connection', setupDataConnection);
 
+    // If the WS drops, try to reconnect
+    peer.on('disconnected', () => {
+      try {
+        peer.reconnect();
+      } catch (e) {
+        console.warn("Peer reconnect failed:", e);
+      }
+    });
+
     // Fetch peer IDs
     const fetchPeerIds = () => {
       fetch(process.env.NEXT_PUBLIC_SERVER_FETCH_PEERS!, { credentials: 'include' })
@@ -186,6 +260,20 @@ export function usePeerConnection() {
       peerRef.current?.destroy();
     };
   }, []);
+
+  useEffect(() => {
+    // Have we got *either* a stored username or a current Peer ID?
+    const hasIdentity =
+      (typeof window !== "undefined" && !!localStorage.getItem("username")) ||
+      !!currentPeerIdRef.current;
+
+    if (!hasIdentity) return;
+
+    const stop = startHeartbeat(); // returns a cleanup function
+    return () => {
+      if (stop) stop();
+    };
+  }, [currentPeerId]);
 
   // clean up effect after stream or media connection change
   useEffect(() => {
