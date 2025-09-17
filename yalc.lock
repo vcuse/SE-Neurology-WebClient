@@ -1,0 +1,10 @@
+{
+  "version": "v1",
+  "packages": {
+    "peerjs": {
+      "signature": "d4402970604052801a2d9b3bd86ac18b",
+      "file": true,
+      "replaced": "^1.5.4"
+    }
+  }
+}
