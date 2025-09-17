@@ -13,10 +13,10 @@ type Props = {
 
 export default function ViewStrokeScaleForm({ form, onBack }: Props) {
   const [isEditing, setIsEditing] = useState(false);
-  const [patientName, setPatientName] = useState(form.name);
-  const [dob, setDob] = useState(form.dob);
-  const [originalPatientName] = useState(form.name);
-  const [originalDOB] = useState(form.dob);
+  const [patientName, setPatientName] = useState(form.patient_name);
+  const [dob, setDob] = useState(form.patient_dob);
+  const [originalPatientName] = useState(form.patient_name);
+  const [originalDOB] = useState(form.patient_dob);
   const convertResultsToOptions = (results: string) =>
     results.split("").map((char, i) => {
       const score = parseInt(char);

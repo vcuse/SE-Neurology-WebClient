@@ -817,8 +817,8 @@ export default function Page() {
                         className="border border-blue-200 rounded-md p-2 mx-4 my-2 flex items-center justify-between"
                       >
                         <div className="text-sm">
-                          <h2 className="text-base font-semibold text-blue-900">{form.name}</h2>
-                          <p className="text-gray-600">DOB: {form.dob || "N/A"}</p>
+                          <h2 className="text-base font-semibold text-blue-900">{form.patient_name}</h2>
+                          <p className="text-gray-600">DOB: {form.patient_dob || "N/A"}</p>
                           <p className="text-gray-600">Date: {form.form_date}</p>
                         </div>
                         <Button
