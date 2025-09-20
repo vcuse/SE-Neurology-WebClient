@@ -295,38 +295,41 @@ export function usePeerConnection() {
     console.log(`Calling peer ${peerId}`);
     const peer = peerRef.current;
     if (peer) {
-      navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
-        setMyStream(stream);
-        setIsRinging(true);
-        const call = peer.call(peerId, stream);
-        setMediaConnection(call);
-        setActiveView('activeCall');
-
-        // Setup data channel for chat
-        const dataConnection = peer.connect(peerId);
-        setupDataConnection(dataConnection);
-
-        call.on("stream", (remoteStream) => {
-          if (videoEl.current) {
-            videoEl.current.srcObject = remoteStream;
-
-          }
-          if (audioEl.current) {
-            audioEl.current.srcObject = remoteStream;
-            console.log("added audio stream");
-          }
-
-        });
-
-        call.on("close", () => {
-          console.log("Call ended");
-          endCall();
-        });
-      }).catch((err) => {
-        console.error("Error accessing media devices:", err);
-        setError("Failed to access media devices.");
-      });
+      const call = peer.call(peerId);
     }
+    // if (peer) {
+    //   navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
+    //     setMyStream(stream);
+    //     setIsRinging(true);
+    //     const call = peer.call(peerId, stream);
+    //     setMediaConnection(call);
+    //     setActiveView('activeCall');
+
+    //     // // Setup data channel for chat
+    //     // const dataConnection = peer.connect(peerId);
+    //     // setupDataConnection(dataConnection);
+
+    //     call.on("stream", (remoteStream) => {
+    //       if (videoEl.current) {
+    //         videoEl.current.srcObject = remoteStream;
+
+    //       }
+    //       if (audioEl.current) {
+    //         audioEl.current.srcObject = remoteStream;
+    //         console.log("added audio stream");
+    //       }
+
+    //     });
+
+    //     call.on("close", () => {
+    //       console.log("Call ended");
+    //       endCall();
+    //     });
+    //   }).catch((err) => {
+    //     console.error("Error accessing media devices:", err);
+    //     setError("Failed to access media devices.");
+    //   });
+    // }
   };
 
   const acceptCall = () => {
