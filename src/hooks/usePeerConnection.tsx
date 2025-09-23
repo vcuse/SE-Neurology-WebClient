@@ -206,6 +206,22 @@ export function usePeerConnection() {
       setCallerId(call.peer);
     });
 
+    peer.on("streamReceived", (stream) => {
+      if (videoEl.current) {
+        
+        const tracks = new MediaStream();
+        tracks.addTrack(stream);
+        videoEl.current.srcObject = tracks;
+    
+        
+      }
+      if (audioEl.current) {
+        // audioEl.current.srcObject = remoteStream;
+        // console.log("added audio stream");
+      }
+      setActiveView('activeCall');
+    });
+
     // Optional: Also listen for errors to understand why it might *not* open
     peer.on("error", (err) => {
       console.error("PeerJS error:", err);
@@ -296,30 +312,25 @@ export function usePeerConnection() {
     const peer = peerRef.current;
     if (peer) {
       const call = peer.call(peerId);
+      // peer.on("streamReceived", (stream) => {
+        
+  
+      // });
     }
     // if (peer) {
     //   navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
     //     setMyStream(stream);
     //     setIsRinging(true);
-    //     const call = peer.call(peerId, stream);
-    //     setMediaConnection(call);
-    //     setActiveView('activeCall');
+        
+       
+    //   });
+    // }
 
     //     // // Setup data channel for chat
     //     // const dataConnection = peer.connect(peerId);
     //     // setupDataConnection(dataConnection);
 
-    //     call.on("stream", (remoteStream) => {
-    //       if (videoEl.current) {
-    //         videoEl.current.srcObject = remoteStream;
-
-    //       }
-    //       if (audioEl.current) {
-    //         audioEl.current.srcObject = remoteStream;
-    //         console.log("added audio stream");
-    //       }
-
-    //     });
+    
 
     //     call.on("close", () => {
     //       console.log("Call ended");
