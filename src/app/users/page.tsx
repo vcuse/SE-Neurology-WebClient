@@ -135,8 +135,8 @@ export default function Page() {
 
   // manage remote video and audio streams
   useEffect(() => {
-    if (!isCallOnHold && videoEl.current && mediaConnection?.remoteStream && audioEl.current) { // only set up streams if not on hold and the connectio is valid
-      // videoEl.current.srcObject = mediaConnection.remoteStream;
+    if (!isCallOnHold && videoEl.current ) { // only set up streams if not on hold and the connectio is valid
+      //
       // audioEl.current.srcObject = mediaConnection.remoteStream;
       
     }

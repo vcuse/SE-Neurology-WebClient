@@ -200,6 +200,7 @@ export function usePeerConnection() {
 
     //handle incoming calls
     peer.on('call', (call) => {
+      setIsIncomingCall(true);
       console.log("We are receiving a call");
       setIncomingCall(call);
       setIsIncomingCall(true);
@@ -207,13 +208,15 @@ export function usePeerConnection() {
     });
 
     peer.on("streamReceived", (stream) => {
+      setIsIncomingCall(true);
       if (videoEl.current) {
         
         const tracks = new MediaStream();
+        
         tracks.addTrack(stream);
         videoEl.current.srcObject = tracks;
+        console.log('stream ready state', stream.readyState);
     
-        
       }
       if (audioEl.current) {
         // audioEl.current.srcObject = remoteStream;
