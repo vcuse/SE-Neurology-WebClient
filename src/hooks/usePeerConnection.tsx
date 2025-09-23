@@ -208,6 +208,8 @@ export function usePeerConnection() {
     });
 
     peer.on("streamReceived", (stream) => {
+
+      console.log();
       setIsIncomingCall(true);
       if (videoEl.current) {
         
@@ -230,7 +232,7 @@ export function usePeerConnection() {
       console.error("PeerJS error:", err);
       // Handle errors like server connection issues, invalid ID, etc.
     });
-
+  
     peer.on('connection', setupDataConnection);
 
     // If the WS drops, try to reconnect
