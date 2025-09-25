@@ -115,6 +115,7 @@ export default function Page() {
     toggleMute,
     handleLogout,
     mediaConnection,
+    remoteStream,
     setActiveView,
     isIncomingCall,
     isChatVisible,
@@ -135,8 +136,8 @@ export default function Page() {
 
   // manage remote video and audio streams
   useEffect(() => {
-    if (!isCallOnHold && videoEl.current ) { // only set up streams if not on hold and the connectio is valid
-      //
+    if (!isCallOnHold && videoEl.current && remoteStream) { // only set up streams if not on hold and the connectio is valid
+      videoEl.current.srcObject = remoteStream;
       // audioEl.current.srcObject = mediaConnection.remoteStream;
       
     }

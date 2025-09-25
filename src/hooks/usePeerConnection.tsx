@@ -37,7 +37,8 @@ export function usePeerConnection() {
   const [callerId, setCallerId] = useState<string>("");
   const [isCallOnHold, setIsCallOnHold] = useState<boolean>(false);
   const [isRinging, setIsRinging] = useState<boolean>(false);
-
+  // Add this new state variable with your others
+  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   // UI states
   const [activeView, setActiveView] = useState<'home' | 'strokeScale' | 'files' | 'activeCall'>('home');
   const [minimizedChat, setMinimizedChat] = useState<boolean>(false);
@@ -173,6 +174,21 @@ export function usePeerConnection() {
     };
   };
 
+  // Add this new effect after your main useEffect
+  useEffect(() => {
+    // This effect runs *only when* the remoteStream state changes OR the ref is ready.
+    if (videoEl.current && remoteStream) {
+        console.log('Attaching stream to video element...');
+        videoEl.current.srcObject = remoteStream;
+        
+        // Manual play for browser policy (must be in the effect)
+        videoEl.current.play().catch(error => {
+            console.error('Video playback failed:', error);
+        });
+    }
+  }, [videoEl, remoteStream]); // Dependencies: runs when the ref or the stream data changes
+
+
   // main hook to initialize connections
   useEffect(() => {
     const secure = process.env.NEXT_PUBLIC_SERVER_SECURE
@@ -207,25 +223,17 @@ export function usePeerConnection() {
       setCallerId(call.peer);
     });
 
-    peer.on("streamReceived", (stream) => {
+    // Updated Handler in useEffect:
+      peer.on("streamReceived", (track) => {
+        // 1. Convert the track to a stream
+        const stream = new MediaStream([track]); 
 
-      console.log();
-      setIsIncomingCall(true);
-      if (videoEl.current) {
-        
-        const tracks = new MediaStream();
-        
-        tracks.addTrack(stream);
-        videoEl.current.srcObject = tracks;
-        console.log('stream ready state', stream.readyState);
-    
-      }
-      if (audioEl.current) {
-        // audioEl.current.srcObject = remoteStream;
-        // console.log("added audio stream");
-      }
-      setActiveView('activeCall');
-    });
+        // 2. Set both the active view AND the stream state
+        setRemoteStream(stream); 
+        setActiveView('activeCall'); 
+        setIsIncomingCall(false);
+        console.log('Stream data received and saved to state.');
+      });
 
     // Optional: Also listen for errors to understand why it might *not* open
     peer.on("error", (err) => {
@@ -308,6 +316,19 @@ export function usePeerConnection() {
     };
   }, [myStream, mediaConnection]);
 
+  const runTest = async () => {
+    try {
+      const peer = peerRef.current
+      if(peer){
+        
+        const stream = await peer.checkLocalStream();
+        console.log('Successfully got stream from library:', stream);
+      }
+     
+    } catch (e) {
+      console.error('Test failed.', e);
+    }
+  }
   //=====================================
   // CALL MANAGEMENT
   //=====================================
@@ -317,9 +338,10 @@ export function usePeerConnection() {
     const peer = peerRef.current;
     if (peer) {
       const call = peer.call(peerId);
+      //setActiveView('activeCall');
       // peer.on("streamReceived", (stream) => {
         
-  
+      
       // });
     }
     // if (peer) {
@@ -360,7 +382,7 @@ export function usePeerConnection() {
 
         incomingCall.on("stream", (remoteStream) => {
           if (videoEl.current) {
-            videoEl.current.srcObject = remoteStream;
+            // videoEl.current.srcObject = remoteStream;
 
           }
           if (audioEl.current) {
@@ -482,6 +504,7 @@ export function usePeerConnection() {
     setCallerId,
     myStream,
     mediaConnection,
+    remoteStream,
     videoEl,
     audioEl,
     isCallOnHold,
@@ -505,5 +528,6 @@ export function usePeerConnection() {
     initializeChat,
     isStrokeScaleVisible,
     toggleStrokeScale,
+    runTest
   };
 }
