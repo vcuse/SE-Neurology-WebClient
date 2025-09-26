@@ -174,6 +174,18 @@ export function usePeerConnection() {
     };
   };
 
+  const startPlayback = () => {
+    if (videoEl.current) {
+        // This is triggered by a human click
+        videoEl.current.play().catch(e => {
+            console.error('Manual play failed:', e); 
+        });
+    }
+
+    return () => {
+    }
+};
+
   // Add this new effect after your main useEffect
   useEffect(() => {
     // This effect runs *only when* the remoteStream state changes OR the ref is ready.
@@ -182,9 +194,9 @@ export function usePeerConnection() {
         videoEl.current.srcObject = remoteStream;
         
         // Manual play for browser policy (must be in the effect)
-        videoEl.current.play().catch(error => {
-            console.error('Video playback failed:', error);
-        });
+        // videoEl.current.play().catch(error => {
+        //     console.error('Video playback failed:', error);
+        // });
     }
   }, [videoEl, remoteStream]); // Dependencies: runs when the ref or the stream data changes
 
@@ -224,14 +236,16 @@ export function usePeerConnection() {
     });
 
     // Updated Handler in useEffect:
-      peer.on("streamReceived", (track) => {
+      peer.on("streamReceived", (stream) => {
         // 1. Convert the track to a stream
-        const stream = new MediaStream([track]); 
-
+        setActiveView('activeCall'); 
+        // const stream = new MediaStream(); 
+        // stream.addTrack(track);
+        console.log('stream active', stream.active);
         // 2. Set both the active view AND the stream state
         setRemoteStream(stream); 
-        setActiveView('activeCall'); 
-        setIsIncomingCall(false);
+
+        // setIsIncomingCall(true);
         console.log('Stream data received and saved to state.');
       });
 
@@ -308,10 +322,10 @@ export function usePeerConnection() {
   useEffect(() => {
     return () => {
       if (myStream) {
-        myStream.getTracks().forEach((track) => track.stop());
+        //myStream.getTracks().forEach((track) => track.stop());
       }
       if (mediaConnection) {
-        mediaConnection.close();
+        //mediaConnection.close();
       }
     };
   }, [myStream, mediaConnection]);
@@ -338,7 +352,7 @@ export function usePeerConnection() {
     const peer = peerRef.current;
     if (peer) {
       const call = peer.call(peerId);
-      //setActiveView('activeCall');
+      setActiveView('activeCall');
       // peer.on("streamReceived", (stream) => {
         
       
@@ -376,7 +390,7 @@ export function usePeerConnection() {
         setMyStream(stream);
         incomingCall.answer(stream);
         setMediaConnection(incomingCall);
-        setActiveView('activeCall');
+        // setActiveView('activeCall');
 
         // Connection handler is already set up in the main peer.on('connection') handler
 
@@ -416,7 +430,7 @@ export function usePeerConnection() {
       mediaConnection.close();
     }
     if (myStream) {
-      myStream.getTracks().forEach((track) => track.stop());
+      // myStream.getTracks().forEach((track) => track.stop());
     }
     setActiveView('home');
     setMediaConnection(null);

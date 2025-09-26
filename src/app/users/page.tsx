@@ -141,7 +141,7 @@ export default function Page() {
       // audioEl.current.srcObject = mediaConnection.remoteStream;
       
     }
-  }, [isCallOnHold, mediaConnection, videoEl]);
+  }, [isCallOnHold, videoEl]);
 
   //=====================================
   // FILTER DROPDOWN HANDLING
@@ -235,6 +235,27 @@ export default function Page() {
 
   const togglePopout = () => {
     setIsOnPopout(!isOnPopout);
+  };
+
+  const startPlayback = () => {
+    if (videoEl.current) {
+        // This is triggered by a human click
+        videoEl.current.play().then(() => {
+          // This only runs if playback starts
+          console.log("Playback success (The kPlay event happened)");
+      }).catch(error => {
+          // THIS IS WHERE THE BROWSER TELLS YOU WHY IT BLOCKED THE VIDEO
+          console.error('PLAYBACK REJECTED:', error.name, error.message);
+          
+          if (error.name === 'NotAllowedError') {
+              // Means: No user interaction was detected (most common failure)
+              console.warn('REJECTION REASON: Waiting for user click to unlock media.');
+          } else if (error.name === 'AbortError') {
+              // Means: A pause/close command was issued before play could complete
+              console.warn('REJECTION REASON: Interrupted by another media command.');
+          }
+      });
+    }
   };
 
   return (
@@ -680,7 +701,7 @@ export default function Page() {
                               ref={videoEl}
                               autoPlay
                               playsInline
-
+                              muted
                               className="w-full h-full object-cover rounded-lg bg-black"
 
                             />
@@ -716,6 +737,9 @@ export default function Page() {
                         >
                           {isCallOnHold ? 'Resume' : 'Hold'}
                         </Button>
+
+                        <button onClick={startPlayback}>Start Video</button>
+                        
                         <Button
                           onClick={toggleMute}
                           variant="outline"
