@@ -189,15 +189,15 @@ export function usePeerConnection() {
   // Add this new effect after your main useEffect
   useEffect(() => {
     // This effect runs *only when* the remoteStream state changes OR the ref is ready.
-    if (videoEl.current && remoteStream) {
-        console.log('Attaching stream to video element...');
-        videoEl.current.srcObject = remoteStream;
+    // if (videoEl.current && remoteStream) {
+    //     console.log('Attaching stream to video element...');
+    //     videoEl.current.srcObject = remoteStream;
         
-        // Manual play for browser policy (must be in the effect)
-        // videoEl.current.play().catch(error => {
-        //     console.error('Video playback failed:', error);
-        // });
-    }
+    //     // Manual play for browser policy (must be in the effect)
+    //     // videoEl.current.play().catch(error => {
+    //     //     console.error('Video playback failed:', error);
+    //     // });
+    // }
   }, [videoEl, remoteStream]); // Dependencies: runs when the ref or the stream data changes
 
 
@@ -228,26 +228,52 @@ export function usePeerConnection() {
 
     //handle incoming calls
     peer.on('call', (call) => {
-      setIsIncomingCall(true);
-      console.log("We are receiving a call");
-      setIncomingCall(call);
-      setIsIncomingCall(true);
-      setCallerId(call.peer);
+      // setIsIncomingCall(true);
+      // console.log("We are receiving a call");
+      // setIncomingCall(call);
+      // setIsIncomingCall(true);
+      // setCallerId(call.peer);
     });
 
+    
+    
     // Updated Handler in useEffect:
-      peer.on("streamReceived", (stream) => {
-        // 1. Convert the track to a stream
-        setActiveView('activeCall'); 
-        // const stream = new MediaStream(); 
-        // stream.addTrack(track);
-        console.log('stream active', stream.active);
-        // 2. Set both the active view AND the stream state
-        setRemoteStream(stream); 
+    peer.on("streamReceived", (remoteStream) => {
+      // 1. Convert the track into a MediaStream (REQUIRED)
+    // 2. Create a new, standalone video element
+    const remoteVideoElement = document.createElement('video');
+      
+    // Set properties for immediate visibility and policy bypass
+    remoteVideoElement.srcObject = remoteStream;
+    remoteVideoElement.autoplay = true;
+    remoteVideoElement.playsInline = true;
+    remoteVideoElement.muted = true; // Strongest playback policy bypass
 
-        // setIsIncomingCall(true);
-        console.log('Stream data received and saved to state.');
+    // Make it highly visible on the screen
+    remoteVideoElement.style.position = 'fixed';
+    remoteVideoElement.style.top = '10px';
+    remoteVideoElement.style.right = '10px';
+    remoteVideoElement.style.width = '300px';
+    remoteVideoElement.style.border = '5px solid red'; // Visual confirmation
+    remoteVideoElement.style.zIndex = '9999'; 
+    // 3. Attach it directly to the main document body
+    document.body.appendChild(remoteVideoElement);
+      remoteVideoElement.play().catch(error => {
+          console.error('Direct playback failed, still blocked:', error);
       });
+
+    console.log('Direct Video Element Injected. Check top-right corner.');
+      // // 1. Convert the track to a stream
+      // setActiveView('activeCall'); 
+      // // const stream = new MediaStream(); 
+      // // stream.addTrack(track);
+      // console.log('stream active', stream.active);
+      // // 2. Set both the active view AND the stream state
+      // setRemoteStream(stream); 
+
+      // // setIsIncomingCall(true);
+      // console.log('Stream data received and saved to state.');
+    });
 
     // Optional: Also listen for errors to understand why it might *not* open
     peer.on("error", (err) => {
@@ -352,7 +378,7 @@ export function usePeerConnection() {
     const peer = peerRef.current;
     if (peer) {
       const call = peer.call(peerId);
-      setActiveView('activeCall');
+      // setActiveView('activeCall');
       // peer.on("streamReceived", (stream) => {
         
       
