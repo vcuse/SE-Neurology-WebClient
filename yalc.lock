@@ -2,7 +2,7 @@
   "version": "v1",
   "packages": {
     "peerjs": {
-      "signature": "cf15194fd3060a0bfe367030fc919196",
+      "signature": "a5ec2201ca06cab91278c0746a0f8f5a",
       "file": true,
       "replaced": "^1.5.4"
     }
