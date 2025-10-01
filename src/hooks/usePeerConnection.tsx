@@ -1,8 +1,9 @@
 // library imports
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Peer, { DataConnection, MediaConnection } from "peerjs";
-
+import Peer, { DataConnection, MediaConnection, SocketEventType } from "peerjs";
+import * as mediasoup from "mediasoup-client";
+import { Producer, RtpCapabilities, Transport } from "mediasoup-client/types";
 // Heartbeat intervals 
 type IntervalId = ReturnType<typeof setInterval>;
 
@@ -13,6 +14,7 @@ interface Message {
   text: string;
   timestamp: Date;
 }
+
 
 // custom react hook for calls
 export function usePeerConnection() {
@@ -56,13 +58,22 @@ export function usePeerConnection() {
   const videoEl = useRef<HTMLVideoElement>(null);
   const audioEl = useRef<HTMLAudioElement>(null);
 
+  let _rtpCap: any;
+  let _sendTransport: Transport;
+  let _recvTransport: Transport;
+
+  let _sendVideoProducer: Producer;
+
+  let _device: mediasoup.Device;
   // peer connection refs
   const peerRef = useRef<Peer | null>(null);
   const intervalRef = useRef<NodeJS.Timeout>();
   const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const currentPeerIdRef = useRef<string>("");
   const dataConnectionRef = useRef<DataConnection | null>(null);
+  const _awaitingResponses: Map<string,{ resolve: (data: any) => void; reject: (error: Error) => void}> = new Map();
 
+  
 
   // set up data connection handler
   const setupDataConnection = (dataConnection: DataConnection) => {
@@ -184,7 +195,9 @@ export function usePeerConnection() {
 
     return () => {
     }
-};
+  };
+
+  
 
   // Add this new effect after your main useEffect
   useEffect(() => {
@@ -222,10 +235,14 @@ export function usePeerConnection() {
       if (!storedPeerId) {
         localStorage.setItem('peerId', id);
       }
+
+
       setCurrentPeerId(id);
       currentPeerIdRef.current = id; //saves for reuse
-    });
+      startMediaSoup();
 
+    });
+    
     //handle incoming calls
     peer.on('call', (call) => {
       // setIsIncomingCall(true);
@@ -280,7 +297,13 @@ export function usePeerConnection() {
       console.error("PeerJS error:", err);
       // Handle errors like server connection issues, invalid ID, etc.
     });
-  
+
+    
+    peer.socket.on("message", async (data: any)=>{
+      console.log('mesage received on socket', data );
+      await _handleMessage(data);
+    });
+
     peer.on('connection', setupDataConnection);
 
     // If the WS drops, try to reconnect
@@ -355,6 +378,8 @@ export function usePeerConnection() {
       }
     };
   }, [myStream, mediaConnection]);
+
+  
 
   const runTest = async () => {
     try {
@@ -433,7 +458,7 @@ export function usePeerConnection() {
 
         incomingCall.on("close", () => {
           console.log("Call ended");
-          endCall();
+          //endCall();
         });
       }).catch((err) => {
         console.error("Error accessing media devices:", err);
@@ -442,6 +467,204 @@ export function usePeerConnection() {
     }
     setIsIncomingCall(false);
   };
+
+  // Example on the Client (Inside your Peer class's _handleMessage):
+  async function _handleMessage(message: any){
+    
+    const payload = message.payload;
+    const requestId = payload?.requestId;
+
+    // Check if this message is an answer to an outstanding request
+    if (requestId && _awaitingResponses.has(requestId)) {
+      const { resolve, reject } = _awaitingResponses.get(requestId)!;
+      _awaitingResponses.delete(requestId);
+
+      if (payload.status === 'error') {
+          reject(new Error(payload.error || 'Server error'));
+      } else {
+          resolve(payload.data); // Resolve the promise with the data
+      }
+      
+      
+  
+    // ... continue with switch case for regular unsolicited messages (Open, etc.)
+    }
+
+
+    console.log('in handlemsg', message);
+    if(message.MessageType == 'RTPCAPFROMSERVER'){
+      _rtpCap = message.payload.rtpCapabilities;
+      _device.load({routerRtpCapabilities: message.payload.rtpCapabilities});
+      
+    }
+    let socket: any;
+    if(peerRef.current){
+      socket = peerRef.current.socket;
+      
+    }
+    if(message.MessageType == 'RECVTRANSPORTCREATED'){
+      _recvTransport = _device.createRecvTransport({id: payload.sendTransportFromServer.id, iceParameters: payload.sendTransportFromServer.iceParameters, iceCandidates: payload.sendTransportFromServer.iceCandidates, dtlsParameters: payload.sendTransportFromServer.dtlsParameters, sctpParameters: payload.sendTransportFromServer.sctpParameters});
+      console.log('recv Transport created');
+      // socket.send({type: "WEBRTC_RECV_CONNECT", payload: message.payload.sendTransportFromServer});
+      _recvTransport.on("connect", ({ dtlsParameters }, callback, _errback) => {
+        console.log('recv Transport received the conenct msg');
+        
+
+        callback();
+      });
+
+      
+    }
+    if(message.MessageType == 'SENDTRANSPORTCREATED'){
+      
+      
+      _sendTransport = _device.createSendTransport({id: payload.sendTransportFromServer.id, iceParameters: payload.sendTransportFromServer.iceParameters, iceCandidates: payload.sendTransportFromServer.iceCandidates, dtlsParameters: payload.sendTransportFromServer.dtlsParameters, sctpParameters: payload.sendTransportFromServer.sctpParameters});
+      _sendTransport.on("connect", ({ dtlsParameters }, callback, _errback) => {
+        console.log('about to send dtls stuff');
+        const payload = { dtlsParameters: dtlsParameters};
+        // Signal local DTLS parameters to the server side transport
+        socket.send({type: "WEBRTC_SEND_CONNECT", payload: payload});
+        console.log('sent dtls params to server');
+        callback();
+      });
+      
+      // "produce" is emitted upon each call to transport.produce()
+      _sendTransport.on("produce", (produceParameters, callback, _errback) => {
+        const payload = { produceParamters: produceParameters};
+        socket.send({type:  "WEBRTC_SEND_PRODUCE", payload: produceParameters}); 
+        console.log("[startWebrtcSend] WebRTC SEND producer created", produceParameters);
+        callback({  id: 'test'});
+        
+      });
+      let stream;
+      try{ 
+        stream = await navigator.mediaDevices.getUserMedia({
+        video: true,});
+      } catch (e) {
+        console.log("[startWebrtcSend] ERROR:", e);
+        return;
+      }
+
+      _sendVideoProducer = await _sendTransport.produce({track: stream.getVideoTracks()[0]});
+      
+      console.log("send transport successfuly made");
+      
+    }
+    return;
+  }
+
+  function awaitServerResponse(requestId: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+        // 1. Store the promise resolver
+        _awaitingResponses.set(requestId, { resolve,  reject });
+        // 2. Set a timeout (essential for network reliability)
+        setTimeout(() => {
+            if (_awaitingResponses.has(requestId)) {
+                _awaitingResponses.delete(requestId);
+                reject(new Error(`Server response timeout for request: ${requestId}`));
+            }
+        }, 10000); 
+    });
+  }
+
+
+  async function sendMediaSoupRequest(): Promise<any> { 
+    const peer = peerRef.current?.socket;
+    if(!peer){
+        console.error('Peer or Socket not ready.');
+        return Promise.reject(new Error('Peer connection is not initialized.'));
+    }
+    
+    const requestId = Math.random().toString(36).substring(2, 15);
+    
+    // 2. Create the promise and store its handlers
+    const waitPromise = awaitServerResponse(requestId); 
+    
+    // 3. Prepare the message
+    const msg = {
+        type: 'GETRTPCAPABILITIES',
+        payload: { test: 'testargs', requestId: requestId } 
+    };
+    
+    // 4. Send the message
+    peer.send(msg); 
+    
+    // 5. AWAIT the promise and return the resolved value directly.
+     // 2. AWAIT the promise and store the result
+    const result = await waitPromise; 
+    return result; 
+  }
+
+
+  
+
+  async function startMediaSoup(){
+    try {
+      // Await pauses here. If it resolves, it was successful.
+      // ... rest of your initialization code.
+      _device = new mediasoup.Device();
+      const rtpCapabilities = await sendMediaSoupRequest(); 
+      
+      console.log('called start media');
+      console.log('SUCCESS: MediaSoup capabilities received and loaded.'); // <-- Success Log
+      
+      
+      
+      const transportResults = await getSendTransportFromServer();
+      console.log('SUCCESS SEND TRANS FROM SERVER CREATED');
+      const recvTransport = await getRecvTransportFromServer();
+      console.log('SUCCESS RECV TRANS FROM SERVER CREATED');
+    } catch(e) {
+        // If an error is thrown by the promise, the code jumps here (Failure).
+        console.log('MediaSoup initialization failled', e);
+    }
+    
+
+  }
+
+  async function getSendTransportFromServer(){
+    console.log('called getSendTransportFromServer');
+    const peerSocket = peerRef.current?.socket;
+    const requestId = Math.random().toString(36).substring(2, 15);
+
+    // 2. Create the promise and store its handlers
+    const waitPromise = awaitServerResponse(requestId); 
+    if(peerSocket){
+      // 3. Prepare the message
+      const msg = {
+        type: 'GETSERVERSENDTRANSPORT',
+        payload: { test: 'testargs', requestId: requestId } 
+      };
+
+      // 4. Send the message
+      peerSocket.send(msg); 
+    }
+
+    const response = await waitPromise;
+    return response;
+  }
+
+  async function getRecvTransportFromServer(){
+    console.log('called getSendTransportFromServer');
+    const peerSocket = peerRef.current?.socket;
+    const requestId = Math.random().toString(36).substring(2, 15);
+
+    // 2. Create the promise and store its handlers
+    const waitPromise = awaitServerResponse(requestId); 
+    if(peerSocket){
+      // 3. Prepare the message
+      const msg = {
+        type: 'GETSERVERRECVTRANSPORT',
+        payload: { test: 'testargs', requestId: requestId } 
+      };
+
+      // 4. Send the message
+      peerSocket.send(msg); 
+    }
+
+    const response = await waitPromise;
+    return response;
+  }
 
   const declineCall = () => {
     if (incomingCall) {
