@@ -1,7 +1,7 @@
 // library imports
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Peer, { DataConnection, MediaConnection, SocketEventType } from "peerjs";
+import Peer, { DataConnection, MediaConnection, SocketEventType, util } from "peerjs";
 import * as mediasoup from "mediasoup-client";
 import { Producer, RtpCapabilities, Transport } from "mediasoup-client/types";
 // Heartbeat intervals 
@@ -61,6 +61,7 @@ export function usePeerConnection() {
   let _rtpCap: any;
   let _sendTransport: Transport;
   let _recvTransport: Transport;
+  let _producerId: string;
 
   let _sendVideoProducer: Producer;
 
@@ -256,30 +257,7 @@ export function usePeerConnection() {
     
     // Updated Handler in useEffect:
     peer.on("streamReceived", (remoteStream) => {
-      // 1. Convert the track into a MediaStream (REQUIRED)
-    // 2. Create a new, standalone video element
-    const remoteVideoElement = document.createElement('video');
-      
-    // Set properties for immediate visibility and policy bypass
-    remoteVideoElement.srcObject = remoteStream;
-    remoteVideoElement.autoplay = true;
-    remoteVideoElement.playsInline = true;
-    remoteVideoElement.muted = true; // Strongest playback policy bypass
-
-    // Make it highly visible on the screen
-    remoteVideoElement.style.position = 'fixed';
-    remoteVideoElement.style.top = '10px';
-    remoteVideoElement.style.right = '10px';
-    remoteVideoElement.style.width = '300px';
-    remoteVideoElement.style.border = '5px solid red'; // Visual confirmation
-    remoteVideoElement.style.zIndex = '9999'; 
-    // 3. Attach it directly to the main document body
-    document.body.appendChild(remoteVideoElement);
-      remoteVideoElement.play().catch(error => {
-          console.error('Direct playback failed, still blocked:', error);
-      });
-
-    console.log('Direct Video Element Injected. Check top-right corner.');
+    
       // // 1. Convert the track to a stream
       // setActiveView('activeCall'); 
       // // const stream = new MediaStream(); 
@@ -402,7 +380,14 @@ export function usePeerConnection() {
     console.log(`Calling peer ${peerId}`);
     const peer = peerRef.current;
     if (peer) {
-      const call = peer.call(peerId);
+      // const call = peer.call(peerId);
+      try {
+      const test:RtpCapabilities = _device.rtpCapabilities;
+      }catch (e){
+        console.log("ERROR GETTING _DEVICERTP", e);
+      } 
+      console.log('device rtp cap',);
+      peer.socket.send({type: 'OFFER', payload: _rtpCap, dst: peerId, src: peer.id});
       // setActiveView('activeCall');
       // peer.on("streamReceived", (stream) => {
         
@@ -492,27 +477,72 @@ export function usePeerConnection() {
 
 
     console.log('in handlemsg', message);
-    if(message.MessageType == 'RTPCAPFROMSERVER'){
-      _rtpCap = message.payload.rtpCapabilities;
-      _device.load({routerRtpCapabilities: message.payload.rtpCapabilities});
-      
-    }
     let socket: any;
     if(peerRef.current){
       socket = peerRef.current.socket;
       
     }
+    if(message.MessageType == 'PRODUCERFROMSERVERCREATED'){
+      _producerId = message.payload.producerId;
+    }
+
+    if(message.MessageType == 'CONSUMERMADE'){
+      const rtpParameters = message.payload.rtpParameters;
+      const theirProducerId = message.payload.theirProducerId;
+
+      const consumer = _recvTransport.consume({producerId: theirProducerId, rtpParameters: rtpParameters, id: message.payload.id, kind: message.payload.kind});
+      (await consumer).resume();
+      const track = (await consumer).track;
+      const remoteStream = new MediaStream();
+      remoteStream.addTrack(track);
+        // 1. Convert the track into a MediaStream (REQUIRED)
+      // 2. Create a new, standalone video element
+      const remoteVideoElement = document.createElement('video');
+        
+      // Set properties for immediate visibility and policy bypass
+      remoteVideoElement.srcObject = remoteStream;
+      remoteVideoElement.autoplay = true;
+      remoteVideoElement.playsInline = true;
+      remoteVideoElement.muted = true; // Strongest playback policy bypass
+
+      // Make it highly visible on the screen
+      remoteVideoElement.style.position = 'fixed';
+      remoteVideoElement.style.top = '10px';
+      remoteVideoElement.style.right = '10px';
+      remoteVideoElement.style.width = '300px';
+      remoteVideoElement.style.border = '5px solid red'; // Visual confirmation
+      remoteVideoElement.style.zIndex = '9999'; 
+      // 3. Attach it directly to the main document body
+      document.body.appendChild(remoteVideoElement);
+
+      console.log('Direct Video Element Injected. Check top-right corner. consumer paused? ', (await consumer).paused);
+
+      console.log('CONSUMED THE CALLERS PRODUCERID, DID RECVTRANSPORT.CONSUME status is', _recvTransport.connectionState);
+      socket.send({type: 'CLIENTMEDIAREADY', payload: 'blank payload'});
+    }
+    if(message.MessageType == 'RTPCAPFROMSERVER'){
+      _rtpCap = message.payload.rtpCapabilities;
+      try {
+        _device.load({routerRtpCapabilities: message.payload.rtpCapabilities});
+        console.log('device loaded rtp settings successfully');
+        console.log('trying to print devicertp', _device.rtpCapabilities);
+      } catch (e){
+        console.log("failed to load RTPCaps into our device Error:", e);
+      }
+      
+    }
+    
     if(message.MessageType == 'RECVTRANSPORTCREATED'){
       _recvTransport = _device.createRecvTransport({id: payload.sendTransportFromServer.id, iceParameters: payload.sendTransportFromServer.iceParameters, iceCandidates: payload.sendTransportFromServer.iceCandidates, dtlsParameters: payload.sendTransportFromServer.dtlsParameters, sctpParameters: payload.sendTransportFromServer.sctpParameters});
       console.log('recv Transport created');
       // socket.send({type: "WEBRTC_RECV_CONNECT", payload: message.payload.sendTransportFromServer});
       _recvTransport.on("connect", ({ dtlsParameters }, callback, _errback) => {
         console.log('recv Transport received the conenct msg');
-        
+        socket.send({type: 'WEBRTC_RECV_CONNECT', payload: {dtlsParameters: dtlsParameters}});
 
         callback();
       });
-
+      
       
     }
     if(message.MessageType == 'SENDTRANSPORTCREATED'){
@@ -529,11 +559,19 @@ export function usePeerConnection() {
       });
       
       // "produce" is emitted upon each call to transport.produce()
-      _sendTransport.on("produce", (produceParameters, callback, _errback) => {
-        const payload = { produceParamters: produceParameters};
-        socket.send({type:  "WEBRTC_SEND_PRODUCE", payload: produceParameters}); 
+      _sendTransport.on("produce", async (produceParameters, callback, _errback) => {
+        const requestId = Math.random().toString(36).substring(2, 15);
+        const payload = { produceParamters: produceParameters, requestId: requestId};
+
+        
+        socket.send({type:  "WEBRTC_SEND_PRODUCE", payload: payload}); 
         console.log("[startWebrtcSend] WebRTC SEND producer created", produceParameters);
-        callback({  id: 'test'});
+        // 2. Await the server's acknowledgment containing the real producerId
+        const responseWait = awaitServerResponse(requestId);
+
+        const final = await responseWait;
+        callback({id: _producerId});
+      
         
       });
       let stream;
@@ -546,8 +584,8 @@ export function usePeerConnection() {
       }
 
       _sendVideoProducer = await _sendTransport.produce({track: stream.getVideoTracks()[0]});
-      
-      console.log("send transport successfuly made");
+     
+      console.log("send transport successfuly made is video paused", _sendVideoProducer.paused);
       
     }
     return;
@@ -612,8 +650,10 @@ export function usePeerConnection() {
       
       const transportResults = await getSendTransportFromServer();
       console.log('SUCCESS SEND TRANS FROM SERVER CREATED');
-      const recvTransport = await getRecvTransportFromServer();
+      const   recvTransport = await getRecvTransportFromServer();
       console.log('SUCCESS RECV TRANS FROM SERVER CREATED');
+
+
     } catch(e) {
         // If an error is thrown by the promise, the code jumps here (Failure).
         console.log('MediaSoup initialization failled', e);
@@ -643,6 +683,8 @@ export function usePeerConnection() {
     const response = await waitPromise;
     return response;
   }
+
+  
 
   async function getRecvTransportFromServer(){
     console.log('called getSendTransportFromServer');
