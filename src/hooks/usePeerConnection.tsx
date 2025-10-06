@@ -58,14 +58,22 @@ export function usePeerConnection() {
   const videoEl = useRef<HTMLVideoElement>(null);
   const audioEl = useRef<HTMLAudioElement>(null);
 
-  let _rtpCap: any;
-  let _sendTransport: Transport;
-  let _recvTransport: Transport;
+
+
+  const rtpCapRef = useRef<mediasoup.types.RtpCapabilities | null> (null);
+
+
   let _producerId: string;
+  
+  const deviceRef = useRef<mediasoup.Device | null>(null);
+  const sendTransportRef = useRef<Transport | null>(null);
+  const recvTransportRef = useRef<Transport | null>(null);
+  const producerRef = useRef<Producer | null>(null); // For your _sendVideoProducer
+
 
   let _sendVideoProducer: Producer;
 
-  let _device: mediasoup.Device;
+ 
   // peer connection refs
   const peerRef = useRef<Peer | null>(null);
   const intervalRef = useRef<NodeJS.Timeout>();
@@ -224,7 +232,7 @@ export function usePeerConnection() {
     const peer = new Peer(storedPeerId || '', {
       host: process.env.NEXT_PUBLIC_SERVER_URL!,
       port: Number(process.env.NEXT_PUBLIC_SERVER_PORT),
-      secure: isSecure,
+      secure: true,
       path: "/",
       debug: 3,
     });
@@ -379,15 +387,15 @@ export function usePeerConnection() {
   const handleCall = (peerId: string) => {
     console.log(`Calling peer ${peerId}`);
     const peer = peerRef.current;
-    if (peer) {
+    if (peer && deviceRef.current) {
       // const call = peer.call(peerId);
       try {
-      const test:RtpCapabilities = _device.rtpCapabilities;
+      const test:RtpCapabilities = deviceRef.current.rtpCapabilities;
       }catch (e){
         console.log("ERROR GETTING _DEVICERTP", e);
       } 
       console.log('device rtp cap',);
-      peer.socket.send({type: 'OFFER', payload: _rtpCap, dst: peerId, src: peer.id});
+      peer.socket.send({type: 'OFFER', payload: rtpCapRef.current, dst: peerId, src: peer.id});
       // setActiveView('activeCall');
       // peer.on("streamReceived", (stream) => {
         
@@ -486,11 +494,11 @@ export function usePeerConnection() {
       _producerId = message.payload.producerId;
     }
 
-    if(message.MessageType == 'CONSUMERMADE'){
+    if(message.MessageType == 'CONSUMERMADE' && recvTransportRef.current){
       const rtpParameters = message.payload.rtpParameters;
       const theirProducerId = message.payload.theirProducerId;
 
-      const consumer = _recvTransport.consume({producerId: theirProducerId, rtpParameters: rtpParameters, id: message.payload.id, kind: message.payload.kind});
+      const consumer = recvTransportRef.current.consume({producerId: theirProducerId, rtpParameters: rtpParameters, id: message.payload.id, kind: message.payload.kind});
       (await consumer).resume();
       const track = (await consumer).track;
       const remoteStream = new MediaStream();
@@ -517,26 +525,26 @@ export function usePeerConnection() {
 
       console.log('Direct Video Element Injected. Check top-right corner. consumer paused? ', (await consumer).paused);
 
-      console.log('CONSUMED THE CALLERS PRODUCERID, DID RECVTRANSPORT.CONSUME status is', _recvTransport.connectionState);
+      console.log('CONSUMED THE CALLERS PRODUCERID, DID RECVTRANSPORT.CONSUME status is', recvTransportRef.current.connectionState);
       socket.send({type: 'CLIENTMEDIAREADY', payload: 'blank payload'});
     }
-    if(message.MessageType == 'RTPCAPFROMSERVER'){
-      _rtpCap = message.payload.rtpCapabilities;
+    if(message.MessageType == 'RTPCAPFROMSERVER' && deviceRef.current){
+      rtpCapRef.current = message.payload.rtpCapabilities;
       try {
-        _device.load({routerRtpCapabilities: message.payload.rtpCapabilities});
+        await deviceRef.current.load({routerRtpCapabilities: message.payload.rtpCapabilities});
         console.log('device loaded rtp settings successfully');
-        console.log('trying to print devicertp', _device.rtpCapabilities);
+        console.log('trying to print devicertp', deviceRef.current.rtpCapabilities);
       } catch (e){
         console.log("failed to load RTPCaps into our device Error:", e);
       }
       
     }
     
-    if(message.MessageType == 'RECVTRANSPORTCREATED'){
-      _recvTransport = _device.createRecvTransport({id: payload.sendTransportFromServer.id, iceParameters: payload.sendTransportFromServer.iceParameters, iceCandidates: payload.sendTransportFromServer.iceCandidates, dtlsParameters: payload.sendTransportFromServer.dtlsParameters, sctpParameters: payload.sendTransportFromServer.sctpParameters});
+    if(message.MessageType == 'RECVTRANSPORTCREATED' && deviceRef.current){
+      recvTransportRef.current = deviceRef.current.createRecvTransport({id: payload.sendTransportFromServer.id, iceParameters: payload.sendTransportFromServer.iceParameters, iceCandidates: payload.sendTransportFromServer.iceCandidates, dtlsParameters: payload.sendTransportFromServer.dtlsParameters, sctpParameters: payload.sendTransportFromServer.sctpParameters});
       console.log('recv Transport created');
       // socket.send({type: "WEBRTC_RECV_CONNECT", payload: message.payload.sendTransportFromServer});
-      _recvTransport.on("connect", ({ dtlsParameters }, callback, _errback) => {
+      recvTransportRef.current.on("connect", ({ dtlsParameters }, callback, _errback) => {
         console.log('recv Transport received the conenct msg');
         socket.send({type: 'WEBRTC_RECV_CONNECT', payload: {dtlsParameters: dtlsParameters}});
 
@@ -545,11 +553,11 @@ export function usePeerConnection() {
       
       
     }
-    if(message.MessageType == 'SENDTRANSPORTCREATED'){
+    if(message.MessageType == 'SENDTRANSPORTCREATED' && deviceRef.current){
       
       
-      _sendTransport = _device.createSendTransport({id: payload.sendTransportFromServer.id, iceParameters: payload.sendTransportFromServer.iceParameters, iceCandidates: payload.sendTransportFromServer.iceCandidates, dtlsParameters: payload.sendTransportFromServer.dtlsParameters, sctpParameters: payload.sendTransportFromServer.sctpParameters});
-      _sendTransport.on("connect", ({ dtlsParameters }, callback, _errback) => {
+      sendTransportRef.current = deviceRef.current.createSendTransport({id: payload.sendTransportFromServer.id, iceParameters: payload.sendTransportFromServer.iceParameters, iceCandidates: payload.sendTransportFromServer.iceCandidates, dtlsParameters: payload.sendTransportFromServer.dtlsParameters, sctpParameters: payload.sendTransportFromServer.sctpParameters});
+      sendTransportRef.current.on("connect", ({ dtlsParameters }, callback, _errback) => {
         console.log('about to send dtls stuff');
         const payload = { dtlsParameters: dtlsParameters};
         // Signal local DTLS parameters to the server side transport
@@ -559,7 +567,7 @@ export function usePeerConnection() {
       });
       
       // "produce" is emitted upon each call to transport.produce()
-      _sendTransport.on("produce", async (produceParameters, callback, _errback) => {
+      sendTransportRef.current.on("produce", async (produceParameters, callback, _errback) => {
         const requestId = Math.random().toString(36).substring(2, 15);
         const payload = { produceParamters: produceParameters, requestId: requestId};
 
@@ -583,7 +591,7 @@ export function usePeerConnection() {
         return;
       }
 
-      _sendVideoProducer = await _sendTransport.produce({track: stream.getVideoTracks()[0]});
+      _sendVideoProducer = await sendTransportRef.current.produce({track: stream.getVideoTracks()[0]});
      
       console.log("send transport successfuly made is video paused", _sendVideoProducer.paused);
       
@@ -640,7 +648,7 @@ export function usePeerConnection() {
     try {
       // Await pauses here. If it resolves, it was successful.
       // ... rest of your initialization code.
-      _device = new mediasoup.Device();
+      deviceRef.current = new mediasoup.Device();
       const rtpCapabilities = await sendMediaSoupRequest(); 
       
       console.log('called start media');

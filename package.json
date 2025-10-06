@@ -6,7 +6,7 @@
     "dev": "next dev",
     "localbuild": "cross-env BUILD_TARGET=localdevelopment next build",
     "build": "cross-env BUILD_TARGET=production next build",
-    "start": "next start",
+    "start": "node server.cjs",
     "lint": "next lint"
   },
   "dependencies": {
