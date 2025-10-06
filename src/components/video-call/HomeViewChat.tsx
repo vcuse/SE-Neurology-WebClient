@@ -19,7 +19,7 @@ interface HomeViewChatProps {
   onMinimize?: () => void;
   visible: boolean;
   messages: Message[];
-  sendMessage: (text: string) => void;
+  // sendMessage: (text: string) => void;
 }
 
 export function HomeViewChat({
@@ -30,7 +30,7 @@ export function HomeViewChat({
   onMinimize,
   visible = true,
   messages,
-  sendMessage,
+  
 }: HomeViewChatProps) {
   return (
     <Card className={`mt-4 flex-shrink-0 w-full max-w-md ${!visible ? 'hidden' : ''}`}>
@@ -65,7 +65,7 @@ export function HomeViewChat({
         <div className="h-96 flex flex-col">
           <ChatBoxCore
             messages={messages}
-            sendMessage={sendMessage}
+            // sendMessage={sendMessage}
             currentPeerId={currentPeerId}
           />
         </div>

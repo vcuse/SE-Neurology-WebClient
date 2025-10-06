@@ -107,12 +107,12 @@ export default function Page() {
     audioEl,
     isCallOnHold,
     activeView,
-    handleCall,
-    acceptCall,
-    declineCall,
-    endCall,
-    holdCall,
-    toggleMute,
+    // handleCall,
+    // acceptCall,
+    // declineCall,
+    // endCall,
+    // holdCall,
+    // toggleMute,
     handleLogout,
     mediaConnection,
     remoteStream,
@@ -124,7 +124,7 @@ export default function Page() {
     toggleMinimizeChat,
     initializeChat,
     messages,
-    sendMessage,
+    // sendMessage,
     isStrokeScaleVisible,
     toggleStrokeScale,
 
@@ -319,7 +319,7 @@ export default function Page() {
                           if (!confirm) {
                             return;
                           }
-                          endCall();
+                          // endCall();
                         }
                         setActiveView(item.value);
                       }}
@@ -568,7 +568,7 @@ export default function Page() {
                                 <HoverCardTrigger asChild>
                                   <Button
                                     size="sm"
-                                    onClick={() => handleCall(peerId)}
+                                    // onClick={() => handleCall(peerId)}
                                     className="gap-2 bg-blue-600 hover:bg-blue-700"
                                   >
                                     <PhoneCall className="h-4 w-4" />
@@ -633,7 +633,7 @@ export default function Page() {
                     minimized={minimizedChat}
                     visible={isChatVisible}
                     messages={messages}
-                    sendMessage={sendMessage}
+                    // sendMessage={sendMessage}
                   />
                 </div>
               )}
@@ -651,10 +651,10 @@ export default function Page() {
                   <AlertDescription>
                     Incoming call from Dr. {callerId}
                     <div className="mt-2 flex justify-end gap-2">
-                      <Button variant="ghost" onClick={declineCall}>
+                      <Button variant="ghost" >{/*declineCall*/}
                         Decline
                       </Button>
-                      <Button onClick={acceptCall}>Accept</Button>
+                      <Button >Accept</Button>{/*onClick={acceptCall}*/}
                     </div>
                   </AlertDescription>
                 </CardContent>
@@ -723,7 +723,7 @@ export default function Page() {
                       <div className="flex gap-2 pt-4 border-t border-blue-50 bg-white flex-wrap">
 
                         <Button
-                          onClick={endCall}
+                          // onClick={endCall}
                           variant="destructive"
                           className="gap-2"
                         >
@@ -731,7 +731,7 @@ export default function Page() {
                           End Call
                         </Button>
                         <Button
-                          onClick={holdCall}
+                          // onClick={holdCall}
                           variant="outline"
                           className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
                         >
@@ -741,7 +741,7 @@ export default function Page() {
                         <button onClick={startPlayback}>Start Video</button>
                         
                         <Button
-                          onClick={toggleMute}
+                          // onClick={toggleMute}
                           variant="outline"
                           className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
                         >
@@ -782,7 +782,7 @@ export default function Page() {
                         currentPeerId={currentPeerId}
                         remotePeerId={callerId}
                         messages={messages}
-                        sendMessage={sendMessage}
+                        // sendMessage={sendMessage}
                       />
                     </CardContent>
                   </Card>
