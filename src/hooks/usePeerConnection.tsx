@@ -58,9 +58,10 @@ export function usePeerConnection() {
   const videoEl = useRef<HTMLVideoElement>(null);
   const audioEl = useRef<HTMLAudioElement>(null);
 
-  let _rtpCap: any;
+  let _rtpCapabilities: RtpCapabilities;
   let _sendTransport: Transport;
   let _recvTransport: Transport;
+  let _deviceR
   let _producerId: string;
 
   let _sendVideoProducer: Producer;
@@ -385,9 +386,11 @@ export function usePeerConnection() {
       const test:RtpCapabilities = _device.rtpCapabilities;
       }catch (e){
         console.log("ERROR GETTING _DEVICERTP", e);
+
       } 
+      const payload = { rtpCap: _rtpCapabilities};
       console.log('device rtp cap',);
-      peer.socket.send({type: 'OFFER', payload: _rtpCap, dst: peerId, src: peer.id});
+      peer.socket.send({type: 'OFFER', payload: payload, dst: peerId, src: peer.id});
       // setActiveView('activeCall');
       // peer.on("streamReceived", (stream) => {
         
@@ -521,9 +524,10 @@ export function usePeerConnection() {
       socket.send({type: 'CLIENTMEDIAREADY', payload: 'blank payload'});
     }
     if(message.MessageType == 'RTPCAPFROMSERVER'){
-      _rtpCap = message.payload.rtpCapabilities;
+      
       try {
-        _device.load({routerRtpCapabilities: message.payload.rtpCapabilities});
+        _rtpCapabilities = message.payload.rtpCapabilities;
+        await _device.load({routerRtpCapabilities: _rtpCapabilities});
         console.log('device loaded rtp settings successfully');
         console.log('trying to print devicertp', _device.rtpCapabilities);
       } catch (e){
