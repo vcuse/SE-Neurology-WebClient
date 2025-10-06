@@ -11,8 +11,8 @@ const handle = app.getRequestHandler();
 
 const httpsOptions = {
     // ⚠️ UPDATE THESE PATHS to your certificate files
-    key: fs.readFileSync(path.join(__dirname, 'certs', 'key.pem')),
-    cert: fs.readFileSync(path.join(__dirname, 'certs', 'cert.pem'))
+    key: fs.readFileSync(path.join(__dirname, 'sslcerts', 'key.pem')),
+    cert: fs.readFileSync(path.join(__dirname, 'sslcerts', 'cert.pem'))
 };
 
 app.prepare().then(() => {
