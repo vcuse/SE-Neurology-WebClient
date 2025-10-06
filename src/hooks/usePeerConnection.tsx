@@ -1,9 +1,11 @@
 // library imports
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { io, Socket } from 'socket.io-client';
 import Peer, { DataConnection, MediaConnection, SocketEventType, util } from "peerjs";
 import * as mediasoup from "mediasoup-client";
 import { Producer, RtpCapabilities, Transport } from "mediasoup-client/types";
+import { RoomClient } from "./roomClient";
 // Heartbeat intervals 
 type IntervalId = ReturnType<typeof setInterval>;
 
@@ -82,8 +84,178 @@ export function usePeerConnection() {
   const dataConnectionRef = useRef<DataConnection | null>(null);
   const _awaitingResponses: Map<string,{ resolve: (data: any) => void; reject: (error: Error) => void}> = new Map();
 
-  
+  const socket: Socket = io('localhost:9000');
 
+  const rcRef = useRef<RoomClient | null>(null);
+  const [rtpCapabilities, setRtpCapabilities] = useState<RtpCapabilities | null>(null);
+  // ---
+
+  // ... (socket initialization and socketRequest function)
+
+  // =====================================
+  // HELPER FUNCTIONS (Encapsulating Device Logic)
+  // =====================================
+
+  // Encapsulates the initEnumerateDevices logic
+  const initEnumerateDevices = () => {
+    // Use a ref or state if you need to persist `isEnumerateDevices`
+    // For simplicity, we just check if any device has been added to the selectors (which we don't have yet)
+    
+    const constraints = {
+      audio: true,
+      video: true
+    };
+
+    navigator.mediaDevices
+      .getUserMedia(constraints)
+      .then((stream) => {
+        enumerateDevices(stream);
+        stream.getTracks().forEach(function (track) {
+          track.stop();
+        });
+      })
+      .catch((err) => {
+        console.error('Access denied for audio/video: ', err);
+        setError('Media access denied. Check your camera and microphone permissions.');
+      });
+  };
+
+
+  // Encapsulates the enumerateDevices logic
+  const enumerateDevices = (stream: MediaStream) => {
+      // NOTE: In a React application, you typically don't directly manipulate
+      // global variables like `audioSelect` and `videoSelect`.
+      // Instead, you would store the devices in state, and your React component
+      // would render the select dropdowns based on that state.
+
+      navigator.mediaDevices.enumerateDevices().then((devices) => {
+        const audioInputs = devices.filter(d => d.kind === 'audioinput');
+        const videoInputs = devices.filter(d => d.kind === 'videoinput');
+        
+        // *** You would typically set state here: ***
+        // setAudioDevices(audioInputs);
+        // setVideoDevices(videoInputs);
+        
+        console.log('Available Audio Inputs:', audioInputs);
+        console.log('Available Video Inputs:', videoInputs);
+      });
+  };
+
+
+  // =====================================
+  // EXPOSED CORE ROOM FUNCTIONS
+  // =====================================
+
+  /**
+   * Encapsulates the original `joinRoom` logic.
+   * This method is called from your `Page.tsx` component when the user clicks 'Join'.
+   */
+  const joinRoom = async (name: string, room_id: string, roomClientClass: any) => {
+    // 1. Check if already connected (rcRef.current replaces global rc)
+    if (rcRef.current /* && rcRef.current.isOpen() */) {
+      console.log('Already connected to a room');
+      return;
+    }
+
+    // 2. Initialize media devices
+    initEnumerateDevices();
+
+    try {
+      // 3. Get initial RTP Capabilities from the server
+      const rtpResponse = await socketRequest('getRouterRtpCapabilities');
+      const routerRtpCapabilities = rtpResponse.rtpCapabilities;
+      setRtpCapabilities(routerRtpCapabilities);
+      console.log('Router RTP Capabilities fetched successfully.');
+      
+      // 4. Instantiate RoomClient
+      // IMPORTANT: `roomClientClass` must be passed in as an argument, as RoomClient
+      // is a dependency that can't be imported here if it's a dynamic module.
+      
+      // Replace the global DOM elements with nulls, as the RoomClient should manage them
+      const localMedia = null; 
+      const remoteVideos = null;
+      const remoteAudios = null; 
+
+      // We pass the callback that updates the view state
+      const roomOpenCallback = () => {
+        setActiveView('activeCall'); // This replaces the old roomOpen UI logic
+      };
+
+      const newRc = new roomClientClass(
+        localMedia, 
+        remoteVideos, 
+        remoteAudios, 
+        window.mediasoupClient, // Assuming mediasoupClient is global or imported
+        socket, 
+        room_id, 
+        name, 
+        roomOpenCallback
+      );
+      
+      rcRef.current = newRc;
+
+      // 5. Add event listeners from the original `addListeners` function
+      addRoomClientListeners(newRc);
+
+    } catch (err: any) {
+      console.error('Failed to join room or fetch capabilities:', err);
+      setError(`Failed to connect: ${err.message || 'Unknown error'}`);
+    }
+  };
+
+
+  /**
+   * Encapsulates the original `addListeners` logic.
+   * Note: You need to decide how RoomClient's events (`startScreen`, `stopAudio`, etc.)
+   * will translate into state changes here (e.g., setting `isAudioProducing: true`).
+   */
+  const addRoomClientListeners = (newRc: any) => {
+    // Since we don't have the RoomClient EVENTS enum, we use placeholders.
+    // In a real app, you'd use newRc.on(RoomClient.EVENTS.startScreen, ...)
+
+    newRc.on('startScreen', () => {
+      // This event might trigger a state change like setScreenSharing(true)
+      console.log('RoomClient event: Screen sharing started');
+    });
+
+    newRc.on('exitRoom', () => {
+      // This event clears the RoomClient and sets the view back to home
+      rcRef.current = null;
+      setActiveView('home');
+      setCallerId('');
+      // You would also call endCall() cleanup here
+    });
+    
+    // ... (add other event listeners here)
+  };
+
+  // ... (existing call management functions like handleCall, endCall, etc.)
+
+
+  // =====================================
+  // EXPORT NEW FUNCTIONS
+  // =====================================
+
+  return {
+    // ... (existing state and refs)
+    joinRoom,
+    // If you want to allow the component to manually toggle devices:
+    // initEnumerateDevices,
+    // ... (other exposed methods)
+  };
+
+  const socketRequest = function request(type: string, data: any = {}) {
+    return new Promise((resolve, reject) => {
+      // Use the standard socket.emit with a callback for acknowledgement
+      socket.emit(type, data, (response: any) => {
+        if (response && response.error) {
+          reject(new Error(response.error));
+        } else {
+          resolve(response);
+        }
+      });
+    });
+  }
   // // set up data connection handler
   // const setupDataConnection = (dataConnection: DataConnection) => {
   //   // console.log('Setting up data connection with:', dataConnection.peer);
