@@ -9,7 +9,7 @@ import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/h
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Clipboard, Filter, Sliders } from "lucide-react";
-import ViewStrokeScaleForm from "../stroke-scale/view-stroke-scale-form"; 
+import ViewStrokeScaleForm from "../stroke-scale/view-stroke-scale-form";
 import {
   Pause,
   LogOut,
@@ -515,6 +515,50 @@ export default function Page() {
                   </CardTitle>
                 </CardHeader>
 
+                {/* video streaming test */}
+                <Card className="border-blue-50 bg-white shadow-sm">
+                  <CardHeader className="border-b border-blue-50">
+                    <CardTitle className="flex items-center gap-2 text-blue-900">
+                      <Video className="h-5 w-5" />
+                      Test Video Streaming
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      {/* Direct streaming */}
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 mb-2">Direct Stream</p>
+                        <video
+                          controls
+                          className="w-full rounded-lg border border-gray-200"
+                          style={{ maxHeight: '400px' }}
+                        >
+                          <source
+                            src="http://localhost:9000/peerjs/video/stream/awoo.MOV"
+                            type="video/mp4"
+                          />
+                          Your browser does not support the video tag
+                        </video>
+                      </div>
+
+                      {/* Converted streaming */}
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 mb-2">Converted Stream (WebM)</p>
+                        <video
+                          controls
+                          className="w-full rounded-lg border border-gray-200"
+                          style={{ maxHeight: '400px' }}
+                        >
+                          <source
+                            src="http://localhost:9000/peerjs/video/convert/awoo.MOV?format=webm&quality=medium"
+                            type="video/webm"
+                          />
+                          Your browser does not support the video tag
+                        </video>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
                 <CardContent className="p-0">
                   {isLoading ? (
