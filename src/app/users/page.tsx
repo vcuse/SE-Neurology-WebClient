@@ -39,6 +39,7 @@ import { RoomClient } from "@/hooks/roomClient";
 import { cn } from "@/lib/utils";
 import { HomeViewChat, CallViewChat } from "@/components/video-call";
 import Link from "next/link";
+import * as mediaSoup from "mediasoup-client"; 
 
 // type defenition for sidebar menu items 
 type MenuItem = {
@@ -90,6 +91,7 @@ export default function Page() {
   const [isOnPopout, setIsOnPopout] = useState(false);
   const [selectedOldForm, setSelectedOldForm] = useState<any | null>(null);
   const [isOldFormVisible, setIsOldFormVisible] = useState(false);
+ 
 
   //=====================================
   // VIDEO CONNECTION AND CALL LOGIC
@@ -129,7 +131,12 @@ export default function Page() {
     // sendMessage,
     isStrokeScaleVisible,
     toggleStrokeScale,
-    joinRoom
+    joinRoom,
+    isConnected,
+    createRoom,
+    getAvailableRooms, // <-- New function to fetch the list
+    availableRooms = [],    // <-- New state array
+    isRoomListLoading
   } = usePeerConnection();
 
   
@@ -146,10 +153,39 @@ export default function Page() {
       
     // }
 
-    
+    if (isConnected) {
 
-    console.log(initializeRoom());
-  })
+      console.log(initializeRoom());
+      // 1. IMMEDIATE CALL (When connecting)
+    
+      // if (getAvailableRooms) {
+      //   //getAvailableRooms();
+
+      //   // 2. POLLING (Keep the list fresh)
+      //   // Poll the server every 5 seconds (5000 ms)
+      //   const intervalId = setInterval(getAvailableRooms, 5000); 
+      // }
+    }
+  },[isConnected, currentPeerId, joinRoom]);
+
+  useEffect(() => {
+    // We start the process only when we have a valid ID (i.e., socket is connected and identified)
+    // if (getAvailableRooms) {
+        
+    //     // // 1. IMMEDIATE CALL (When connecting)
+    //     // getAvailableRooms();
+
+    //     // // 2. POLLING (Keep the list fresh)
+    //     // // Poll the server every 5 seconds (5000 ms)
+    //     // const intervalId = setInterval(getAvailableRooms, 5000); 
+
+    //     // 3. CLEANUP
+    //     // Stop polling when the component unmounts or the peer ID changes
+    //     // return () => clearInterval(intervalId);
+    // }
+    
+    // Dependencies: Run whenever the connection/ID status changes
+}, [ getAvailableRooms]); 
 
   const initializeRoom = async () => {
     try {
@@ -157,7 +193,7 @@ export default function Page() {
       const roomId = '3242134';
       try {
         // --- OPTIONAL: Call createRoom first (if required by your logic) ---
-        // await createRoom(roomId); 
+        // await createRoom?.(roomId, RoomClient); 
         // console.log(`Room created/ensured: ${roomId}`);
 
         // 2. Call the exposed joinRoom function
@@ -188,6 +224,8 @@ export default function Page() {
   const [selectedFilter, setSelectedFilter] = useState("");
   const filterRef = useRef<HTMLDivElement>(null);
 
+  
+
   // close the filter when you click outside 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent): void {
@@ -210,6 +248,19 @@ export default function Page() {
 
     if (value === "A-Z") { }
   }
+
+  useEffect(() => {
+    // if(getAvailableRooms) {
+    //   // Fetch the list immediately
+    //   // getAvailableRooms();
+
+    //   // // Optionally, poll the server every few seconds to keep the list updated
+    //   // const intervalId = setInterval(getAvailableRooms, 5000); 
+
+    //   // return () => clearInterval(intervalId);
+    // }
+    }, [currentPeerId, getAvailableRooms]);
+ 
 
 
   useEffect(() => {
@@ -586,14 +637,14 @@ export default function Page() {
                     // list of available peers
                   ) : peerIds.length > 0 ? (
                     <div className="divide-y divide-blue-50">
-                      {peerIds.map((peerId) => (
-                        <div key={peerId} className="flex items-center justify-between p-4">
+                      {availableRooms.map((roomId) => (
+                        <div key={roomId} className="flex items-center justify-between p-4">
                           <div className="flex items-center gap-3">
                             <Avatar className="h-9 w-9">
                               <AvatarFallback>MD</AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="font-medium text-gray-900">{peerId}</p>
+                              <p className="font-medium text-gray-900">{roomId}</p>
                               <p className="text-sm text-gray-500">Cardiology</p>
                             </div>
                           </div>
@@ -627,8 +678,8 @@ export default function Page() {
                                   <Button
                                     size="sm"
                                     onClick={() => {
-                                      initializeChat(peerId);
-                                      setCallerId(peerId);
+                                      // initializeChat(peerId);
+                                      // setCallerId(peerId);
                                     }}
                                     variant="outline"
                                     className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"

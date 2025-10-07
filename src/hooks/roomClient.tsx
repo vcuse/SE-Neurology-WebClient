@@ -132,6 +132,7 @@ export class RoomClient {
         // Start connection process
         this.createRoom(room_id)
             .then(async () => {
+                console.log('calling create room');
                 await this.join(name, room_id);
                 this.initSockets();
                 this._isOpen = true;
@@ -243,8 +244,9 @@ removeConsumer(consumer_id: string): void {
 
          // 2. Get the router's RTP capabilities from the server
          const rtpCapsResponse: { rtpCapabilities: RtpCapabilities } = await this.socket.request('getRouterRtpCapabilities');
-         const routerRtpCapabilities = rtpCapsResponse.rtpCapabilities;
- 
+         console.log('received router rtpcaps', rtpCapsResponse);
+         const routerRtpCapabilities = rtpCapsResponse as RtpCapabilities;
+        
          // 3. Load the mediasoup device
          const device: Device = await this.loadDevice(routerRtpCapabilities);
          this.device = device;
@@ -262,6 +264,7 @@ removeConsumer(consumer_id: string): void {
      * @param device The loaded mediasoup Device instance.
      */
     async initTransports(device: Device): Promise<void> {
+        console.log('inside of init transports');
         // --- Initialize Producer Transport (Send) ---
         {
             // 1. Request server to create the WebRTC Send Transport

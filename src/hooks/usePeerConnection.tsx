@@ -3,9 +3,11 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { io, Socket } from 'socket.io-client';
 import Peer, { DataConnection, MediaConnection, SocketEventType, util } from "peerjs";
-import * as mediasoup from "mediasoup-client";
+import * as mediaSoup from "mediasoup-client";
 import { Producer, RtpCapabilities, Transport } from "mediasoup-client/types";
 import { RoomClient } from "./roomClient";
+import { create } from "domain";
+import { connect } from "http2";
 // Heartbeat intervals 
 type IntervalId = ReturnType<typeof setInterval>;
 
@@ -51,10 +53,11 @@ export function usePeerConnection() {
   const [minimizedChat, setMinimizedChat] = useState<boolean>(false);
   const [isChatVisible, setIsChatVisible] = useState<boolean>(false);
   const [isStrokeScaleVisible, setIsStrokeScaleVisible] = useState<boolean>(false);
-
+  const [isConnected, setIsConnected] = useState(false); 
   // messaging states
   const [messages, setMessages] = useState<Message[]>([]);
-
+  const [availableRooms, setAvailableRooms] = useState<string[]>([]);
+  const [isRoomListLoading, setIsRoomListLoading] = useState(false);  
  
 
   //=====================================
@@ -67,12 +70,12 @@ export function usePeerConnection() {
 
 
 
-  const rtpCapRef = useRef<mediasoup.types.RtpCapabilities | null> (null);
+  const rtpCapRef = useRef<mediaSoup.types.RtpCapabilities | null> (null);
 
 
   let _producerId: string;
   
-  const deviceRef = useRef<mediasoup.Device | null>(null);
+  const deviceRef = useRef<mediaSoup.Device | null>(null);
   const sendTransportRef = useRef<Transport | null>(null);
   const recvTransportRef = useRef<Transport | null>(null);
   const producerRef = useRef<Producer | null>(null); // For your _sendVideoProducer
@@ -89,10 +92,11 @@ export function usePeerConnection() {
   const dataConnectionRef = useRef<DataConnection | null>(null);
   const _awaitingResponses: Map<string,{ resolve: (data: any) => void; reject: (error: Error) => void}> = new Map();
 
-  const socket: Socket = io('localhost:3016');
+  const [socket, setSocket] = useState<Socket | null>(null);
 
-  const rcRef = useRef<RoomClient | null>(null);
+  let rcRef = useRef<RoomClient | null>(null);
   const [rtpCapabilities, setRtpCapabilities] = useState<RtpCapabilities | null>(null);
+  
   // ---
 
   // ... (socket initialization and socketRequest function)
@@ -125,9 +129,30 @@ export function usePeerConnection() {
       });
   };
 
+    /**
+   * Wrapper to safely call the RoomClient's createRoom method.
+   * @param roomId The ID of the room to create.
+   */
+  const createRoom = async (roomId: string, roomClientClass: any): Promise<void> => {
+    // 1. Check if the RoomClient instance has been created
+    if(!rcRef.current){
+      console.log('rcref was null')
+      return;
+    }
+    try {
+        // 2. Call the method directly on the instance
+        await rcRef.current.createRoom(roomId);
+        console.log(`Room creation request sent for: ${roomId}`);
+    } catch (err) {
+        console.error(`Error requesting room creation for ${roomId}:`, err);
+        throw err;
+    }
+  };
+
   const socketRequest = function request<T>(type: string, data: any = {}): Promise<T> {    return new Promise((resolve, reject) => {
       // Use the standard socket.emit with a callback for acknowledgement
-      socket.emit(type, data, (response: any) => {
+      console.log('socket request emit called');
+      socket!.emit(type, data, (response: any) => {
         if (response && response.error) {
           reject(new Error(response.error));
         } else {
@@ -136,6 +161,29 @@ export function usePeerConnection() {
       });
     });
   }
+
+  /**
+ * Requests the list of all active room IDs from the server.
+ * @returns A promise that resolves with an array of room IDs.
+ */
+  const getAvailableRooms = async (): Promise<string[]> => {
+    setIsRoomListLoading(true);
+    try {
+        // Use the socketRequest utility. We expect a string[] back.
+        const roomList: string[] = await socketRequest<string[]>('getRoomList');
+        
+        setAvailableRooms(roomList);
+        return roomList;
+        
+    } catch (e) {
+        console.error("Error fetching room list:", e);
+        setError("Failed to load active consultations.");
+        setAvailableRooms([]);
+        return [];
+    } finally {
+        setIsRoomListLoading(false);
+    }
+  };
 
   // Encapsulates the enumerateDevices logic
   const enumerateDevices = (stream: MediaStream) => {
@@ -157,7 +205,14 @@ export function usePeerConnection() {
       });
   };
 
-
+    // Helper function to get the correct Mediasoup Device constructor
+    const getMediasoupDeviceConstructor = () => {
+      // Check for the most common export pattern and return the constructor function
+      if (mediaSoup && (mediaSoup as any).Device) {
+          return (mediaSoup as any).Device;
+      }
+      throw new Error("Mediasoup Device constructor not found.");
+    };
   // =====================================
   // EXPOSED CORE ROOM FUNCTIONS
   // =====================================
@@ -177,47 +232,92 @@ export function usePeerConnection() {
     initEnumerateDevices();
 
     try {
-      // 3. Get initial RTP Capabilities from the server
-      const rtpResponse = await socketRequest<GetRtpCapabilitiesResponse>('getRouterRtpCapabilities');
-      const routerRtpCapabilities = rtpResponse.rtpCapabilities;
-      setRtpCapabilities(routerRtpCapabilities);
-      console.log('Router RTP Capabilities fetched successfully.');
+
+
+       // We pass the callback that updates the view state
+       const roomOpenCallback = () => {
+        setActiveView('activeCall'); // This replaces the old roomOpen UI logic
+      };
+      console.log('before creating newRC');
+      deviceRef.current= new mediaSoup.Device;
+      // Replace the global DOM elements with nulls, as the RoomClient should manage them
+      const localMedia = null; 
+      const remoteVideos = null;
+      const remoteAudios = null; 
+      const newRc = new roomClientClass(
+        localMedia,
+        remoteVideos,
+        remoteAudios,
+        // ARGUMENT 4: The Mediasoup Device constructor!
+        mediaSoup, 
+        // ARGUMENT 5: The socket instance
+        socket, 
+        // ARGUMENT 6: room_id
+        room_id, 
+        // ARGUMENT 7: name
+        name, 
+        // ARGUMENT 8: successCallback
+        roomOpenCallback 
+      );
+      console.log('after creating newRC')
+      rcRef.current = newRc;
+
+      // 5. Add event listeners from the original `addListeners` function
+      //addRoomClientListeners(newRc);
+      // console.log('calling createRoom');
+      // await createRoom(room_id, roomClientClass);
+      // console.log('after createroom');
+      // // 3. Get initial RTP Capabilities from the server
+      // const rtpResponse = await socketRequest<GetRtpCapabilitiesResponse>('getRouterRtpCapabilities');
+      // const routerRtpCapabilities = rtpResponse.rtpCapabilities;
+      // setRtpCapabilities(routerRtpCapabilities);
+      // console.log('Router RTP Capabilities fetched successfully.');
       
       // 4. Instantiate RoomClient
       // IMPORTANT: `roomClientClass` must be passed in as an argument, as RoomClient
       // is a dependency that can't be imported here if it's a dynamic module.
       
-      // Replace the global DOM elements with nulls, as the RoomClient should manage them
-      const localMedia = null; 
-      const remoteVideos = null;
-      const remoteAudios = null; 
-
-      // We pass the callback that updates the view state
-      const roomOpenCallback = () => {
-        setActiveView('activeCall'); // This replaces the old roomOpen UI logic
-      };
-
-      const newRc = new roomClientClass(
-        localMedia, 
-        remoteVideos, 
-        remoteAudios, 
-        socket, 
-        room_id, 
-        name, 
-        roomOpenCallback
-      );
       
-      rcRef.current = newRc;
 
-      // 5. Add event listeners from the original `addListeners` function
-      addRoomClientListeners(newRc);
-
+     
+      console.log('at rc ref.current');
+     
     } catch (err: any) {
       console.error('Failed to join room or fetch capabilities:', err);
       setError(`Failed to connect: ${err.message || 'Unknown error'}`);
     }
   };
 
+  // Add a useEffect to listen for the connection event
+  useEffect(() => {
+
+    const socket = io('https://localhost:3016', {
+      autoConnect: true // Important: delay the connection
+    });
+
+    setSocket(socket);
+
+    const onConnect = () => {
+        setIsConnected(true);
+        // You can set currentPeerId here if the server returns it, or get it from socket.id
+        // setCurrentPeerId(socket.id); 
+    };
+    const onDisconnect = () => {
+        setIsConnected(false);
+    };
+
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+
+    // Cleanup listeners
+    return () => {
+        socket.off('connect', onConnect);
+        socket.off('disconnect', onDisconnect);
+    };
+  }, []); // Depend on the socket instance
+
+    // ...
+    
 
   /**
    * Encapsulates the original `addListeners` logic.
@@ -254,6 +354,11 @@ export function usePeerConnection() {
   return {
     // ... (existing state and refs)
     joinRoom,
+    isConnected,
+    createRoom,
+    getAvailableRooms,   
+    availableRooms,    // <-- New state array
+    isRoomListLoading,  // <-- Expose the function to refresh the 
     // If you want to allow the component to manually toggle devices:
     // initEnumerateDevices,
     // ... (other exposed methods)
