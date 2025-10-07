@@ -35,6 +35,7 @@ import {
 import NewStrokeScaleForm from "@/app/stroke-scale/new-stroke-scale-form";
 import { StrokeScaleForm } from "@/components/stroke-scale/stroke-scale-form";
 import { usePeerConnection } from "@/hooks/usePeerConnection";
+import { RoomClient } from "@/hooks/roomClient";
 import { cn } from "@/lib/utils";
 import { HomeViewChat, CallViewChat } from "@/components/video-call";
 import Link from "next/link";
@@ -128,8 +129,10 @@ export default function Page() {
     // sendMessage,
     isStrokeScaleVisible,
     toggleStrokeScale,
-
+    joinRoom
   } = usePeerConnection();
+
+  
 
   //=====================================
   // VIDEO STREAM HANDLING
@@ -137,12 +140,45 @@ export default function Page() {
 
   // manage remote video and audio streams
   useEffect(() => {
-    if (!isCallOnHold && videoEl.current && remoteStream) { // only set up streams if not on hold and the connectio is valid
-      // videoEl.current.srcObject = remoteStream;
-      // audioEl.current.srcObject = mediaConnection.remoteStream;
+    // if (!isCallOnHold && videoEl.current && remoteStream) { // only set up streams if not on hold and the connectio is valid
+    //   // videoEl.current.srcObject = remoteStream;
+    //   // audioEl.current.srcObject = mediaConnection.remoteStream;
       
+    // }
+
+    
+
+    console.log(initializeRoom());
+  })
+
+  const initializeRoom = async () => {
+    try {
+      const myName = 'David';
+      const roomId = '3242134';
+      try {
+        // --- OPTIONAL: Call createRoom first (if required by your logic) ---
+        // await createRoom(roomId); 
+        // console.log(`Room created/ensured: ${roomId}`);
+
+        // 2. Call the exposed joinRoom function
+        // Arguments: name, room_id, RoomClient class
+        await joinRoom?.(myName, roomId, RoomClient);
+        
+        console.log(`Attempted to join room: ${roomId}`);
+        // The setActiveView('activeCall') logic should be handled by the successCallback 
+        // defined inside your joinRoom implementation in the hook.
+
+      } catch (e: any) {
+          console.error('Failed to join room process:', e);
+          // Display user-friendly error
+          // setError(`Failed to start call: ${e.message}`);
+      }
+
+    } catch (e) {
+        console.error("Failed to initialize room upon load.", e);
+        // The connection still works, but the room won't be usable.
     }
-  }, [isCallOnHold, videoEl]);
+  }
 
   //=====================================
   // FILTER DROPDOWN HANDLING
@@ -239,24 +275,24 @@ export default function Page() {
   };
 
   const startPlayback = () => {
-    if (videoEl.current) {
-        // This is triggered by a human click
-        videoEl.current.play().then(() => {
-          // This only runs if playback starts
-          console.log("Playback success (The kPlay event happened)");
-      }).catch(error => {
-          // THIS IS WHERE THE BROWSER TELLS YOU WHY IT BLOCKED THE VIDEO
-          console.error('PLAYBACK REJECTED:', error.name, error.message);
+    // if (videoEl.current) {
+    //     // This is triggered by a human click
+    //     videoEl.current.play().then(() => {
+    //       // This only runs if playback starts
+    //       console.log("Playback success (The kPlay event happened)");
+    //   }).catch(error => {
+    //       // THIS IS WHERE THE BROWSER TELLS YOU WHY IT BLOCKED THE VIDEO
+    //       console.error('PLAYBACK REJECTED:', error.name, error.message);
           
-          if (error.name === 'NotAllowedError') {
-              // Means: No user interaction was detected (most common failure)
-              console.warn('REJECTION REASON: Waiting for user click to unlock media.');
-          } else if (error.name === 'AbortError') {
-              // Means: A pause/close command was issued before play could complete
-              console.warn('REJECTION REASON: Interrupted by another media command.');
-          }
-      });
-    }
+    //       if (error.name === 'NotAllowedError') {
+    //           // Means: No user interaction was detected (most common failure)
+    //           console.warn('REJECTION REASON: Waiting for user click to unlock media.');
+    //       } else if (error.name === 'AbortError') {
+    //           // Means: A pause/close command was issued before play could complete
+    //           console.warn('REJECTION REASON: Interrupted by another media command.');
+    //       }
+    //   });
+    // }
   };
 
   return (
@@ -322,7 +358,7 @@ export default function Page() {
                           }
                           // endCall();
                         }
-                        setActiveView(item.value);
+                        // setActiveView(item.value);
                       }}
                     >
                       <item.icon className="h-5 w-5 text-blue-600" />
@@ -423,7 +459,7 @@ export default function Page() {
             <CardContent>
               <NewStrokeScaleForm onCancel={() => { // clear data after cancel
                 setIsNewFormVisible(false);
-                setActiveView("strokeScale");
+                // setActiveView("strokeScale");
                 setSavedAns({});
                 setSavedPatient({ name: '', DOB: '' });
                 setIsOnPopout(false);
@@ -445,7 +481,7 @@ export default function Page() {
         {isNewFormVisible && !isNewFormMinimized && isOnPopout && (
           <NewStrokeScaleForm onCancel={() => { // clear data after cancel
             setIsNewFormVisible(false);
-            setActiveView("strokeScale");
+            // setActiveView("strokeScale");
             setSavedAns({});
             setSavedPatient({ name: '', DOB: '' });
             setIsOnPopout(false);
@@ -493,7 +529,7 @@ export default function Page() {
                       onClick={() => {
                         maxForm();
                         setIsNewFormVisible(false);
-                        setActiveView("strokeScale");
+                        // setActiveView("strokeScale");
                         setSavedAns({});
                         setSavedPatient({ name: '', DOB: '' });
                         setIsOnPopout(false);

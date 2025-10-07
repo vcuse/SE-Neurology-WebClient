@@ -8,7 +8,8 @@ import {
     Consumer, 
     RtpCapabilities, 
     DtlsParameters, 
-    MediaKind 
+    MediaKind, 
+    RtpParameters
 } from 'mediasoup-client/types'; // Adjust the import path as needed
 
 // 1. Define the media type and event constants
@@ -21,8 +22,18 @@ const mediaType = {
 const _EVENTS = {
   exitRoom: 'exitRoom',
   // ... (rest of the events)
-  stopScreen: 'stopScreen'
+  stopScreen: 'stopScreen',
+  startVideo: 'startVideo',
+  startAudio: 'startAudio',
+  startScreen: 'startScreen',
 } as const;
+
+// Helper interface for the result of getConsumeStream
+interface ConsumeStreamResult {
+    consumer: Consumer;
+    stream: MediaStream;
+    kind: MediaKind; // 'audio' | 'video'
+}
 
 // Helper type for the producer map
 type ProducerLabelMap = Map<typeof mediaType[keyof typeof mediaType], string>;
@@ -32,6 +43,15 @@ type ConsumerMap = Map<string, Consumer>;
 // Helper type for socket.request (assuming you add it to the socket instance or use a wrapper)
 interface SocketRequest {
     request: (type: string, data?: any) => Promise<any>;
+}
+
+// Assuming this type is available from the server's response for creating a transport
+interface TransportCreationData {
+    id: string;
+    iceParameters: any; // Use a more specific type if available
+    iceCandidates: any; // Use a more specific type if available
+    dtlsParameters: any; // Use a more specific type if available
+    error?: string;
 }
 
 // NOTE: Since your constructor expects a global `mediasoupClient` library, 
@@ -121,6 +141,87 @@ export class RoomClient {
                 console.error("RoomClient Initialization failed:", err);
             });
     }
+    event(evt: keyof typeof RoomClient.EVENTS) {
+        if (this.eventListeners.has(evt)) {
+          // Note: TypeScript users often use the non-null assertion or optional chaining
+          this.eventListeners.get(evt)?.forEach((callback) => callback());
+        }
+    }
+
+    /**
+ * Stops and removes a remote consumer's media track and associated DOM element.
+ * @param consumer_id The ID of the consumer (which is also the ID of the DOM element).
+ */
+removeConsumer(consumer_id: string): void {
+    // 1. Find the DOM element
+    const elem = document.getElementById(consumer_id) as HTMLVideoElement | HTMLAudioElement | null;
+
+    if (!elem) {
+        console.warn(`Attempted to remove consumer element, but DOM element with ID ${consumer_id} not found.`);
+        this.consumers.delete(consumer_id);
+        return;
+    }
+
+    // 2. Stop all tracks in the associated stream
+    const stream = elem.srcObject as MediaStream | null;
+    if (stream) {
+        stream.getTracks().forEach((track: MediaStreamTrack) => {
+            track.stop();
+        });
+    }
+
+    // 3. Remove the element from its parent (if it has one)
+    elem.parentNode?.removeChild(elem);
+
+    // 4. Remove the consumer from the internal map
+    this.consumers.delete(consumer_id);
+    console.log(`Consumer ${consumer_id} removed.`);
+}
+
+    initSockets(): void {
+        // NOTE: We assume 'this.socket' is typed as CustomSocket (with .request)
+        // and that the class methods (removeConsumer, consume, exit) are defined.
+    
+        // 1. Handle server telling the client to close a consumer
+        this.socket.on(
+            'consumerClosed',
+            // Using arrow function maintains 'this' context, avoiding the need for .bind(this)
+            ({ consumer_id }: { consumer_id: string }) => {
+                console.log('Closing consumer:', consumer_id);
+                this.removeConsumer(consumer_id);
+            }
+        );
+    
+        /**
+         * Data from server: [ { producer_id: string, producer_socket_id: string } ]
+         */
+        // 2. Handle notification of new producers available in the room
+        this.socket.on(
+            'newProducers',
+            async (data: Array<{ producer_id: string; producer_socket_id: string }>) => {
+                console.log('New producers:', data);
+                
+                // Loop through new producers and consume each one
+                for (let { producer_id } of data) {
+                    // Ensure the new producer isn't one we just created ourselves (optional self-check)
+                    if (!this.producers.has(producer_id)) {
+                        await this.consume(producer_id);
+                    }
+                }
+            }
+        );
+    
+        // 3. Handle disconnection from the signaling server
+        this.socket.on(
+            'disconnect',
+            () => {
+                console.log('Socket disconnected from server.');
+                // Call exit(true) to handle cleanup without sending an 'exitRoom' request back
+                // this.exit(true);
+            }
+        );
+    }
+      
 
     // 4. Example of typing methods (others follow a similar pattern)
     
@@ -129,19 +230,294 @@ export class RoomClient {
         await this.socket.request('createRoom', { room_id })
             .catch((err: Error) => {
                 console.log('Create room error:', err);
-            });
+        });
     }
 
     // Typing the async function to return a Promise<void>
     async join(name: string, room_id: string): Promise<void> {
         // ... (body of join)
+        this.socket.request('join', {
+            name,
+            room_id
+        });
+
+         // 2. Get the router's RTP capabilities from the server
+         const rtpCapsResponse: { rtpCapabilities: RtpCapabilities } = await this.socket.request('getRouterRtpCapabilities');
+         const routerRtpCapabilities = rtpCapsResponse.rtpCapabilities;
+ 
+         // 3. Load the mediasoup device
+         const device: Device = await this.loadDevice(routerRtpCapabilities);
+         this.device = device;
+         
+         // 4. Initialize producer and consumer transports
+         await this.initTransports(device);
+         
+         // 5. Request existing producers in the room
+         this.socket.emit('getProducers');
+ 
     }
+
+        /**
+     * Initializes the mediasoup client-side Producer and Consumer Transports.
+     * @param device The loaded mediasoup Device instance.
+     */
+    async initTransports(device: Device): Promise<void> {
+        // --- Initialize Producer Transport (Send) ---
+        {
+            // 1. Request server to create the WebRTC Send Transport
+            const data: TransportCreationData = await this.socket.request('createWebRtcTransport', {
+                forceTcp: false,
+                rtpCapabilities: device.rtpCapabilities
+            });
+
+            if (data.error) {
+                console.error('Failed to create Producer Transport:', data.error);
+                return;
+            }
+
+            // 2. Create client-side Send Transport
+            this.producerTransport = device.createSendTransport(data);
+
+            // 3. Set up 'connect' event listener
+            this.producerTransport.on(
+                'connect',
+                // Use arrow function to preserve 'this' context
+                async ({ dtlsParameters }: { dtlsParameters: DtlsParameters }, callback: () => void, errback: (error: Error) => void) => {
+                    this.socket
+                        .request('connectTransport', {
+                            dtlsParameters,
+                            transport_id: data.id // Use the ID returned from the initial creation request
+                        })
+                        .then(callback)
+                        .catch(errback);
+                }
+            );
+
+            // 4. Set up 'produce' event listener (triggered by this.producerTransport.produce())
+            this.producerTransport.on(
+                'produce',
+                async ({ kind, rtpParameters }: { kind: MediaKind, rtpParameters: RtpParameters }, callback: (data: { id: string }) => void, errback: (error: Error) => void) => {
+                    try {
+                        // Request server to create the corresponding Producer
+                        const { producer_id }: { producer_id: string } = await this.socket.request('produce', {
+                            producerTransportId: this.producerTransport?.id, // Use ?. for safety
+                            kind,
+                            rtpParameters
+                        });
+                        
+                        // Respond to mediasoup-client with the server-side Producer ID
+                        callback({
+                            id: producer_id
+                        });
+                    } catch (err: any) {
+                        errback(err);
+                    }
+                }
+            );
+
+            // 5. Set up 'connectionstatechange' event listener
+            this.producerTransport.on(
+                'connectionstatechange',
+                (state: Transport['connectionState']) => {
+                    switch (state) {
+                        case 'connecting':
+                            break;
+                        case 'connected':
+                            // Local media stream should start here if media access was already acquired
+                            // localVideo.srcObject = stream;
+                            break;
+                        case 'failed':
+                            this.producerTransport?.close(); // Use optional chaining
+                            console.error('Producer Transport failed.');
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            );
+        }
+
+        // --- Initialize Consumer Transport (Receive) ---
+        {
+            // 1. Request server to create the WebRTC Receive Transport
+            const data: TransportCreationData = await this.socket.request('createWebRtcTransport', {
+                forceTcp: false
+            });
+
+            if (data.error) {
+                console.error('Failed to create Consumer Transport:', data.error);
+                return;
+            }
+
+            // 2. Create client-side Receive Transport
+            this.consumerTransport = device.createRecvTransport(data);
+
+            // 3. Set up 'connect' event listener
+            this.consumerTransport.on(
+                'connect',
+                ({ dtlsParameters }: { dtlsParameters: DtlsParameters }, callback: () => void, errback: (error: Error) => void) => {
+                    this.socket
+                        .request('connectTransport', {
+                            transport_id: this.consumerTransport?.id, // Use ?. for safety
+                            dtlsParameters
+                        })
+                        .then(callback)
+                        .catch(errback);
+                }
+            );
+
+            // 4. Set up 'connectionstatechange' event listener
+            this.consumerTransport.on(
+                'connectionstatechange',
+                async (state: Transport['connectionState']) => {
+                    switch (state) {
+                        case 'connecting':
+                            break;
+                        case 'connected':
+                            // Remote streams can now be consumed and resumed
+                            // remoteVideo.srcObject = await stream;
+                            // await this.socket.request('resume');
+                            break;
+                        case 'failed':
+                            this.consumerTransport?.close(); // Use optional chaining
+                            console.error('Consumer Transport failed.');
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            );
+        }
+    }
+    
 
     // Typing the async function to return a Promise<Device>
     async loadDevice(routerRtpCapabilities: RtpCapabilities): Promise<Device> {
         // ... (body of loadDevice)
+        let device;
+        try {
+            // FIX: Correctly instantiate the device from the client library
+            device = new this.mediasoupClient.Device();
+        } catch (error: any) {
+            if (error.name === 'UnsupportedError') {
+                console.error('Browser not supported');
+                alert('Browser not supported');
+            }
+            console.error(error);
+            throw error;
+        }
+        
+        // Load the device with the router's capabilities
+        await device.load({
+            routerRtpCapabilities
+        });
+        
+        return device;
+       
+    }
+        /**
+     * Initiates the consumption of a media stream from a remote producer.
+     * The stream is then attached to a new video or audio element and added to the DOM.
+     * @param producer_id The ID of the producer stream to consume.
+     */
+    async consume(producer_id: string): Promise<void> {
+        try {
+            // Use async/await structure instead of .then().bind(this)
+            const { consumer, stream, kind }: ConsumeStreamResult = await this.getConsumeStream(producer_id);
+
+            this.consumers.set(consumer.id, consumer);
+
+            let elem: HTMLVideoElement | HTMLAudioElement;
+
+            // 1. Create and append the appropriate DOM element
+            if (kind === 'video') {
+                elem = document.createElement('video');
+                elem.srcObject = stream;
+                elem.id = consumer.id;
+                elem.autoplay = true;
+                elem.className = 'vid';
+                
+                // Use optional chaining for safe access
+                this.remoteVideoEl?.appendChild(elem);
+                
+                // Ensure handleFS is defined on the class
+              
+            } else {
+                elem = document.createElement('audio');
+                elem.srcObject = stream;
+                elem.id = consumer.id;
+             
+                elem.autoplay = true;
+                
+                this.remoteAudioEl?.appendChild(elem);
+            }
+
+            // 2. Set up consumer event listeners using modern arrow functions
+            
+            // Listener for when the remote producer stops sending media
+            consumer.on('trackended', () => {
+                console.log(`Consumer ${consumer.id} track ended.`);
+                this.removeConsumer(consumer.id);
+            });
+
+            // Listener for when the consumer transport is closed (e.g., room exit)
+            consumer.on('transportclose', () => {
+                console.log(`Consumer ${consumer.id} transport closed.`);
+                this.removeConsumer(consumer.id);
+            });
+            
+        } catch (error) {
+            console.error(`Failed to consume producer ${producer_id}:`, error);
+        }
     }
 
+
+/**
+ * Requests server-side resources (Consumer and Stream) to consume a producer.
+ * @param producerId The ID of the producer to consume.
+ * @returns A promise that resolves with the Consumer, MediaStream, and kind.
+ */
+async getConsumeStream(producerId: string): Promise<ConsumeStreamResult> {
+    // 1. Check for required resources
+    if (!this.device || !this.consumerTransport) {
+        throw new Error("Device or Consumer Transport not initialized.");
+    }
+
+    const { rtpCapabilities }: { rtpCapabilities: RtpCapabilities } = this.device;
+
+    // 2. Request server to create a Consumer
+    const data: { 
+        id: string; 
+        kind: MediaKind; 
+        rtpParameters: RtpParameters;
+    } = await this.socket.request('consume', {
+        rtpCapabilities,
+        consumerTransportId: this.consumerTransport.id,
+        producerId
+    });
+    
+    const { id, kind, rtpParameters } = data;
+
+    // 3. Create the client-side Consumer
+    let codecOptions = {};
+    const consumer: Consumer = await this.consumerTransport.consume({
+        id,
+        producerId,
+        kind,
+        rtpParameters,
+     
+    });
+
+    // 4. Attach the Consumer track to a MediaStream
+    const stream = new MediaStream();
+    stream.addTrack(consumer.track);
+
+    return {
+        consumer,
+        stream,
+        kind
+    };
+    }
     /**
    * Starts producing a media track (audio, video, or screen share) to the room.
    * @param type The media type (e.g., RoomClient.mediaType.video).
@@ -172,7 +548,7 @@ export class RoomClient {
         };
         break;
       case RoomClient.mediaType.screen:
-        mediaConstraints = false; // getDisplayMedia doesn't use standard constraints object
+        //mediaConstraints = false; // getDisplayMedia doesn't use standard constraints object
         screen = true;
         break;
       default:
@@ -240,7 +616,7 @@ export class RoomClient {
         elem.autoplay = true;
         elem.className = 'vid';
         this.localMediaEl?.appendChild(elem);
-        this.handleFS(elem.id);
+        // this.handleFS(elem.id);
       } else {
         elem = document.createElement('audio');
         elem.srcObject = stream;

@@ -16,7 +16,10 @@ interface Message {
   text: string;
   timestamp: Date;
 }
-
+interface GetRtpCapabilitiesResponse {
+  // The structure returned by the server on success
+  rtpCapabilities: RtpCapabilities;
+}
 
 // custom react hook for calls
 export function usePeerConnection() {
@@ -52,6 +55,8 @@ export function usePeerConnection() {
   // messaging states
   const [messages, setMessages] = useState<Message[]>([]);
 
+ 
+
   //=====================================
   // REFERENCES
   //=====================================
@@ -84,7 +89,7 @@ export function usePeerConnection() {
   const dataConnectionRef = useRef<DataConnection | null>(null);
   const _awaitingResponses: Map<string,{ resolve: (data: any) => void; reject: (error: Error) => void}> = new Map();
 
-  const socket: Socket = io('localhost:9000');
+  const socket: Socket = io('localhost:3016');
 
   const rcRef = useRef<RoomClient | null>(null);
   const [rtpCapabilities, setRtpCapabilities] = useState<RtpCapabilities | null>(null);
@@ -120,6 +125,17 @@ export function usePeerConnection() {
       });
   };
 
+  const socketRequest = function request<T>(type: string, data: any = {}): Promise<T> {    return new Promise((resolve, reject) => {
+      // Use the standard socket.emit with a callback for acknowledgement
+      socket.emit(type, data, (response: any) => {
+        if (response && response.error) {
+          reject(new Error(response.error));
+        } else {
+          resolve(response as T);
+        }
+      });
+    });
+  }
 
   // Encapsulates the enumerateDevices logic
   const enumerateDevices = (stream: MediaStream) => {
@@ -156,13 +172,13 @@ export function usePeerConnection() {
       console.log('Already connected to a room');
       return;
     }
-
+    console.log('about to initEnumerateDevices');
     // 2. Initialize media devices
     initEnumerateDevices();
 
     try {
       // 3. Get initial RTP Capabilities from the server
-      const rtpResponse = await socketRequest('getRouterRtpCapabilities');
+      const rtpResponse = await socketRequest<GetRtpCapabilitiesResponse>('getRouterRtpCapabilities');
       const routerRtpCapabilities = rtpResponse.rtpCapabilities;
       setRtpCapabilities(routerRtpCapabilities);
       console.log('Router RTP Capabilities fetched successfully.');
@@ -185,7 +201,6 @@ export function usePeerConnection() {
         localMedia, 
         remoteVideos, 
         remoteAudios, 
-        window.mediasoupClient, // Assuming mediasoupClient is global or imported
         socket, 
         room_id, 
         name, 
@@ -244,18 +259,7 @@ export function usePeerConnection() {
     // ... (other exposed methods)
   };
 
-  const socketRequest = function request(type: string, data: any = {}) {
-    return new Promise((resolve, reject) => {
-      // Use the standard socket.emit with a callback for acknowledgement
-      socket.emit(type, data, (response: any) => {
-        if (response && response.error) {
-          reject(new Error(response.error));
-        } else {
-          resolve(response);
-        }
-      });
-    });
-  }
+  
   // // set up data connection handler
   // const setupDataConnection = (dataConnection: DataConnection) => {
   //   // console.log('Setting up data connection with:', dataConnection.peer);
@@ -1008,5 +1012,6 @@ export function usePeerConnection() {
     initializeChat,
     isStrokeScaleVisible,
     toggleStrokeScale,
+    
   };
 }
