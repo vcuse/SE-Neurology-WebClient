@@ -91,7 +91,7 @@ export default function Page() {
   const [isOnPopout, setIsOnPopout] = useState(false);
   const [selectedOldForm, setSelectedOldForm] = useState<any | null>(null);
   const [isOldFormVisible, setIsOldFormVisible] = useState(false);
- 
+  const hasRoomsBeenFetched = useRef(false);
 
   //=====================================
   // VIDEO CONNECTION AND CALL LOGIC
@@ -168,28 +168,13 @@ export default function Page() {
     }
   },[isConnected, currentPeerId, joinRoom]);
 
-  useEffect(() => {
-    // We start the process only when we have a valid ID (i.e., socket is connected and identified)
-    // if (getAvailableRooms) {
-        
-    //     // // 1. IMMEDIATE CALL (When connecting)
-    //     // getAvailableRooms();
+  
 
-    //     // // 2. POLLING (Keep the list fresh)
-    //     // // Poll the server every 5 seconds (5000 ms)
-    //     // const intervalId = setInterval(getAvailableRooms, 5000); 
-
-    //     // 3. CLEANUP
-    //     // Stop polling when the component unmounts or the peer ID changes
-    //     // return () => clearInterval(intervalId);
-    // }
-    
-    // Dependencies: Run whenever the connection/ID status changes
-}, [ getAvailableRooms]); 
+  
 
   const initializeRoom = async () => {
     try {
-      const myName = 'David';
+      const myName = 'David' + Math.random();
       const roomId = '3242134';
       try {
         // --- OPTIONAL: Call createRoom first (if required by your logic) ---
@@ -249,19 +234,8 @@ export default function Page() {
     if (value === "A-Z") { }
   }
 
-  useEffect(() => {
-    // if(getAvailableRooms) {
-    //   // Fetch the list immediately
-    //   // getAvailableRooms();
-
-    //   // // Optionally, poll the server every few seconds to keep the list updated
-    //   // const intervalId = setInterval(getAvailableRooms, 5000); 
-
-    //   // return () => clearInterval(intervalId);
-    // }
-    }, [currentPeerId, getAvailableRooms]);
  
-
+  
 
   useEffect(() => {
     if (activeView === 'strokeScale') {

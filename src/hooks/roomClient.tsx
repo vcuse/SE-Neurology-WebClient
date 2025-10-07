@@ -103,7 +103,7 @@ export class RoomClient {
         this.remoteVideoEl = remoteVideoEl;
         this.remoteAudioEl = remoteAudioEl;
         this.mediasoupClient = mediasoupClient;
-
+        
         // Attach request function to socket for internal use, as you did previously
         (socket as any).request = function request(type: string, data: any = {}) {
             return new Promise((resolve, reject) => {

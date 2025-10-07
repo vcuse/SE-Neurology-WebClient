@@ -171,8 +171,9 @@ export function usePeerConnection() {
     try {
         // Use the socketRequest utility. We expect a string[] back.
         const roomList: string[] = await socketRequest<string[]>('getRoomList');
-        
+        console.log('roomlist is', roomList);
         setAvailableRooms(roomList);
+        setIsLoading(false);
         return roomList;
         
     } catch (e) {
@@ -222,6 +223,17 @@ export function usePeerConnection() {
    * This method is called from your `Page.tsx` component when the user clicks 'Join'.
    */
   const joinRoom = async (name: string, room_id: string, roomClientClass: any) => {
+
+    // if (getAvailableRooms) {
+    //   getAvailableRooms(); // Immediate call
+
+    //   // Start interval and return a cleanup function
+       
+    //   return () => {
+           
+      
+    //   }
+    // }
     // 1. Check if already connected (rcRef.current replaces global rc)
     if (rcRef.current /* && rcRef.current.isOpen() */) {
       console.log('Already connected to a room');
@@ -262,20 +274,7 @@ export function usePeerConnection() {
       console.log('after creating newRC')
       rcRef.current = newRc;
 
-      // 5. Add event listeners from the original `addListeners` function
-      //addRoomClientListeners(newRc);
-      // console.log('calling createRoom');
-      // await createRoom(room_id, roomClientClass);
-      // console.log('after createroom');
-      // // 3. Get initial RTP Capabilities from the server
-      // const rtpResponse = await socketRequest<GetRtpCapabilitiesResponse>('getRouterRtpCapabilities');
-      // const routerRtpCapabilities = rtpResponse.rtpCapabilities;
-      // setRtpCapabilities(routerRtpCapabilities);
-      // console.log('Router RTP Capabilities fetched successfully.');
-      
-      // 4. Instantiate RoomClient
-      // IMPORTANT: `roomClientClass` must be passed in as an argument, as RoomClient
-      // is a dependency that can't be imported here if it's a dynamic module.
+    
       
       
 
@@ -297,6 +296,8 @@ export function usePeerConnection() {
 
     setSocket(socket);
 
+    
+
     const onConnect = () => {
         setIsConnected(true);
         // You can set currentPeerId here if the server returns it, or get it from socket.id
@@ -314,6 +315,7 @@ export function usePeerConnection() {
         socket.off('connect', onConnect);
         socket.off('disconnect', onDisconnect);
     };
+
   }, []); // Depend on the socket instance
 
     // ...
