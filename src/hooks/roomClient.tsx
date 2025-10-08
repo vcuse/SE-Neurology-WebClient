@@ -61,7 +61,7 @@ export class RoomClient {
     // 2. Type the class properties
     public readonly name: string;
     public readonly localMediaEl: HTMLElement | null; // Assuming HTMLElements
-    public readonly remoteVideoEl: HTMLElement | null;
+    public remoteVideoEl: HTMLElement | null;
     public readonly remoteAudioEl: HTMLElement | null;
     public readonly mediasoupClient: any; // Type as 'any' if it's a globally exposed library
     
@@ -85,20 +85,23 @@ export class RoomClient {
     // Static accessors
     static readonly mediaType = mediaType;
     static readonly EVENTS = _EVENTS;
+    public remoteStreamCallback: (stream: MediaStream) => void;
 
 
     // 3. Type the constructor
     constructor(
         localMediaEl: HTMLElement | null,
-        remoteVideoEl: HTMLElement | null,
+        remoteVideoEl: HTMLVideoElement | null,
         remoteAudioEl: HTMLElement | null,
         mediasoupClient: any, // or typeof import('mediasoup-client')
         socket: Socket,
         room_id: string,
         name: string,
-        successCallback: () => void // The callback function
+        successCallback: () => void, // The callback function
+        remoteStreamCallback: (stream: MediaStream) => void
     ) {
         this.name = name;
+        this.remoteStreamCallback = remoteStreamCallback;
         this.localMediaEl = localMediaEl;
         this.remoteVideoEl = remoteVideoEl;
         this.remoteAudioEl = remoteAudioEl;
@@ -252,6 +255,7 @@ removeConsumer(consumer_id: string): void {
          this.device = device;
          
          // 4. Initialize producer and consumer transports
+         console.log('going to init transports');
          await this.initTransports(device);
          
          // 5. Request existing producers in the room
@@ -272,7 +276,7 @@ removeConsumer(consumer_id: string): void {
                 forceTcp: false,
                 rtpCapabilities: device.rtpCapabilities
             });
-
+            console.log('received transport data from server', data);
             if (data.error) {
                 console.error('Failed to create Producer Transport:', data.error);
                 return;
@@ -439,8 +443,8 @@ removeConsumer(consumer_id: string): void {
                 elem.id = consumer.id;
                 elem.autoplay = true;
                 elem.className = 'vid';
-                
-                // Use optional chaining for safe access
+                console.log('setting remote video element');
+                this.remoteStreamCallback(stream);
                 this.remoteVideoEl?.appendChild(elem);
                 
                 // Ensure handleFS is defined on the class
@@ -527,6 +531,7 @@ async getConsumeStream(producerId: string): Promise<ConsumeStreamResult> {
    * @param deviceId Optional: The specific device ID to use (e.g., camera ID).
    */
   async produce(type: string, deviceId: string | null = null): Promise<void> {
+    console.log('called produce in roomClient');
     let mediaConstraints: MediaStreamConstraints = {};
     let audio: boolean = false;
     let screen: boolean = false;
@@ -546,7 +551,7 @@ async getConsumeStream(producerId: string): Promise<ConsumeStreamResult> {
           video: {
             width: { min: 640, ideal: 1920 },
             height: { min: 400, ideal: 1080 },
-            deviceId: deviceId || undefined
+            // deviceId: deviceId || undefined
           }
         };
         break;

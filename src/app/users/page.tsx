@@ -93,6 +93,7 @@ export default function Page() {
   const [isOldFormVisible, setIsOldFormVisible] = useState(false);
   const hasRoomsBeenFetched = useRef(false);
 
+
   //=====================================
   // VIDEO CONNECTION AND CALL LOGIC
   //=====================================
@@ -136,7 +137,8 @@ export default function Page() {
     createRoom,
     getAvailableRooms, // <-- New function to fetch the list
     availableRooms = [],    // <-- New state array
-    isRoomListLoading
+    isRoomListLoading,
+    produce
   } = usePeerConnection();
 
   
@@ -147,14 +149,16 @@ export default function Page() {
 
   // manage remote video and audio streams
   useEffect(() => {
-    // if (!isCallOnHold && videoEl.current && remoteStream) { // only set up streams if not on hold and the connectio is valid
-    //   // videoEl.current.srcObject = remoteStream;
-    //   // audioEl.current.srcObject = mediaConnection.remoteStream;
-      
-    // }
+    if (videoEl.current && remoteStream) { 
+      console.log('SETTING REMOTE STREAM');
+        // only set up streams if not on hold and the connectio is valid
+      //   // videoEl.current.srcObject = remoteStream;
+      //   // audioEl.current.srcObject = mediaConnection.remoteStream;
+        videoEl.current.srcObject = remoteStream;
+    }
 
     if (isConnected) {
-
+      
       console.log(initializeRoom());
       // 1. IMMEDIATE CALL (When connecting)
     
@@ -177,10 +181,13 @@ export default function Page() {
       const myName = 'David' + Math.random();
       const roomId = '3242134';
       try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        
+        
         // --- OPTIONAL: Call createRoom first (if required by your logic) ---
         // await createRoom?.(roomId, RoomClient); 
         // console.log(`Room created/ensured: ${roomId}`);
-
+        
         // 2. Call the exposed joinRoom function
         // Arguments: name, room_id, RoomClient class
         await joinRoom?.(myName, roomId, RoomClient);
@@ -420,7 +427,19 @@ export default function Page() {
                 <Skeleton className="h-4 w-24" />
               )}
             </Badge>
-          </div>
+          </div>  
+          <Button
+            onClick={ 
+              produce} // <== Call the new function
+            variant="default" 
+            className="gap-2 bg-green-600 hover:bg-green-700"
+            //disabled={!!myStream} // Disable if myStream is already active
+              >
+                  <Video className="h-4 w-4" />
+                  { 'Start Video/Audio'}
+              </Button>
+        
+        {/* <button onClick={startPlayback}>Start Video</button> */}
 
           {/* logout button */}
           <Button
@@ -600,87 +619,10 @@ export default function Page() {
                   </CardTitle>
                 </CardHeader>
 
-
+                
                 <CardContent className="p-0">
-                  {isLoading ? (
-                    <div className="space-y-4 p-6">
-                      {[1, 2, 3].map((i) => ( // 3 skeleton placeholders if data is loading
-                        <Skeleton key={i} className="h-20 w-full rounded-lg" />
-                      ))}
-                    </div>
-                    // list of available peers
-                  ) : peerIds.length > 0 ? (
-                    <div className="divide-y divide-blue-50">
-                      {availableRooms.map((roomId) => (
-                        <div key={roomId} className="flex items-center justify-between p-4">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-9 w-9">
-                              <AvatarFallback>MD</AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-medium text-gray-900">{roomId}</p>
-                              <p className="text-sm text-gray-500">Cardiology</p>
-                            </div>
-                          </div>
-                          {/* action buttons */}
-                          <div className="flex gap-2">
-                            <div className="flex gap-2">
-                              {/* video call button */}
-                              <HoverCard>
-                                <HoverCardTrigger asChild>
-                                  <Button
-                                    size="sm"
-                                    // onClick={() => handleCall(peerId)}
-                                    className="gap-2 bg-blue-600 hover:bg-blue-700"
-                                  >
-                                    <PhoneCall className="h-4 w-4" />
-                                    <span>Video Call</span>
-                                  </Button>
-                                </HoverCardTrigger>
-                                <HoverCardContent className="w-80">
-                                  <div className="space-y-2">
-                                    <h4 className="font-medium">Video Consultation</h4>
-                                    <p className="text-sm text-gray-600">
-                                      Start a video consultation with this specialist.
-                                    </p>
-                                  </div>
-                                </HoverCardContent>
-                                {/* chat button */}
-                              </HoverCard>
-                              <HoverCard>
-                                <HoverCardTrigger asChild>
-                                  <Button
-                                    size="sm"
-                                    onClick={() => {
-                                      // initializeChat(peerId);
-                                      // setCallerId(peerId);
-                                    }}
-                                    variant="outline"
-                                    className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
-                                  >
-                                    <MessageSquare className="h-4 w-4" />
-                                    <span>Chat</span>
-                                  </Button>
-                                </HoverCardTrigger>
-                                <HoverCardContent className="w-80">
-                                  <div className="space-y-2">
-                                    <h4 className="font-medium">Text Chat</h4>
-                                    <p className="text-sm text-gray-600">
-                                      Start a text conversation with this specialist.
-                                    </p>
-                                  </div>
-                                </HoverCardContent>
-                              </HoverCard>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="p-6 text-center text-gray-500">
-                      No active consultations available
-                    </div>
-                  )}
+               
+                
                 </CardContent>
               </Card>
 
@@ -730,7 +672,7 @@ export default function Page() {
               <div className={cn(
 
                 "flex gap-6 grid-cols-1",
-                (isChatVisible || isStrokeScaleVisible) ? "flex-col lg:flex-row" : "flex-col"
+                (true || true) ? "flex-col lg:flex-row" : "flex-col"
               )}>
 
                 {/* call panel */}
@@ -747,7 +689,7 @@ export default function Page() {
 
                     <CardContent className="p-4 flex-1 flex flex-col">
                       <div className="flex-1 flex items-center justify-center mb-4 min-h-0 p-2">
-                        {isCallOnHold ? (
+                        {false ? (
                           // on hold  
                           <div className="flex items-center justify-center bg-gray-100 text-gray-500 rounded-lg w-full">
 

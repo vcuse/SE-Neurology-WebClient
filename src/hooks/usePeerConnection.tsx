@@ -218,6 +218,20 @@ export function usePeerConnection() {
   // EXPOSED CORE ROOM FUNCTIONS
   // =====================================
 
+  const createRoomClient = async (name: string, room_id: string, roomClientClass: any) =>{
+    
+
+  }
+
+  const produce = async ()=>  {
+    setActiveView('activeCall');
+    console.log('Produce was called');
+    if(rcRef.current){
+      rcRef.current.produce('videoType')
+      
+    }
+  }
+
   /**
    * Encapsulates the original `joinRoom` logic.
    * This method is called from your `Page.tsx` component when the user clicks 'Join'.
@@ -247,18 +261,36 @@ export function usePeerConnection() {
 
 
        // We pass the callback that updates the view state
-       const roomOpenCallback = () => {
+      const roomOpenCallback = () => {
         setActiveView('activeCall'); // This replaces the old roomOpen UI logic
+      };
+
+      const addRemoteStream = (stream: MediaStream) => {
+        console.log("HOOK: addRemoteStream called. Adding new stream to list.");
+        setRemoteStream(stream);
       };
       console.log('before creating newRC');
       deviceRef.current= new mediaSoup.Device;
       // Replace the global DOM elements with nulls, as the RoomClient should manage them
+
+      const remoteVideoElement = document.createElement('video');
+      remoteVideoElement.style.position = 'fixed';
+      remoteVideoElement.style.top = '10px';
+      remoteVideoElement.style.right = '10px';
+      remoteVideoElement.style.width = '300px';
+      remoteVideoElement.style.border = '5px solid red'; // Visual confirmation
+      remoteVideoElement.style.zIndex = '9999'; 
+      // 3. Attach it directly to the main document body
+
+
+      document.body.appendChild(remoteVideoElement);
+      console.log('Direct Video Element Injected. Check top-right corner. consumer paused? ');
       const localMedia = null; 
-      const remoteVideos = null;
+      const remoteVideos = remoteVideoElement;
       const remoteAudios = null; 
       const newRc = new roomClientClass(
         localMedia,
-        remoteVideos,
+        videoEl.current,
         remoteAudios,
         // ARGUMENT 4: The Mediasoup Device constructor!
         mediaSoup, 
@@ -269,7 +301,8 @@ export function usePeerConnection() {
         // ARGUMENT 7: name
         name, 
         // ARGUMENT 8: successCallback
-        roomOpenCallback 
+        roomOpenCallback,
+        addRemoteStream 
       );
       console.log('after creating newRC')
       rcRef.current = newRc;
@@ -300,6 +333,7 @@ export function usePeerConnection() {
 
     const onConnect = () => {
         setIsConnected(true);
+        // setActiveView('activeCall');
         // You can set currentPeerId here if the server returns it, or get it from socket.id
         // setCurrentPeerId(socket.id); 
     };
@@ -358,9 +392,15 @@ export function usePeerConnection() {
     joinRoom,
     isConnected,
     createRoom,
+    setActiveView,
+    activeView,
     getAvailableRooms,   
     availableRooms,    // <-- New state array
     isRoomListLoading,  // <-- Expose the function to refresh the 
+    produce,
+    remoteStream,
+    setRemoteStream,
+    videoEl,
     // If you want to allow the component to manually toggle devices:
     // initEnumerateDevices,
     // ... (other exposed methods)
