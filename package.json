@@ -25,7 +25,7 @@
     "mediasoup-client": "^3.16.7",
     "next": "^15.2.4",
     "npm-check-updates": "^17.1.11",
-    "peerjs": "file:.yalc/peerjs",
+    "peerjs": "^1.5.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.53.2",
