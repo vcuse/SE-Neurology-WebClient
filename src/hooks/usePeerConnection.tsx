@@ -305,7 +305,8 @@ export function usePeerConnection() {
   useEffect(() => {
 
     const socket = io('https://localhost:3016', {
-      autoConnect: true // Important: delay the connection
+      autoConnect: true, // Important: delay the connection
+      withCredentials: true,
     });
 
     setSocket(socket);
