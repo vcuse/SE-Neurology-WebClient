@@ -307,6 +307,7 @@ export function usePeerConnection() {
     const socket = io('https://meechie.techkit.xyz:3016', {
       autoConnect: true, // Important: delay the connection
       withCredentials: true,
+      path: '/b/socket.io', // used to hit the subpath in nginx
     });
 
     setSocket(socket);

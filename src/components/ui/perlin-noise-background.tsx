@@ -62,9 +62,9 @@ const PerlinNoiseBackground: React.FC<PerlinNoiseBackgroundProps> = ({ style, cl
         // data[i + 2] = Math.floor(baseBlue + contrastValue * blueVariation); // blue
         // data[i + 3] = 255; // alpha
 
-        data[i] = Math.floor(contrastValue * 149); // red
+        data[i] = Math.floor(contrastValue * 1); // red
         data[i + 1] = Math.floor(contrastValue * 174); // green
-        data[i + 2] = Math.floor(contrastValue * 232); // blue
+        data[i + 2] = Math.floor(contrastValue * 1); // blue
         data[i + 3] = 255; // alpha
       }
 
