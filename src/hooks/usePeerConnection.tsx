@@ -304,7 +304,7 @@ export function usePeerConnection() {
   // Add a useEffect to listen for the connection event
   useEffect(() => {
 
-    const socket = io('https://localhost:3016', {
+    const socket = io('https://meechie.techkit.xyz:3016', {
       autoConnect: true, // Important: delay the connection
       withCredentials: true,
     });
@@ -315,7 +315,7 @@ export function usePeerConnection() {
     const onConnect = () => {
         setIsConnected(true);
         getAvailableRooms(socket);
-        const intervalId = setInterval(getAvailableRooms, 5000);
+        //const intervalId = setInterval(getAvailableRooms, 5000);
         console.log('socket.io connected');
         // setActiveView('activeCall');
         // You can set currentPeerId here if the server returns it, or get it from socket.id

@@ -595,14 +595,7 @@ async getConsumeStream(producerId: string): Promise<ConsumeStreamResult> {
       
       // Add SVC encodings for simulcast/scalable video
       if (!audio && !screen) {
-        params.encodings = [
-          { rid: 'r0', maxBitrate: 100000, scalabilityMode: 'S1T3' },
-          { rid: 'r1', maxBitrate: 300000, scalabilityMode: 'S1T3' },
-          { rid: 'r2', maxBitrate: 900000, scalabilityMode: 'S1T3' }
-        ];
-        params.codecOptions = {
-          videoGoogleStartBitrate: 1000
-        };
+        
       }
       
       // **THE FIX:** Declare 'producer' as a local constant
