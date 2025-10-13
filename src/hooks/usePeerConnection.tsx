@@ -18,6 +18,10 @@ interface Message {
   text: string;
   timestamp: Date;
 }
+interface SocketRequest {
+  request: (type: string, data?: any) => Promise<any>;
+}
+
 interface GetRtpCapabilitiesResponse {
   // The structure returned by the server on success
   rtpCapabilities: RtpCapabilities;
@@ -149,10 +153,18 @@ export function usePeerConnection() {
     }
   };
 
-  const socketRequest = function request<T>(type: string, data: any = {}): Promise<T> {    return new Promise((resolve, reject) => {
+  const socketRequest = function request<T>(socket: Socket, type: string, data: any = {}): Promise<T> {    
+    return new Promise((resolve, reject) => {
+      // CRITICAL: Check if the socket is actually initialized
+      if (!socket) {
+        console.error(`Socket not initialized when attempting to emit: ${type}`);
+        return reject(new Error("Socket connection is not ready."));
+      }
+
+      console.log('socket request emit called:', type);
+      
       // Use the standard socket.emit with a callback for acknowledgement
-      console.log('socket request emit called');
-      socket!.emit(type, data, (response: any) => {
+      socket.emit(type, data, (response: any) => {
         if (response && response.error) {
           reject(new Error(response.error));
         } else {
@@ -162,29 +174,8 @@ export function usePeerConnection() {
     });
   }
 
-  /**
- * Requests the list of all active room IDs from the server.
- * @returns A promise that resolves with an array of room IDs.
- */
-  const getAvailableRooms = async (): Promise<string[]> => {
-    setIsRoomListLoading(true);
-    try {
-        // Use the socketRequest utility. We expect a string[] back.
-        const roomList: string[] = await socketRequest<string[]>('getRoomList');
-        console.log('roomlist is', roomList);
-        setAvailableRooms(roomList);
-        setIsLoading(false);
-        return roomList;
-        
-    } catch (e) {
-        console.error("Error fetching room list:", e);
-        setError("Failed to load active consultations.");
-        setAvailableRooms([]);
-        return [];
-    } finally {
-        setIsRoomListLoading(false);
-    }
-  };
+
+ 
 
   // Encapsulates the enumerateDevices logic
   const enumerateDevices = (stream: MediaStream) => {
@@ -238,17 +229,7 @@ export function usePeerConnection() {
    */
   const joinRoom = async (name: string, room_id: string, roomClientClass: any) => {
 
-    // if (getAvailableRooms) {
-    //   getAvailableRooms(); // Immediate call
 
-    //   // Start interval and return a cleanup function
-       
-    //   return () => {
-           
-      
-    //   }
-    // }
-    // 1. Check if already connected (rcRef.current replaces global rc)
     if (rcRef.current /* && rcRef.current.isOpen() */) {
       console.log('Already connected to a room');
       return;
@@ -273,20 +254,20 @@ export function usePeerConnection() {
       deviceRef.current= new mediaSoup.Device;
       // Replace the global DOM elements with nulls, as the RoomClient should manage them
 
-      const remoteVideoElement = document.createElement('video');
-      remoteVideoElement.style.position = 'fixed';
-      remoteVideoElement.style.top = '10px';
-      remoteVideoElement.style.right = '10px';
-      remoteVideoElement.style.width = '300px';
-      remoteVideoElement.style.border = '5px solid red'; // Visual confirmation
-      remoteVideoElement.style.zIndex = '9999'; 
-      // 3. Attach it directly to the main document body
+      // const remoteVideoElement = document.createElement('video');
+      // remoteVideoElement.style.position = 'fixed';
+      // remoteVideoElement.style.top = '10px';
+      // remoteVideoElement.style.right = '10px';
+      // remoteVideoElement.style.width = '300px';
+      // remoteVideoElement.style.border = '5px solid red'; // Visual confirmation
+      // remoteVideoElement.style.zIndex = '9999'; 
+      // // 3. Attach it directly to the main document body
 
 
-      document.body.appendChild(remoteVideoElement);
+      // document.body.appendChild(remoteVideoElement);
       console.log('Direct Video Element Injected. Check top-right corner. consumer paused? ');
       const localMedia = null; 
-      const remoteVideos = remoteVideoElement;
+      // const remoteVideos = remoteVideoElement;
       const remoteAudios = null; 
       const newRc = new roomClientClass(
         localMedia,
@@ -328,11 +309,13 @@ export function usePeerConnection() {
     });
 
     setSocket(socket);
-
     
 
     const onConnect = () => {
         setIsConnected(true);
+        getAvailableRooms(socket);
+        const intervalId = setInterval(getAvailableRooms, 5000);
+        console.log('socket.io connected');
         // setActiveView('activeCall');
         // You can set currentPeerId here if the server returns it, or get it from socket.id
         // setCurrentPeerId(socket.id); 
@@ -340,6 +323,33 @@ export function usePeerConnection() {
     const onDisconnect = () => {
         setIsConnected(false);
     };
+
+     /**
+   * Requests the list of all active room IDs from the server.
+   * @returns A promise that resolves with an array of room IDs.
+   */
+    const getAvailableRooms = async (activeSocket: Socket): Promise<string[]> => {
+      setIsRoomListLoading(true);
+      try {
+          // Use the socketRequest utility. We expect a string[] back.
+          
+          const roomList: string[] = await socketRequest(socket, 'getRoomList');
+          console.log('roomlist is', roomList);
+          setAvailableRooms(roomList);
+          setIsLoading(false);
+          return roomList;
+          
+      } catch (e) {
+          console.error("Error fetching room list:", e);
+          setError("Failed to load active consultations.");
+          setAvailableRooms([]);
+          return [];
+      } finally {
+          setIsRoomListLoading(false);
+      }
+    };
+
+  
 
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
@@ -394,7 +404,7 @@ export function usePeerConnection() {
     createRoom,
     setActiveView,
     activeView,
-    getAvailableRooms,   
+    // getAvailableRooms,   
     availableRooms,    // <-- New state array
     isRoomListLoading,  // <-- Expose the function to refresh the 
     produce,
