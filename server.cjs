@@ -1,18 +1,18 @@
-const { createServer } = require('https');
+const { createServer } = require('http');
 const { parse } = require('url');
 const next = require('next');
 const fs = require('fs');
 const path = require('path');
 
-const port = 4000;
+const port = 6002;
 const dev = process.env.NODE_ENV;
 const app = next({ dev });
 const handle = app.getRequestHandler();
 
 const httpsOptions = {
     // ⚠️ UPDATE THESE PATHS to your certificate files
-    key: fs.readFileSync(path.join(__dirname, 'sslcerts', 'key.pem')),
-    cert: fs.readFileSync(path.join(__dirname, 'sslcerts', 'cert.pem'))
+    // key: fs.readFileSync('/etc/letsencrypt/live/meechie.techkit.xyz/privkey.pem'),
+    // cert: fs.readFileSync('/etc/letsencrypt/live/meechie.techkit.xyz/fullchain.pem')
 };
 
 app.prepare().then(() => {
