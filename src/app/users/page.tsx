@@ -447,7 +447,7 @@ export default function Page() {
             //disabled={!!myStream} // Disable if myStream is already active
               >
                   <Video className="h-4 w-4" />
-                  { 'Start Video/Audio'}
+                  { 'Start Audio'}
               </Button>
         
         {/* <button onClick={startPlayback}>Start Video</button> */}

@@ -616,15 +616,15 @@ async getConsumeStream(producerId: string): Promise<ConsumeStreamResult> {
         // elem.playsInline = false;
         elem.autoplay = true;
         elem.className = 'vid';
-        this.localMediaEl?.appendChild(elem);
+        //this.localMediaEl?.appendChild(elem);
         // this.handleFS(elem.id);
       } else {
-        elem = document.createElement('audio');
-        elem.srcObject = stream;
-        elem.id = producer.id;
+        // elem = document.createElement('audio');
+        // elem.srcObject = stream;
+        // elem.id = producer.id;
         // elem.playsInline = false;
-        elem.autoplay = true;
-        this.remoteAudioEl?.appendChild(elem); // NOTE: Placing local audio in remoteAudioEl is unusual, but matches original JS
+        //elem.autoplay = true;
+        //this.remoteAudioEl?.appendChild(elem); // NOTE: Placing local audio in remoteAudioEl is unusual, but matches original JS
       }
       
       // 6. Set up event listeners for the new producer

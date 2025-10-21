@@ -218,8 +218,8 @@ export function usePeerConnection() {
     setActiveView('activeCall');
     console.log('Produce was called');
     if(rcRef.current){
-      rcRef.current.produce('videoType')
-      
+      //rcRef.current.produce('videoType')
+      rcRef.current.produce('audioType')
     }
   }
 
@@ -287,7 +287,7 @@ export function usePeerConnection() {
       );
       console.log('after creating newRC')
       rcRef.current = newRc;
-
+      
     
       
       
@@ -303,7 +303,7 @@ export function usePeerConnection() {
 
   // Add a useEffect to listen for the connection event
   useEffect(() => {
-
+    //todo: change to use env variable
     const socket = io('https://meechie.techkit.xyz:3016', {
       autoConnect: true, // Important: delay the connection
       withCredentials: true,
@@ -365,6 +365,29 @@ export function usePeerConnection() {
   }, []); // Depend on the socket instance
 
     // ...
+  const handleLogout = () => {
+    document.cookie = "isLoggedIn=false; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    localStorage.removeItem('peerId');
+    router.push('/login');
+  };
+
+  const toggleChat = () => {
+    setIsChatVisible(prev => !prev);
+    if (!isChatVisible) {
+      setIsStrokeScaleVisible(false);
+    }
+  };
+
+  const toggleStrokeScale = () => {
+    setIsStrokeScaleVisible(prev => !prev);
+    if (!isStrokeScaleVisible) {
+      setIsChatVisible(false);
+    }
+  };
+
+  const toggleMinimizeChat = () => {
+    setMinimizedChat(prev => !prev);
+  };
     
 
   /**
@@ -392,6 +415,8 @@ export function usePeerConnection() {
     // ... (add other event listeners here)
   };
 
+  
+
   // ... (existing call management functions like handleCall, endCall, etc.)
 
 
@@ -416,6 +441,8 @@ export function usePeerConnection() {
     // If you want to allow the component to manually toggle devices:
     // initEnumerateDevices,
     // ... (other exposed methods)
+    isStrokeScaleVisible,
+    toggleStrokeScale,
   };
 
   
@@ -1103,29 +1130,7 @@ export function usePeerConnection() {
 
   // this needs to be changed to send a message to the server
   // to tell it to expire the cookie
-  const handleLogout = () => {
-    document.cookie = "isLoggedIn=false; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    localStorage.removeItem('peerId');
-    router.push('/login');
-  };
 
-  const toggleChat = () => {
-    setIsChatVisible(prev => !prev);
-    if (!isChatVisible) {
-      setIsStrokeScaleVisible(false);
-    }
-  };
-
-  const toggleStrokeScale = () => {
-    setIsStrokeScaleVisible(prev => !prev);
-    if (!isStrokeScaleVisible) {
-      setIsChatVisible(false);
-    }
-  };
-
-  const toggleMinimizeChat = () => {
-    setMinimizedChat(prev => !prev);
-  };
 
   const initializeChat = (peerId: string) => {
     // const peer = peerRef.current;
