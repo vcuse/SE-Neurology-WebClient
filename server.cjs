@@ -11,8 +11,8 @@ const handle = app.getRequestHandler();
 
 const httpsOptions = {
     // ⚠️ UPDATE THESE PATHS to your certificate files
-    // key: fs.readFileSync('/etc/letsencrypt/live/meechie.techkit.xyz/privkey.pem'),
-    // cert: fs.readFileSync('/etc/letsencrypt/live/meechie.techkit.xyz/fullchain.pem')
+    key: fs.readFileSync(path.join(__dirname, 'sslcerts', 'key.pem')),
+    cert: fs.readFileSync(path.join(__dirname, 'sslcerts', 'cert.pem'))
 };
 
 app.prepare().then(() => {
@@ -23,4 +23,4 @@ app.prepare().then(() => {
         if (err) throw err;
         console.log(`> Ready on https://localhost:${port}`);
     });
-});
+}); 

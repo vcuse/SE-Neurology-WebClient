@@ -453,8 +453,8 @@ removeConsumer(consumer_id: string): void {
                 elem = document.createElement('audio');
                 elem.srcObject = stream;
                 elem.id = consumer.id;
-             
-                elem.autoplay = true;
+                console.log('received audio and setting up');
+                
                 
                 this.remoteAudioEl?.appendChild(elem);
             }

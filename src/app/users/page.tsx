@@ -390,7 +390,7 @@ export default function Page() {
                           }
                           // endCall();
                         }
-                        // setActiveView(item.value);
+                        setActiveView(item.value);
                       }}
                     >
                       <item.icon className="h-5 w-5 text-blue-600" />
