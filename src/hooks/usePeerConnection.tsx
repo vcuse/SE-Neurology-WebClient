@@ -164,6 +164,27 @@ export function usePeerConnection() {
       console.log('socket request emit called:', type);
       
       // Use the standard socket.emit with a callback for acknowledgement
+      socket.emit(type, {data}, (response: any) => {
+        if (response && response.error) {
+          reject(new Error(response.error));
+        } else {
+          resolve(response as T);
+        }
+      });
+    });
+  }
+
+  const socketRequestAPI = function request<T>(type: string, data: any): Promise<T> {    
+    return new Promise((resolve, reject) => {
+      // CRITICAL: Check if the socket is actually initialized
+      if (!socket) {
+        console.error(`Socket not initialized when attempting to emit: ${type}`);
+        return reject(new Error("Socket connection is not ready."));
+      }
+
+      console.log('socket request emit called:', type);
+      
+      // Use the standard socket.emit with a callback for acknowledgement
       socket.emit(type, data, (response: any) => {
         if (response && response.error) {
           reject(new Error(response.error));
@@ -227,12 +248,12 @@ export function usePeerConnection() {
    * Encapsulates the original `joinRoom` logic.
    * This method is called from your `Page.tsx` component when the user clicks 'Join'.
    */
-  const joinRoom = async (name: string, room_id: string, roomClientClass: any) => {
+  const joinRoom = async (name: string, room_id: string, roomClientClass: any): Promise<string> => {
 
 
     if (rcRef.current /* && rcRef.current.isOpen() */) {
       console.log('Already connected to a room');
-      return;
+      return 'FAILED TO JOIN';
     }
     console.log('about to initEnumerateDevices');
     // 2. Initialize media devices
@@ -294,17 +315,19 @@ export function usePeerConnection() {
 
      
       console.log('at rc ref.current');
+      return room_id;
      
     } catch (err: any) {
       console.error('Failed to join room or fetch capabilities:', err);
       setError(`Failed to connect: ${err.message || 'Unknown error'}`);
+      return 'FAILED TO JOIN';
     }
   };
 
   // Add a useEffect to listen for the connection event
   useEffect(() => {
     //todo: change to use env variable
-    const socket = io('https://meechie.techkit.xyz:3016', {
+    const socket = io('https://127.0.0.1:3016', {
       autoConnect: true, // Important: delay the connection
       withCredentials: true,
 
@@ -427,6 +450,7 @@ export function usePeerConnection() {
   return {
     // ... (existing state and refs)
     joinRoom,
+    socketRequestAPI,
     isConnected,
     createRoom,
     setActiveView,

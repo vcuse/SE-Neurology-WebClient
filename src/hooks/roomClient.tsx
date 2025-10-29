@@ -153,34 +153,34 @@ export class RoomClient {
     }
 
     /**
- * Stops and removes a remote consumer's media track and associated DOM element.
- * @param consumer_id The ID of the consumer (which is also the ID of the DOM element).
- */
-removeConsumer(consumer_id: string): void {
-    // 1. Find the DOM element
-    const elem = document.getElementById(consumer_id) as HTMLVideoElement | HTMLAudioElement | null;
+     * Stops and removes a remote consumer's media track and associated DOM element.
+     * @param consumer_id The ID of the consumer (which is also the ID of the DOM element).
+     */
+    removeConsumer(consumer_id: string): void {
+        // 1. Find the DOM element
+        const elem = document.getElementById(consumer_id) as HTMLVideoElement | HTMLAudioElement | null;
 
-    if (!elem) {
-        console.warn(`Attempted to remove consumer element, but DOM element with ID ${consumer_id} not found.`);
+        if (!elem) {
+            console.warn(`Attempted to remove consumer element, but DOM element with ID ${consumer_id} not found.`);
+            this.consumers.delete(consumer_id);
+            return;
+        }
+
+        // 2. Stop all tracks in the associated stream
+        const stream = elem.srcObject as MediaStream | null;
+        if (stream) {
+            stream.getTracks().forEach((track: MediaStreamTrack) => {
+                track.stop();
+            });
+        }
+
+        // 3. Remove the element from its parent (if it has one)
+        elem.parentNode?.removeChild(elem);
+
+        // 4. Remove the consumer from the internal map
         this.consumers.delete(consumer_id);
-        return;
+        console.log(`Consumer ${consumer_id} removed.`);
     }
-
-    // 2. Stop all tracks in the associated stream
-    const stream = elem.srcObject as MediaStream | null;
-    if (stream) {
-        stream.getTracks().forEach((track: MediaStreamTrack) => {
-            track.stop();
-        });
-    }
-
-    // 3. Remove the element from its parent (if it has one)
-    elem.parentNode?.removeChild(elem);
-
-    // 4. Remove the consumer from the internal map
-    this.consumers.delete(consumer_id);
-    console.log(`Consumer ${consumer_id} removed.`);
-}
 
     initSockets(): void {
         // NOTE: We assume 'this.socket' is typed as CustomSocket (with .request)
@@ -261,6 +261,15 @@ removeConsumer(consumer_id: string): void {
          // 5. Request existing producers in the room
          this.socket.emit('getProducers');
  
+    }
+
+    async submitForm(payload: any): Promise<void>{
+        console.log('about to submit and create a new form');
+
+        this.socket.request('CREATEFORM', payload);
+        
+
+
     }
 
         /**

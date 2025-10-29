@@ -1,7 +1,6 @@
 "use client";
 // library imports
 import React, { useEffect, useRef, useState } from "react";
-import { io, Socket } from 'socket.io-client';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -92,7 +91,7 @@ export default function Page() {
   const [selectedOldForm, setSelectedOldForm] = useState<any | null>(null);
   const [isOldFormVisible, setIsOldFormVisible] = useState(false);
   const hasRoomsBeenFetched = useRef(false);
-
+  const [currentRoomId, setCurrentRoomId] = useState<any | null>(null);
 
   //=====================================
   // VIDEO CONNECTION AND CALL LOGIC
@@ -105,6 +104,7 @@ export default function Page() {
     peerIds,
     error,
     isLoading,
+    socketRequestAPI,
     isMuted,
     callerId,
     setCallerId,
@@ -190,9 +190,10 @@ export default function Page() {
         
         // 2. Call the exposed joinRoom function
         // Arguments: name, room_id, RoomClient class
-        await joinRoom?.(myName, roomId, RoomClient);
-        
+        const newRoomId = await joinRoom?.(myName, roomId, RoomClient);
+        setCurrentRoomId(newRoomId);
         console.log(`Attempted to join room: ${roomId}`);
+
         // The setActiveView('activeCall') logic should be handled by the successCallback 
         // defined inside your joinRoom implementation in the hook.
 
@@ -305,6 +306,34 @@ export default function Page() {
   const togglePopout = () => {
     setIsOnPopout(!isOnPopout);
   };
+
+  // Function to handle the form submission network request
+  const onSubmitForm = async (payload: { [key: string]: number | string | null }, action: string): Promise<any> => {
+    console.log("SUBMITTING FORM", payload);
+    try{
+      socketRequestAPI!("CREATEFORM", {payload});
+    }catch(error){
+
+    }
+    // try {
+        
+        
+    //     // Parse the response body as JSON
+    //     const responseData = await response.json(); 
+        
+    //     if (!response.ok) {
+    //         // Throw an error if the HTTP status code indicates a failure
+    //         throw new Error(responseData.message || response.statusText || `Server returned error status ${response.status}`);
+    //     }
+        
+    //     // Return the parsed data (expected to contain { success: boolean, formId: number, ... })
+    //     return responseData; 
+    // } catch (error) {
+    //     console.error("Network or Submission Error:", error);
+    //     // Return a structured error response that the form component can handle
+    //     return { success: false, message: (error as Error).message || "A network error occurred." };
+    // }
+  }
 
   const startPlayback = () => {
     // if (videoEl.current) {
@@ -512,21 +541,24 @@ export default function Page() {
         {isNewFormVisible && !isNewFormMinimized && !isOnPopout && (
           <Card className="border-blue-50">
             <CardContent>
-              <NewStrokeScaleForm onCancel={() => { // clear data after cancel
+              <NewStrokeScaleForm onCancel={() => {
                 setIsNewFormVisible(false);
                 // setActiveView("strokeScale");
                 setSavedAns({});
                 setSavedPatient({ name: '', DOB: '' });
                 setIsOnPopout(false);
-              }}
 
-                onMinimize={minForm}
-                initialData={savedAns}
-                onDataChange={handleDataChange}
-                onPatientChange={handlePatientChange}
-                initialPatient={savedPatient}
-                onTogglePopout={togglePopout}
-              />
+              } }
+
+              onMinimize={minForm}
+              initialData={savedAns}
+              onDataChange={handleDataChange}
+              onPatientChange={handlePatientChange}
+              initialPatient={savedPatient}
+              onTogglePopout={togglePopout}
+              onSubmitForm={onSubmitForm} currentFormId={null} setCurrentFormId={function (id: number): void {
+                throw new Error("Function not implemented.");
+              } } currentSessionId={currentRoomId}              />
             </CardContent>
           </Card>
         )}
@@ -534,22 +566,24 @@ export default function Page() {
 
         {/* renders popout form */}
         {isNewFormVisible && !isNewFormMinimized && isOnPopout && (
-          <NewStrokeScaleForm onCancel={() => { // clear data after cancel
+          <NewStrokeScaleForm onCancel={() => {
             setIsNewFormVisible(false);
             // setActiveView("strokeScale");
             setSavedAns({});
             setSavedPatient({ name: '', DOB: '' });
             setIsOnPopout(false);
-          }}
+          } }
 
-            onMinimize={minForm}
-            initialData={savedAns}
-            onDataChange={handleDataChange}
-            onPatientChange={handlePatientChange}
-            initialPatient={savedPatient}
-            onTogglePopout={togglePopout}
-            isPopout={true}
-          />
+          onMinimize={minForm}
+          initialData={savedAns}
+          onDataChange={handleDataChange}
+          onPatientChange={handlePatientChange}
+          initialPatient={savedPatient}
+          onTogglePopout={togglePopout}
+          isPopout={true}
+          onSubmitForm={onSubmitForm} currentFormId={null} setCurrentFormId={function (id: number): void {
+            throw new Error("Function not implemented.");
+          } } currentSessionId={currentRoomId}          />
         )}
 
         {/* minimized form */}
@@ -660,7 +694,9 @@ export default function Page() {
                                 <HoverCardTrigger asChild>
                                   <Button
                                     size="sm"
-                                     onClick={() => joinRoom?.('david.' + Math.random(), room_id, RoomClient)}
+                                     onClick={() => {joinRoom?.('david.' + Math.random(), room_id, RoomClient);
+                                      setCurrentRoomId(room_id);
+                                     }}
                                     className="gap-2 bg-blue-600 hover:bg-blue-700"
                                   >
                                     <PhoneCall className="h-4 w-4" />
@@ -897,7 +933,9 @@ export default function Page() {
                         onCancel={toggleStrokeScale}
                         initialData={formData}
                         onDataChange={handleDataChange}
-                      />
+                        onSubmitForm={onSubmitForm} currentFormId={null} setCurrentFormId={function (id: number): void {
+                          throw new Error("Function not implemented.");
+                        } } currentSessionId={currentRoomId}                      />
                     </CardContent>
                   </Card>
                 )}
