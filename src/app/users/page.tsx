@@ -797,7 +797,7 @@ export default function Page() {
 
           {/* active call view */}
           {activeView === 'activeCall' && (
-            <div className="h-[calc(100vh-140px)] overflow-y-auto p-6">
+            <div className="h-[calc(100vh-140px)] overflow-y-auto p-0">
               <div className={cn(
 
                 "flex gap-6 grid-cols-1",
