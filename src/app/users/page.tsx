@@ -311,10 +311,12 @@ export default function Page() {
   const onSubmitForm = async (payload: { [key: string]: number | string | null }, action: string): Promise<any> => {
     console.log("SUBMITTING FORM", payload);
     try{
-      socketRequestAPI!("CREATEFORM", {payload});
+      return await socketRequestAPI!("CREATEFORM", {payload});
       console.log('SUCCESS');
+      
     }catch(error){
       console.log('FAILURE');
+      return 'FAILURE';
     }
     // try {
         

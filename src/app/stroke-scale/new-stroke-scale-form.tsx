@@ -169,11 +169,11 @@ export default function NewStrokeScaleForm({
             const actionHeader = "start_new_nihss_form";
             setMessage("Starting new assessment...");
             response = await onSubmitForm(formItemPayload, actionHeader);
-            
-            if (response.success && response.formId) {
+            console.log('response to formsubmissionwas', response);
+            if (response.response === 'SUCCESS') {
                 // Store the ID returned by the server for all future updates
-                setCurrentFormId(response.formId);
-                setMessage(`Assessment started. Form ID: ${response.formId}`);
+                // setCurrentFormId(response.formId);
+                setMessage(`Succesfully created and submitted form`);
             } else {
                 throw new Error(response.message || "Failed to create form.");
             }
