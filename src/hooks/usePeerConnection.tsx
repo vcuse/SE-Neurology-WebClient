@@ -174,7 +174,7 @@ export function usePeerConnection() {
     });
   }
 
-  const socketRequestAPI = function request<T>(type: string, data: any): Promise<T> {    
+  const socketRequestAPI = function request<T>(type: string, data: any): Promise<any> {    
     return new Promise((resolve, reject) => {
       // CRITICAL: Check if the socket is actually initialized
       if (!socket) {
@@ -186,10 +186,12 @@ export function usePeerConnection() {
       
       // Use the standard socket.emit with a callback for acknowledgement
       socket.emit(type, data, (response: any) => {
+
+        console.log('response to emit was', response);
         if (response && response.error) {
           reject(new Error(response.error));
         } else {
-          resolve(response as T);
+          resolve(response as any);
         }
       });
     });
@@ -327,7 +329,11 @@ export function usePeerConnection() {
   // Add a useEffect to listen for the connection event
   useEffect(() => {
     //todo: change to use env variable
-    const socket = io('https://127.0.0.1:3016', {
+    
+
+    const socketUrl = process.env.NEXT_PUBLIC_SERVER_FETCH_PEERS
+    console.log('current socketUrl is', socketUrl);
+    const socket = io(socketUrl, {
       autoConnect: true, // Important: delay the connection
       withCredentials: true,
 

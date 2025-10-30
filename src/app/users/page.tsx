@@ -30,7 +30,7 @@ import {
   Plus
 } from "lucide-react";
 // custom imports 
-
+import { v4 as uuidv4 } from 'uuid';
 import NewStrokeScaleForm from "@/app/stroke-scale/new-stroke-scale-form";
 import { StrokeScaleForm } from "@/components/stroke-scale/stroke-scale-form";
 import { usePeerConnection } from "@/hooks/usePeerConnection";
@@ -179,7 +179,7 @@ export default function Page() {
   const initializeRoom = async () => {
     try {
       const myName = 'David' + Math.random();
-      const roomId = '3242134';
+      const roomId: string = uuidv4();
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         
@@ -312,8 +312,9 @@ export default function Page() {
     console.log("SUBMITTING FORM", payload);
     try{
       socketRequestAPI!("CREATEFORM", {payload});
+      console.log('SUCCESS');
     }catch(error){
-
+      console.log('FAILURE');
     }
     // try {
         
