@@ -53,12 +53,12 @@ export function usePeerConnection() {
   const [minimizedChat, setMinimizedChat] = useState<boolean>(false);
   const [isChatVisible, setIsChatVisible] = useState<boolean>(false);
   const [isStrokeScaleVisible, setIsStrokeScaleVisible] = useState<boolean>(false);
-  const [isConnected, setIsConnected] = useState(false); 
+  const [isConnected, setIsConnected] = useState(false);
   // messaging states
   const [messages, setMessages] = useState<Message[]>([]);
   const [availableRooms, setAvailableRooms] = useState<string[]>([]);
-  const [isRoomListLoading, setIsRoomListLoading] = useState(false);  
- 
+  const [isRoomListLoading, setIsRoomListLoading] = useState(false);
+
 
   //=====================================
   // REFERENCES
@@ -70,11 +70,11 @@ export function usePeerConnection() {
 
 
 
-  const rtpCapRef = useRef<mediaSoup.types.RtpCapabilities | null> (null);
+  const rtpCapRef = useRef<mediaSoup.types.RtpCapabilities | null>(null);
 
 
   let _producerId: string;
-  
+
   const deviceRef = useRef<mediaSoup.Device | null>(null);
   const sendTransportRef = useRef<Transport | null>(null);
   const recvTransportRef = useRef<Transport | null>(null);
@@ -83,20 +83,20 @@ export function usePeerConnection() {
 
   let _sendVideoProducer: Producer;
 
- 
+
   // peer connection refs
   const peerRef = useRef<Peer | null>(null);
   const intervalRef = useRef<NodeJS.Timeout>();
   const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const currentPeerIdRef = useRef<string>("");
   const dataConnectionRef = useRef<DataConnection | null>(null);
-  const _awaitingResponses: Map<string,{ resolve: (data: any) => void; reject: (error: Error) => void}> = new Map();
+  const _awaitingResponses: Map<string, { resolve: (data: any) => void; reject: (error: Error) => void }> = new Map();
 
   const [socket, setSocket] = useState<Socket | null>(null);
 
   let rcRef = useRef<RoomClient | null>(null);
   const [rtpCapabilities, setRtpCapabilities] = useState<RtpCapabilities | null>(null);
-  
+
   // ---
 
   // ... (socket initialization and socketRequest function)
@@ -109,7 +109,7 @@ export function usePeerConnection() {
   const initEnumerateDevices = () => {
     // Use a ref or state if you need to persist `isEnumerateDevices`
     // For simplicity, we just check if any device has been added to the selectors (which we don't have yet)
-    
+
     const constraints = {
       audio: true,
       video: true
@@ -129,27 +129,28 @@ export function usePeerConnection() {
       });
   };
 
-    /**
-   * Wrapper to safely call the RoomClient's createRoom method.
-   * @param roomId The ID of the room to create.
-   */
+  /**
+ * Wrapper to safely call the RoomClient's createRoom method.
+ * @param roomId The ID of the room to create.
+ */
   const createRoom = async (roomId: string, roomClientClass: any): Promise<void> => {
     // 1. Check if the RoomClient instance has been created
-    if(!rcRef.current){
+    if (!rcRef.current) {
       console.log('rcref was null')
       return;
     }
     try {
-        // 2. Call the method directly on the instance
-        await rcRef.current.createRoom(roomId);
-        console.log(`Room creation request sent for: ${roomId}`);
+      // 2. Call the method directly on the instance
+      await rcRef.current.createRoom(roomId);
+      console.log(`Room creation request sent for: ${roomId}`);
     } catch (err) {
-        console.error(`Error requesting room creation for ${roomId}:`, err);
-        throw err;
+      console.error(`Error requesting room creation for ${roomId}:`, err);
+      throw err;
     }
   };
 
-  const socketRequest = function request<T>(type: string, data: any = {}): Promise<T> {    return new Promise((resolve, reject) => {
+  const socketRequest = function request<T>(type: string, data: any = {}): Promise<T> {
+    return new Promise((resolve, reject) => {
       // Use the standard socket.emit with a callback for acknowledgement
       console.log('socket request emit called');
       socket!.emit(type, data, (response: any) => {
@@ -169,66 +170,66 @@ export function usePeerConnection() {
   const getAvailableRooms = async (): Promise<string[]> => {
     setIsRoomListLoading(true);
     try {
-        // Use the socketRequest utility. We expect a string[] back.
-        const roomList: string[] = await socketRequest<string[]>('getRoomList');
-        console.log('roomlist is', roomList);
-        setAvailableRooms(roomList);
-        setIsLoading(false);
-        return roomList;
-        
+      // Use the socketRequest utility. We expect a string[] back.
+      const roomList: string[] = await socketRequest<string[]>('getRoomList');
+      console.log('roomlist is', roomList);
+      setAvailableRooms(roomList);
+      setIsLoading(false);
+      return roomList;
+
     } catch (e) {
-        console.error("Error fetching room list:", e);
-        setError("Failed to load active consultations.");
-        setAvailableRooms([]);
-        return [];
+      console.error("Error fetching room list:", e);
+      setError("Failed to load active consultations.");
+      setAvailableRooms([]);
+      return [];
     } finally {
-        setIsRoomListLoading(false);
+      setIsRoomListLoading(false);
     }
   };
 
   // Encapsulates the enumerateDevices logic
   const enumerateDevices = (stream: MediaStream) => {
-      // NOTE: In a React application, you typically don't directly manipulate
-      // global variables like `audioSelect` and `videoSelect`.
-      // Instead, you would store the devices in state, and your React component
-      // would render the select dropdowns based on that state.
+    // NOTE: In a React application, you typically don't directly manipulate
+    // global variables like `audioSelect` and `videoSelect`.
+    // Instead, you would store the devices in state, and your React component
+    // would render the select dropdowns based on that state.
 
-      navigator.mediaDevices.enumerateDevices().then((devices) => {
-        const audioInputs = devices.filter(d => d.kind === 'audioinput');
-        const videoInputs = devices.filter(d => d.kind === 'videoinput');
-        
-        // *** You would typically set state here: ***
-        // setAudioDevices(audioInputs);
-        // setVideoDevices(videoInputs);
-        
-        console.log('Available Audio Inputs:', audioInputs);
-        console.log('Available Video Inputs:', videoInputs);
-      });
+    navigator.mediaDevices.enumerateDevices().then((devices) => {
+      const audioInputs = devices.filter(d => d.kind === 'audioinput');
+      const videoInputs = devices.filter(d => d.kind === 'videoinput');
+
+      // *** You would typically set state here: ***
+      // setAudioDevices(audioInputs);
+      // setVideoDevices(videoInputs);
+
+      console.log('Available Audio Inputs:', audioInputs);
+      console.log('Available Video Inputs:', videoInputs);
+    });
   };
 
-    // Helper function to get the correct Mediasoup Device constructor
-    const getMediasoupDeviceConstructor = () => {
-      // Check for the most common export pattern and return the constructor function
-      if (mediaSoup && (mediaSoup as any).Device) {
-          return (mediaSoup as any).Device;
-      }
-      throw new Error("Mediasoup Device constructor not found.");
-    };
+  // Helper function to get the correct Mediasoup Device constructor
+  const getMediasoupDeviceConstructor = () => {
+    // Check for the most common export pattern and return the constructor function
+    if (mediaSoup && (mediaSoup as any).Device) {
+      return (mediaSoup as any).Device;
+    }
+    throw new Error("Mediasoup Device constructor not found.");
+  };
   // =====================================
   // EXPOSED CORE ROOM FUNCTIONS
   // =====================================
 
-  const createRoomClient = async (name: string, room_id: string, roomClientClass: any) =>{
-    
+  const createRoomClient = async (name: string, room_id: string, roomClientClass: any) => {
+
 
   }
 
-  const produce = async ()=>  {
+  const produce = async () => {
     setActiveView('activeCall');
     console.log('Produce was called');
-    if(rcRef.current){
+    if (rcRef.current) {
       rcRef.current.produce('videoType')
-      
+
     }
   }
 
@@ -242,10 +243,10 @@ export function usePeerConnection() {
     //   getAvailableRooms(); // Immediate call
 
     //   // Start interval and return a cleanup function
-       
+
     //   return () => {
-           
-      
+
+
     //   }
     // }
     // 1. Check if already connected (rcRef.current replaces global rc)
@@ -260,7 +261,7 @@ export function usePeerConnection() {
     try {
 
 
-       // We pass the callback that updates the view state
+      // We pass the callback that updates the view state
       const roomOpenCallback = () => {
         setActiveView('activeCall'); // This replaces the old roomOpen UI logic
       };
@@ -270,7 +271,7 @@ export function usePeerConnection() {
         setRemoteStream(stream);
       };
       console.log('before creating newRC');
-      deviceRef.current= new mediaSoup.Device;
+      deviceRef.current = new mediaSoup.Device;
       // Replace the global DOM elements with nulls, as the RoomClient should manage them
 
       const remoteVideoElement = document.createElement('video');
@@ -279,41 +280,41 @@ export function usePeerConnection() {
       remoteVideoElement.style.right = '10px';
       remoteVideoElement.style.width = '300px';
       remoteVideoElement.style.border = '5px solid red'; // Visual confirmation
-      remoteVideoElement.style.zIndex = '9999'; 
+      remoteVideoElement.style.zIndex = '9999';
       // 3. Attach it directly to the main document body
 
 
       document.body.appendChild(remoteVideoElement);
       console.log('Direct Video Element Injected. Check top-right corner. consumer paused? ');
-      const localMedia = null; 
+      const localMedia = null;
       const remoteVideos = remoteVideoElement;
-      const remoteAudios = null; 
+      const remoteAudios = null;
       const newRc = new roomClientClass(
         localMedia,
         videoEl.current,
         remoteAudios,
         // ARGUMENT 4: The Mediasoup Device constructor!
-        mediaSoup, 
+        mediaSoup,
         // ARGUMENT 5: The socket instance
-        socket, 
+        socket,
         // ARGUMENT 6: room_id
-        room_id, 
+        room_id,
         // ARGUMENT 7: name
-        name, 
+        name,
         // ARGUMENT 8: successCallback
         roomOpenCallback,
-        addRemoteStream 
+        addRemoteStream
       );
       console.log('after creating newRC')
       rcRef.current = newRc;
 
-    
-      
-      
 
-     
+
+
+
+
       console.log('at rc ref.current');
-     
+
     } catch (err: any) {
       console.error('Failed to join room or fetch capabilities:', err);
       setError(`Failed to connect: ${err.message || 'Unknown error'}`);
@@ -329,16 +330,16 @@ export function usePeerConnection() {
 
     setSocket(socket);
 
-    
+
 
     const onConnect = () => {
-        setIsConnected(true);
-        // setActiveView('activeCall');
-        // You can set currentPeerId here if the server returns it, or get it from socket.id
-        // setCurrentPeerId(socket.id); 
+      setIsConnected(true);
+      // setActiveView('activeCall');
+      // You can set currentPeerId here if the server returns it, or get it from socket.id
+      // setCurrentPeerId(socket.id); 
     };
     const onDisconnect = () => {
-        setIsConnected(false);
+      setIsConnected(false);
     };
 
     socket.on('connect', onConnect);
@@ -346,14 +347,14 @@ export function usePeerConnection() {
 
     // Cleanup listeners
     return () => {
-        socket.off('connect', onConnect);
-        socket.off('disconnect', onDisconnect);
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
     };
 
   }, []); // Depend on the socket instance
 
-    // ...
-    
+  // ...
+
 
   /**
    * Encapsulates the original `addListeners` logic.
@@ -376,7 +377,7 @@ export function usePeerConnection() {
       setCallerId('');
       // You would also call endCall() cleanup here
     });
-    
+
     // ... (add other event listeners here)
   };
 
@@ -394,7 +395,7 @@ export function usePeerConnection() {
     createRoom,
     setActiveView,
     activeView,
-    getAvailableRooms,   
+    getAvailableRooms,
     availableRooms,    // <-- New state array
     isRoomListLoading,  // <-- Expose the function to refresh the 
     produce,
@@ -406,7 +407,7 @@ export function usePeerConnection() {
     // ... (other exposed methods)
   };
 
-  
+
   // // set up data connection handler
   // const setupDataConnection = (dataConnection: DataConnection) => {
   //   // console.log('Setting up data connection with:', dataConnection.peer);
@@ -519,29 +520,29 @@ export function usePeerConnection() {
 
   const startPlayback = () => {
     if (videoEl.current) {
-        // This is triggered by a human click
-        videoEl.current.play().catch(e => {
-            console.error('Manual play failed:', e); 
-        });
+      // This is triggered by a human click
+      videoEl.current.play().catch(e => {
+        console.error('Manual play failed:', e);
+      });
     }
 
     return () => {
     }
   };
 
-  
+
 
   // Add this new effect after your main useEffect
   useEffect(() => {
     //This effect runs *only when* the remoteStream state changes OR the ref is ready.
     if (videoEl.current && remoteStream) {
-        console.log('Attaching stream to video element...');
-        videoEl.current.srcObject = remoteStream;
-        
-        // Manual play for browser policy (must be in the effect)
-        // videoEl.current.play().catch(error => {
-        //     console.error('Video playback failed:', error);
-        // });
+      console.log('Attaching stream to video element...');
+      videoEl.current.srcObject = remoteStream;
+
+      // Manual play for browser policy (must be in the effect)
+      // videoEl.current.play().catch(error => {
+      //     console.error('Video playback failed:', error);
+      // });
     }
   }, [videoEl, remoteStream]); // Dependencies: runs when the ref or the stream data changes
 
@@ -574,7 +575,7 @@ export function usePeerConnection() {
   // //   //   startMediaSoup();
 
   // //   // });
-    
+
   // //   // //handle incoming calls
   // //   // peer.on('call', (call) => {
   // //   //   // setIsIncomingCall(true);
@@ -584,11 +585,11 @@ export function usePeerConnection() {
   // //   //   // setCallerId(call.peer);
   // //   // });
 
-    
-    
+
+
   // //   // // Updated Handler in useEffect:
   // //   // peer.on("streamReceived", (remoteStream) => {
-    
+
   // //   //   // // 1. Convert the track to a stream
   // //   //   // setActiveView('activeCall'); 
   // //   //   // // const stream = new MediaStream(); 
@@ -607,7 +608,7 @@ export function usePeerConnection() {
   // //   //   // Handle errors like server connection issues, invalid ID, etc.
   // //   // });
 
-    
+
   // //   // peer.socket.on("message", async (data: any)=>{
   // //   //   console.log('mesage received on socket', data );
   // //   //   await _handleMessage(data);
@@ -688,17 +689,17 @@ export function usePeerConnection() {
   //   };
   // }, [myStream, mediaConnection]);
 
-  
+
 
   // // const runTest = async () => {
   // //   try {
   // //     const peer = peerRef.current
   // //     if(peer){
-        
+
   // //       const stream = await peer.checkLocalStream();
   // //       console.log('Successfully got stream from library:', stream);
   // //     }
-     
+
   // //   } catch (e) {
   // //     console.error('Test failed.', e);
   // //   }
@@ -721,16 +722,16 @@ export function usePeerConnection() {
   //   //   peer.socket.send({type: 'OFFER', payload: rtpCapRef.current, dst: peerId, src: peer.id});
   //   //   // setActiveView('activeCall');
   //   //   // peer.on("streamReceived", (stream) => {
-        
-      
+
+
   //     // });
   //   }
   //   // if (peer) {
   //   //   navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
   //   //     setMyStream(stream);
   //   //     setIsRinging(true);
-        
-       
+
+
   //   //   });
   //   // }
 
@@ -738,7 +739,7 @@ export function usePeerConnection() {
   //   //     // const dataConnection = peer.connect(peerId);
   //   //     // setupDataConnection(dataConnection);
 
-    
+
 
   //   //     call.on("close", () => {
   //   //       console.log("Call ended");
@@ -786,7 +787,7 @@ export function usePeerConnection() {
 
   // // Example on the Client (Inside your Peer class's _handleMessage):
   // async function _handleMessage(message: any){
-    
+
   //   // const payload = message.payload;
   //   // const requestId = payload?.requestId;
 
@@ -800,9 +801,9 @@ export function usePeerConnection() {
   //   //   } else {
   //   //       resolve(payload.data); // Resolve the promise with the data
   //   //   }
-      
-      
-  
+
+
+
   //   // // ... continue with switch case for regular unsolicited messages (Open, etc.)
   //   // }
 
@@ -811,7 +812,7 @@ export function usePeerConnection() {
   //   // let socket: any;
   //   // if(peerRef.current){
   //   //   socket = peerRef.current.socket;
-      
+
   //   // }
   //   // if(message.MessageType == 'PRODUCERFROMSERVERCREATED'){
   //   //   _producerId = message.payload.producerId;
@@ -829,7 +830,7 @@ export function usePeerConnection() {
   //   //     // 1. Convert the track into a MediaStream (REQUIRED)
   //   //   // 2. Create a new, standalone video element
   //   //   const remoteVideoElement = document.createElement('video');
-        
+
   //   //   // Set properties for immediate visibility and policy bypass
   //   //   remoteVideoElement.srcObject = remoteStream;
   //   //   remoteVideoElement.autoplay = true;
@@ -860,9 +861,9 @@ export function usePeerConnection() {
   //   //   } catch (e){
   //   //     console.log("failed to load RTPCaps into our device Error:", e);
   //   //   }
-      
+
   //   // }
-    
+
   //   // if(message.MessageType == 'RECVTRANSPORTCREATED' && deviceRef.current){
   //   //   recvTransportRef.current = deviceRef.current.createRecvTransport({id: payload.sendTransportFromServer.id, iceParameters: payload.sendTransportFromServer.iceParameters, iceCandidates: payload.sendTransportFromServer.iceCandidates, dtlsParameters: payload.sendTransportFromServer.dtlsParameters, sctpParameters: payload.sendTransportFromServer.sctpParameters});
   //   //   console.log('recv Transport created');
@@ -873,12 +874,12 @@ export function usePeerConnection() {
 
   //   //     callback();
   //   //   });
-      
-      
+
+
   //   // }
   //   // if(message.MessageType == 'SENDTRANSPORTCREATED' && deviceRef.current){
-      
-      
+
+
   //   //   sendTransportRef.current = deviceRef.current.createSendTransport({id: payload.sendTransportFromServer.id, iceParameters: payload.sendTransportFromServer.iceParameters, iceCandidates: payload.sendTransportFromServer.iceCandidates, dtlsParameters: payload.sendTransportFromServer.dtlsParameters, sctpParameters: payload.sendTransportFromServer.sctpParameters});
   //   //   sendTransportRef.current.on("connect", ({ dtlsParameters }, callback, _errback) => {
   //   //     console.log('about to send dtls stuff');
@@ -888,13 +889,13 @@ export function usePeerConnection() {
   //   //     console.log('sent dtls params to server');
   //   //     callback();
   //   //   });
-      
+
   //   //   // "produce" is emitted upon each call to transport.produce()
   //   //   sendTransportRef.current.on("produce", async (produceParameters, callback, _errback) => {
   //   //     const requestId = Math.random().toString(36).substring(2, 15);
   //   //     const payload = { produceParamters: produceParameters, requestId: requestId};
 
-        
+
   //   //     socket.send({type:  "WEBRTC_SEND_PRODUCE", payload: payload}); 
   //   //     console.log("[startWebrtcSend] WebRTC SEND producer created", produceParameters);
   //   //     // 2. Await the server's acknowledgment containing the real producerId
@@ -902,8 +903,8 @@ export function usePeerConnection() {
 
   //   //     const final = await responseWait;
   //   //     callback({id: _producerId});
-      
-        
+
+
   //   //   });
   //   //   let stream;
   //   //   try{ 
@@ -915,9 +916,9 @@ export function usePeerConnection() {
   //   //   }
 
   //   //   _sendVideoProducer = await sendTransportRef.current.produce({track: stream.getVideoTracks()[0]});
-     
+
   //   //   console.log("send transport successfuly made is video paused", _sendVideoProducer.paused);
-      
+
   //   // }
   //   // return;
   // }
@@ -943,21 +944,21 @@ export function usePeerConnection() {
   //   //     console.error('Peer or Socket not ready.');
   //   //     return Promise.reject(new Error('Peer connection is not initialized.'));
   //   // }
-    
+
   //   // const requestId = Math.random().toString(36).substring(2, 15);
-    
+
   //   // // 2. Create the promise and store its handlers
   //   // const waitPromise = awaitServerResponse(requestId); 
-    
+
   //   // // 3. Prepare the message
   //   // const msg = {
   //   //     type: 'GETRTPCAPABILITIES',
   //   //     payload: { test: 'testargs', requestId: requestId } 
   //   // };
-    
+
   //   // // 4. Send the message
   //   // peer.send(msg); 
-    
+
   //   // // 5. AWAIT the promise and return the resolved value directly.
   //   //  // 2. AWAIT the promise and store the result
   //   // const result = await waitPromise; 
@@ -965,7 +966,7 @@ export function usePeerConnection() {
   // }
 
 
-  
+
 
   // async function startMediaSoup(){
   //   // try {
@@ -973,12 +974,12 @@ export function usePeerConnection() {
   //   //   // ... rest of your initialization code.
   //   //   deviceRef.current = new mediasoup.Device();
   //   //   const rtpCapabilities = await sendMediaSoupRequest(); 
-      
+
   //   //   console.log('called start media');
   //   //   console.log('SUCCESS: MediaSoup capabilities received and loaded.'); // <-- Success Log
-      
-      
-      
+
+
+
   //   //   const transportResults = await getSendTransportFromServer();
   //   //   console.log('SUCCESS SEND TRANS FROM SERVER CREATED');
   //   //   const   recvTransport = await getRecvTransportFromServer();
@@ -989,7 +990,7 @@ export function usePeerConnection() {
   //   //     // If an error is thrown by the promise, the code jumps here (Failure).
   //   //     console.log('MediaSoup initialization failled', e);
   //   // }
-    
+
 
   // }
 
@@ -1015,7 +1016,7 @@ export function usePeerConnection() {
   //   // return response;
   // }
 
-  
+
 
   // async function getRecvTransportFromServer(){
   //   // console.log('called getSendTransportFromServer');
@@ -1159,6 +1160,6 @@ export function usePeerConnection() {
     initializeChat,
     isStrokeScaleVisible,
     toggleStrokeScale,
-    
+    socket,
   };
 }

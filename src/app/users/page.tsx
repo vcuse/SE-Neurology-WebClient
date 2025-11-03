@@ -10,7 +10,8 @@ import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/h
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Clipboard, Filter, Sliders } from "lucide-react";
-import ViewStrokeScaleForm from "../stroke-scale/view-stroke-scale-form"; 
+import ViewStrokeScaleForm from "../stroke-scale/view-stroke-scale-form";
+import { PoseCameraComponent } from '@/components/PoseCameraComponent';
 import {
   Pause,
   LogOut,
@@ -30,6 +31,8 @@ import {
   Minus,
   Plus
 } from "lucide-react";
+
+
 // custom imports 
 
 import NewStrokeScaleForm from "@/app/stroke-scale/new-stroke-scale-form";
@@ -39,7 +42,7 @@ import { RoomClient } from "@/hooks/roomClient";
 import { cn } from "@/lib/utils";
 import { HomeViewChat, CallViewChat } from "@/components/video-call";
 import Link from "next/link";
-import * as mediaSoup from "mediasoup-client"; 
+import * as mediaSoup from "mediasoup-client";
 
 // type defenition for sidebar menu items 
 type MenuItem = {
@@ -138,10 +141,11 @@ export default function Page() {
     getAvailableRooms, // <-- New function to fetch the list
     availableRooms = [],    // <-- New state array
     isRoomListLoading,
-    produce
+    produce,
+    socket
   } = usePeerConnection();
 
-  
+
 
   //=====================================
   // VIDEO STREAM HANDLING
@@ -149,19 +153,19 @@ export default function Page() {
 
   // manage remote video and audio streams
   useEffect(() => {
-    if (videoEl.current && remoteStream) { 
+    if (videoEl.current && remoteStream) {
       console.log('SETTING REMOTE STREAM');
-        // only set up streams if not on hold and the connectio is valid
+      // only set up streams if not on hold and the connectio is valid
       //   // videoEl.current.srcObject = remoteStream;
       //   // audioEl.current.srcObject = mediaConnection.remoteStream;
-        videoEl.current.srcObject = remoteStream;
+      videoEl.current.srcObject = remoteStream;
     }
 
     if (isConnected) {
-      
+
       console.log(initializeRoom());
       // 1. IMMEDIATE CALL (When connecting)
-    
+
       // if (getAvailableRooms) {
       //   //getAvailableRooms();
 
@@ -170,11 +174,11 @@ export default function Page() {
       //   const intervalId = setInterval(getAvailableRooms, 5000); 
       // }
     }
-  },[isConnected, currentPeerId, joinRoom]);
+  }, [isConnected, currentPeerId, joinRoom]);
 
-  
 
-  
+
+
 
   const initializeRoom = async () => {
     try {
@@ -182,29 +186,29 @@ export default function Page() {
       const roomId = '3242134';
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        
-        
+
+
         // --- OPTIONAL: Call createRoom first (if required by your logic) ---
         // await createRoom?.(roomId, RoomClient); 
         // console.log(`Room created/ensured: ${roomId}`);
-        
+
         // 2. Call the exposed joinRoom function
         // Arguments: name, room_id, RoomClient class
         await joinRoom?.(myName, roomId, RoomClient);
-        
+
         console.log(`Attempted to join room: ${roomId}`);
         // The setActiveView('activeCall') logic should be handled by the successCallback 
         // defined inside your joinRoom implementation in the hook.
 
       } catch (e: any) {
-          console.error('Failed to join room process:', e);
-          // Display user-friendly error
-          // setError(`Failed to start call: ${e.message}`);
+        console.error('Failed to join room process:', e);
+        // Display user-friendly error
+        // setError(`Failed to start call: ${e.message}`);
       }
 
     } catch (e) {
-        console.error("Failed to initialize room upon load.", e);
-        // The connection still works, but the room won't be usable.
+      console.error("Failed to initialize room upon load.", e);
+      // The connection still works, but the room won't be usable.
     }
   }
 
@@ -216,7 +220,7 @@ export default function Page() {
   const [selectedFilter, setSelectedFilter] = useState("");
   const filterRef = useRef<HTMLDivElement>(null);
 
-  
+
 
   // close the filter when you click outside 
   useEffect(() => {
@@ -241,8 +245,8 @@ export default function Page() {
     if (value === "A-Z") { }
   }
 
- 
-  
+
+
 
   useEffect(() => {
     if (activeView === 'strokeScale') {
@@ -315,7 +319,7 @@ export default function Page() {
     //   }).catch(error => {
     //       // THIS IS WHERE THE BROWSER TELLS YOU WHY IT BLOCKED THE VIDEO
     //       console.error('PLAYBACK REJECTED:', error.name, error.message);
-          
+
     //       if (error.name === 'NotAllowedError') {
     //           // Means: No user interaction was detected (most common failure)
     //           console.warn('REJECTION REASON: Waiting for user click to unlock media.');
@@ -427,19 +431,19 @@ export default function Page() {
                 <Skeleton className="h-4 w-24" />
               )}
             </Badge>
-          </div>  
+          </div>
           <Button
-            onClick={ 
+            onClick={
               produce} // <== Call the new function
-            variant="default" 
+            variant="default"
             className="gap-2 bg-green-600 hover:bg-green-700"
-            //disabled={!!myStream} // Disable if myStream is already active
-              >
-                  <Video className="h-4 w-4" />
-                  { 'Start Video/Audio'}
-              </Button>
-        
-        {/* <button onClick={startPlayback}>Start Video</button> */}
+          //disabled={!!myStream} // Disable if myStream is already active
+          >
+            <Video className="h-4 w-4" />
+            {'Start Video/Audio'}
+          </Button>
+
+          {/* <button onClick={startPlayback}>Start Video</button> */}
 
           {/* logout button */}
           <Button
@@ -619,10 +623,10 @@ export default function Page() {
                   </CardTitle>
                 </CardHeader>
 
-                
+
                 <CardContent className="p-0">
-               
-                
+
+
                 </CardContent>
               </Card>
 
@@ -637,7 +641,7 @@ export default function Page() {
                     minimized={minimizedChat}
                     visible={isChatVisible}
                     messages={messages}
-                    // sendMessage={sendMessage}
+                  // sendMessage={sendMessage}
                   />
                 </div>
               )}
@@ -699,16 +703,15 @@ export default function Page() {
                           // active call
 
                           <div className="w-full max-w-[800px] aspect-[900/570] mx-auto" style={{ maxHeight: 'calc(100vh - 160px)' }}>
+                            {/* Mediapipe video streeam*/}
 
-                            {/* remote video stream */}
-                            <video
-                              ref={videoEl}
-                              autoPlay
-                              playsInline
-                              muted
-                              className="w-full h-full object-cover rounded-lg bg-black"
-
-                            />
+                            <PoseCameraComponent
+                              onPoseData={(landmarks, worldLandmarks) => {
+                                console.log('Pose detected!', landmarks?.length, 'landmarks');
+                              }}
+                              sendToServer={true}
+                              socket={socket}  // to pass socket to server
+                            />c
                             {/* remote audio stream */}
                             <audio
                               ref={audioEl}
@@ -743,7 +746,7 @@ export default function Page() {
                         </Button>
 
                         <button onClick={startPlayback}>Start Video</button>
-                        
+
                         <Button
                           // onClick={toggleMute}
                           variant="outline"
@@ -786,7 +789,7 @@ export default function Page() {
                         currentPeerId={currentPeerId}
                         remotePeerId={callerId}
                         messages={messages}
-                        // sendMessage={sendMessage}
+                      // sendMessage={sendMessage}
                       />
                     </CardContent>
                   </Card>
