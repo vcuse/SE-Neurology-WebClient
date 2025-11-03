@@ -141,7 +141,7 @@ export default function NewStrokeScaleForm({
 
     // 1. Build the dynamic, database-friendly payload
     const formItemPayload: { [key: string]: number | string | null } = {};
-    const username = localStorage.getItem("peerId") ?? "unknown";
+    const username = localStorage.getItem("username") ?? "unknown";
 
     // Required Admin Fields
     formItemPayload['username'] = username;
