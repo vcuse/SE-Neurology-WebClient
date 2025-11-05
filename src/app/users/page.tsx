@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Clipboard, Filter, Sliders } from "lucide-react";
+import { Clipboard, Filter, Sliders, View } from "lucide-react";
 import ViewStrokeScaleForm from "../stroke-scale/view-stroke-scale-form"; 
 import {
   Pause,
@@ -37,6 +37,7 @@ import { usePeerConnection } from "@/hooks/usePeerConnection";
 import { cn } from "@/lib/utils";
 import { HomeViewChat, CallViewChat } from "@/components/video-call";
 import Link from "next/link";
+import { set } from "react-hook-form";
 
 // type defenition for sidebar menu items 
 type MenuItem = {
@@ -45,10 +46,26 @@ type MenuItem = {
   value: 'home' | 'strokeScale';
 };
 
+// Type defining the type Session and the states
+type Session = {
+  id: string;
+  date: string;
+  time: string;
+  patient?: {
+    name: string;
+    dob?: string;
+    formDate?: string;
+  };
+  video?: {
+    sizeMB?: number;
+    url?: string;
+  };
+};
+
 // array of current menu items in the sidebar
 const menuItems: MenuItem[] = [
   { icon: Stethoscope, label: 'Consultations', value: 'home' },
-  { icon: NotebookIcon, label: 'Stroke Scale Forms', value: 'strokeScale' },
+  { icon: NotebookIcon, label: 'Sessions', value: 'strokeScale' },
 ];
 
 //interface that stores responses
@@ -82,12 +99,15 @@ export default function Page() {
 
   const [isNewFormVisible, setIsNewFormVisible] = useState(false);
   const [savedForms, setSavedForms] = useState<any[]>([]);
+  const formsByIdRef = useRef<Record<string, any>>({});
   const [savedAns, setSavedAns] = useState<data>({}); // store answers when minimized
   const [isNewFormMinimized, setIsNewFormMinimized] = useState(false);
   const [savedPatient, setSavedPatient] = useState({ name: '', DOB: '' });
   const [isOnPopout, setIsOnPopout] = useState(false);
   const [selectedOldForm, setSelectedOldForm] = useState<any | null>(null);
   const [isOldFormVisible, setIsOldFormVisible] = useState(false);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
 
   //=====================================
   // VIDEO CONNECTION AND CALL LOGIC
@@ -203,6 +223,40 @@ export default function Page() {
 
       const forms = await response.json();
       setSavedForms(forms);
+
+      formsByIdRef.current = Object.fromEntries(
+        (forms as any[]).map((f: any, i: number) => [String(f.id ?? i), f])
+        );
+
+
+      // map form to be a item for sessions
+      const mapped: Session[] = (forms as any[]).map((f: any, i: number) => {
+        let date = "";
+        let time = "";
+        if (typeof f.form_date === "string" && f.form_date.includes(" ")) {
+          const [d, t] = f.form_date.split(" ");
+          date = d;
+          time = t;
+        } else {
+          date = f.form_date || "";
+          time = f.form_time || "";
+        }
+        return {
+          id: f.id ?? String(i),
+          date,
+          time,
+          patient: {
+            name: f.patient_name ?? "",
+            dob: f.patient_dob ?? "",
+            formDate: f.form_date ?? "",
+          },
+          video: {
+            sizeMB: f.video_size_mb ?? 50,
+            url: f.video_url ?? undefined,
+          },
+        };
+      });
+      setSessions(mapped);
     } catch (error) {
       console.error("Error fetching forms:", error);
     }
@@ -234,6 +288,9 @@ export default function Page() {
   const togglePopout = () => {
     setIsOnPopout(!isOnPopout);
   };
+
+  const openSession = (s: Session) => setSelectedSession(s);
+  const closeSession = () => setSelectedSession(null);
 
   return (
     <div className="flex h-screen bg-[#f8fafc]">
@@ -593,8 +650,7 @@ export default function Page() {
                     </div>
                   ) : (
                     <div className="p-6 text-center text-gray-500">
-                      No active consultations available
-                    </div>
+                      No active consultations available</div>
                   )}
                 </CardContent>
               </Card>
@@ -786,21 +842,22 @@ export default function Page() {
           )}
 
           {/* stroke scale forms view */}
-          {activeView === 'strokeScale' && (
+          {activeView === 'strokeScale' && !selectedSession && (
             <div className="mx-auto max-w-2xl space-y-6">
+              {/*UI changes start here */}
               <Card className="border-blue-50">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <div className="flex w-full items-center justify-between">
                     <CardTitle className="flex items-center gap-2 text-blue-900"> <Clipboard className="h-5 w-5" />
-                      Stroke Scale Forms
+                      Sessions
                     </CardTitle>
 
                     {/* search bar*/}
                     <div className="relative w-full sm:w-auto sm:min-w-[240px]">
                       <input type="text"
                         placeholder="Search..."
-                        className="w-full rounded-md border border-blue-500 bg-white px-3 py-2 text-sm placeholder:test-grey-400 focus:outline-none focus:ring-2 focus:ring-blue-200 pr-10"
-                        onChange={(e) => {
+                        className="w-full rounded-md border border-blue-500 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-200 pr-10"
+                        onChange={() => {
                           {/* logic not yet implemented */ }
 
                         }}
@@ -808,37 +865,126 @@ export default function Page() {
                     </div>
                   </div>
                 </CardHeader>
+                
+                <CardContent className="p-4 pt-2 ">
+                      {sessions.length > 0 ? (
+                        <div className="space-y-3">
+                          {sessions.map((s) => (
+                            <div key={s.id} className="rounded-md border border-blue-200 bg-white shadow-sm">
+                              <div className="flex items-center justify-between p-3">
+                                <div className="text-sm">
+                                  <div>Date: {s.date || "—"}</div>
+                                  <div>Time: {s.time || "—"}</div>
+                                </div>
 
-                <CardContent className="p-0">
-                  {savedForms.length > 0 ? (
-                    savedForms.map((form, index) => (
-                      <div
-                        key={index}
-                        className="border border-blue-200 rounded-md p-2 mx-4 my-2 flex items-center justify-between"
-                      >
-                        <div className="text-sm">
-                          <h2 className="text-base font-semibold text-blue-900">{form.patient_name}</h2>
-                          <p className="text-gray-600">DOB: {form.patient_dob || "N/A"}</p>
-                          <p className="text-gray-600">Date: {form.form_date}</p>
+                                <Button
+                                  className="bg-blue-600 text-white hover:bg-blue-700 h-8 px-3 text-sm"
+                                  onClick={() => openSession(s)}
+                                  >
+                                    View
+                                      </Button>
+                                  </div>
+                               </div>
+                          ))}
                         </div>
-                        <Button
-                          className="bg-blue-600 text-white hover:bg-blue-700 h-8 px-3 text-sm"
-                          onClick={() => {
-                            setSelectedOldForm(form);
-                            setIsOldFormVisible(true);
-                          }}
-                        >
-                          View Form
-                        </Button>
-                      </div>
-                    ))
-                  ) : (
-
-                    <div className="p-6 text-center text-gray-500 text-sm">
-                      No forms available
-                    </div>
-                  )}
+                      ) : (
+                        <div className="p-6 text-center text-gray-500 text-sm">No sessions available</div>
+                      )}
                 </CardContent>
+              </Card>
+              
+              </div>
+            )}
+
+            {/* This is after clicking View */}
+            {selectedSession && (
+              <>
+                  <Card className="border-blue-50">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="flex items-center gap-2 text-blue-900">
+                        <Notebook className="h-5 w-5" />
+                        {selectedSession.date} &nbsp; {selectedSession.time}
+                      </CardTitle>
+
+                      {/* search box (top-right of card) */}
+                      <div className="relative w-full sm:w-auto sm:min-w-[240px]">
+                        <input
+                          type="text"
+                          placeholder="Search..."
+                          className="w-full rounded-md border border-blue-500 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                          onChange={() => {
+                            /* optional */
+                          }}
+                        />
+                      </div>
+                    </CardHeader>
+
+                    <CardContent className="p-4 pt-2 space-y-3">
+                      {/*Patient information/card */}
+                      <div className="rounded-md border border-blue-200 bg-white shadow-sm p-4">
+                        <div className="flex items-center justify-between p-3">
+                          <div className="text-sm">
+                                <div className="font-medium text-blue-900">
+                                  {selectedSession.patient?.name || "Patient"}
+                                </div>
+                                <div className="text-gray-600">DOB: {selectedSession.patient?.dob || "N/A"}</div>
+                                <div className="text-gray-600">Form Date: {selectedSession.patient?.formDate || "N/A"}</div>
+                              </div>
+                          <Button
+                            className="bg-blue-600 text-white hover:bg-blue-700 h-8 px-3 text-sm"
+                            onClick={() => {
+                              const original = formsByIdRef.current[String(selectedSession.id)];
+                              if (!original){
+                                alert("Original form not found.");
+                                return;
+                              }
+                              setSelectedOldForm(original);
+                              setIsOldFormVisible(true);
+                            }}
+                            >
+                            View Form
+                            </Button>
+                        </div>
+                      </div>
+                      {/* Video information/card */}
+                      <div className="rounded-md border border-blue-200 bg-white shadow-sm p-4">
+                        <div className="flex items-center justify-between p-3">
+                          <div className="text-sm">
+                            <div className="font-medium text-blue-900">Video File</div>
+                            <div className="text-gray-600">
+                              Size: {selectedSession.video?.sizeMB ?? "-"} MB
+                            </div>
+                          </div>
+                          <Button asChild className="bg-blue-600 text-white hover:bg-blue-700 h-8 px-3 text-sm">
+                            <a
+                              href={selectedSession.video?.url ?? '#'}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => {
+                                if (!selectedSession.video?.url) {
+                                  e.preventDefault();
+                                  alert("No video URL available for this session.");
+                                }
+                              }}
+                            >
+                              View Video
+                            </a>
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* button that takes you back to sessions list */}
+                  <div className="fixed bottom-6 left-6">
+                    <Button variant="outline" className="shadow-md hover:bg-blue-50 border-blue-200 text-blue-900"
+                      onClick={closeSession}
+                    >
+                      <ChevronLeft className="mr-2 h-4 w-4" />
+                      Back to Sessions
+                    </Button>
+                  </div>
+
 
                 {isOldFormVisible && selectedOldForm && (
                   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -853,19 +999,9 @@ export default function Page() {
                     </div>
                   </div>
                 )}
-
-              </Card>
-
-              {/* button that takes you back to consultations / home page */}
-              <div className="fixed bottom-6 left-6">
-                <Button variant="outline" className="shadow-md hover:bg-blue-50 border-blue-200 text-blue-900"
-                  onClick={() => setActiveView('home')}><ChevronLeft className="mr-2 h-4 w-4" />
-                  Back to Consultations</Button>
-              </div>
-            </div>
-          )
-          }
-        </div >
+              </>
+            )}
+        </div>
       </main >
     </div >
   );
