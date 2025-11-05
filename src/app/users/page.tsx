@@ -1,6 +1,6 @@
 "use client";
 // library imports
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { io, Socket } from 'socket.io-client';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -11,6 +11,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Clipboard, Filter, Sliders } from "lucide-react";
 import ViewStrokeScaleForm from "../stroke-scale/view-stroke-scale-form"; 
+import AutomationControls from "../stroke-scale/automation-controls";
+
 import {
   Pause,
   LogOut,
@@ -64,7 +66,12 @@ interface data {
 //=====================================
 
 // sidebar expand/collapse behavior
-export default function Page() {
+  export default function Page() {
+    const socket: Socket = useMemo(
+    () => io("http://localhost:3016", { transports: ["websocket"], path: "/socket.io" }),
+    []
+  );
+
   const [isSidebarExpanded, setIsSidebarExpanded] = React.useState(() => {
     // get initial state from localStorage, default to true if not set
     if (typeof window !== 'undefined') {
@@ -141,7 +148,16 @@ export default function Page() {
     produce
   } = usePeerConnection();
 
-  
+
+  // Use the same room you join in initializeRoom()
+const roomId = "3242134";
+
+// pick the "other person" in the room
+const targetPeerId = React.useMemo(
+  () => (peerIds || []).find((id) => id && id !== currentPeerId) || "",
+  [peerIds, currentPeerId]
+);
+
 
   //=====================================
   // VIDEO STREAM HANDLING
@@ -450,6 +466,7 @@ export default function Page() {
             <LogOut className="mr-2 h-4 w-4" />
             Sign Out
           </Button>
+
         </header>
 
 
@@ -617,14 +634,23 @@ export default function Page() {
                     <Video className="h-5 w-5" />
                     Active Consultations
                   </CardTitle>
+
+
                 </CardHeader>
 
                 
                 <CardContent className="p-0">
-               
-                
+
+
                 </CardContent>
               </Card>
+
+                      <AutomationControls
+                        socket={socket}
+                        roomId={roomId}
+                        targetPeerId={targetPeerId}
+                        videoElementId="remoteVideo"
+                      />
 
               {/* chat widget in home view */}
               {isChatVisible && (
@@ -702,6 +728,7 @@ export default function Page() {
 
                             {/* remote video stream */}
                             <video
+                              id="remoteVideo"
                               ref={videoEl}
                               autoPlay
                               playsInline

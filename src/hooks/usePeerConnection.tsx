@@ -323,7 +323,7 @@ export function usePeerConnection() {
   // Add a useEffect to listen for the connection event
   useEffect(() => {
 
-    const socket = io('https://localhost:3016', {
+    const socket = io('http://localhost:3016', {
       autoConnect: true // Important: delay the connection
     });
 
