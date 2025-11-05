@@ -43,6 +43,7 @@ import { HomeViewChat, CallViewChat } from "@/components/video-call";
 import Link from "next/link";
 import * as mediaSoup from "mediasoup-client"; 
 
+
 // type defenition for sidebar menu items 
 type MenuItem = {
   icon: React.ComponentType<{ className?: string }>;
@@ -145,7 +146,8 @@ interface data {
     getAvailableRooms, // <-- New function to fetch the list
     availableRooms = [],    // <-- New state array
     isRoomListLoading,
-    produce
+    produce,
+    producerIdToAnalyze,
   } = usePeerConnection();
 
 
@@ -645,12 +647,7 @@ const targetPeerId = React.useMemo(
                 </CardContent>
               </Card>
 
-                      <AutomationControls
-                        socket={socket}
-                        roomId={roomId}
-                        targetPeerId={targetPeerId}
-                        videoElementId="remoteVideo"
-                      />
+                      
 
               {/* chat widget in home view */}
               {isChatVisible && (
@@ -792,6 +789,13 @@ const targetPeerId = React.useMemo(
                         >
                           {isStrokeScaleVisible ? 'Hide Stroke Scale' : 'Show Stroke Scale'}
                         </Button>
+
+                        <AutomationControls
+                        socket={socket}
+                        roomId={roomId}
+                        targetPeerId={producerIdToAnalyze!}
+                        videoElementId="remoteVideo"
+                      />
                       </div>
                     </CardContent>
                   </Card>

@@ -48,6 +48,7 @@ export function usePeerConnection() {
   const [isRinging, setIsRinging] = useState<boolean>(false);
   // Add this new state variable with your others
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [producerIdToAnalyze, setProducerIdToAnalyze] = useState<string>();
   // UI states
   const [activeView, setActiveView] = useState<'home' | 'strokeScale' | 'files' | 'activeCall'>('home');
   const [minimizedChat, setMinimizedChat] = useState<boolean>(false);
@@ -95,6 +96,8 @@ export function usePeerConnection() {
   const [socket, setSocket] = useState<Socket | null>(null);
 
   let rcRef = useRef<RoomClient | null>(null);
+  let producerToAnalyzeRef = useRef<string | null>(null);
+
   const [rtpCapabilities, setRtpCapabilities] = useState<RtpCapabilities | null>(null);
   
   // ---
@@ -265,6 +268,11 @@ export function usePeerConnection() {
         setActiveView('activeCall'); // This replaces the old roomOpen UI logic
       };
 
+      const producerIdToAnalyzeCallback = (producer_id: string) => {
+        setProducerIdToAnalyze(producer_id);
+        console.log('SET PRODUCER TO ANALYZE TO', producer_id);
+      }
+
       const addRemoteStream = (stream: MediaStream) => {
         console.log("HOOK: addRemoteStream called. Adding new stream to list.");
         setRemoteStream(stream);
@@ -302,7 +310,8 @@ export function usePeerConnection() {
         name, 
         // ARGUMENT 8: successCallback
         roomOpenCallback,
-        addRemoteStream 
+        addRemoteStream,
+        producerIdToAnalyzeCallback
       );
       console.log('after creating newRC')
       rcRef.current = newRc;
@@ -400,6 +409,8 @@ export function usePeerConnection() {
     produce,
     remoteStream,
     setRemoteStream,
+    producerIdToAnalyze,
+    setProducerIdToAnalyze,
     videoEl,
     // If you want to allow the component to manually toggle devices:
     // initEnumerateDevices,

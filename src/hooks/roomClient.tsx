@@ -86,7 +86,8 @@ export class RoomClient {
     static readonly mediaType = mediaType;
     static readonly EVENTS = _EVENTS;
     public remoteStreamCallback: (stream: MediaStream) => void;
-
+    public producerToAnalyze: any;
+    public producerIdToAnalyzeCallback: (producer_id:string)=>void;
 
     // 3. Type the constructor
     constructor(
@@ -98,7 +99,8 @@ export class RoomClient {
         room_id: string,
         name: string,
         successCallback: () => void, // The callback function
-        remoteStreamCallback: (stream: MediaStream) => void
+        remoteStreamCallback: (stream: MediaStream) => void,
+        producerIdToAnalyzeCallback: (producer_id: string) => void,
     ) {
         this.name = name;
         this.remoteStreamCallback = remoteStreamCallback;
@@ -106,7 +108,7 @@ export class RoomClient {
         this.remoteVideoEl = remoteVideoEl;
         this.remoteAudioEl = remoteAudioEl;
         this.mediasoupClient = mediasoupClient;
-        
+        this.producerIdToAnalyzeCallback = producerIdToAnalyzeCallback;
         // Attach request function to socket for internal use, as you did previously
         (socket as any).request = function request(type: string, data: any = {}) {
             return new Promise((resolve, reject) => {
@@ -431,9 +433,9 @@ removeConsumer(consumer_id: string): void {
         try {
             // Use async/await structure instead of .then().bind(this)
             const { consumer, stream, kind }: ConsumeStreamResult = await this.getConsumeStream(producer_id);
-
+            
             this.consumers.set(consumer.id, consumer);
-
+            this.producerIdToAnalyzeCallback(producer_id);
             let elem: HTMLVideoElement | HTMLAudioElement;
 
             // 1. Create and append the appropriate DOM element
