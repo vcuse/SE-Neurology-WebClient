@@ -15,14 +15,14 @@ interface Message {
 
 interface ChatBoxCoreProps {
   messages: Message[];
-  sendMessage: (text: string) => void;
+  // sendMessage: (text: string) => void;
   currentPeerId: string;
   className?: string;
 }
 
 export function ChatBoxCore({
   messages,
-  sendMessage,
+  // sendMessage,
   currentPeerId,
   className = "",
 }: ChatBoxCoreProps) {
@@ -40,7 +40,7 @@ export function ChatBoxCore({
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
-    sendMessage(newMessage.trim());
+    // sendMessage(newMessage.trim());
     setNewMessage("");
   };
 

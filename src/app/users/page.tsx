@@ -1,6 +1,7 @@
 "use client";
 // library imports
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
+import { io, Socket } from 'socket.io-client';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -10,6 +11,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Clipboard, Filter, Sliders } from "lucide-react";
 import ViewStrokeScaleForm from "../stroke-scale/view-stroke-scale-form"; 
+import AutomationControls from "../stroke-scale/automation-controls";
+
 import {
   Pause,
   LogOut,
@@ -34,9 +37,12 @@ import {
 import NewStrokeScaleForm from "@/app/stroke-scale/new-stroke-scale-form";
 import { StrokeScaleForm } from "@/components/stroke-scale/stroke-scale-form";
 import { usePeerConnection } from "@/hooks/usePeerConnection";
+import { RoomClient } from "@/hooks/roomClient";
 import { cn } from "@/lib/utils";
 import { HomeViewChat, CallViewChat } from "@/components/video-call";
 import Link from "next/link";
+import * as mediaSoup from "mediasoup-client"; 
+
 
 // type defenition for sidebar menu items 
 type MenuItem = {
@@ -61,7 +67,12 @@ interface data {
 //=====================================
 
 // sidebar expand/collapse behavior
-export default function Page() {
+  export default function Page() {
+    const socket: Socket = useMemo(
+    () => io("http://localhost:3016", { transports: ["websocket"], path: "/socket.io" }),
+    []
+  );
+
   const [isSidebarExpanded, setIsSidebarExpanded] = React.useState(() => {
     // get initial state from localStorage, default to true if not set
     if (typeof window !== 'undefined') {
@@ -88,6 +99,8 @@ export default function Page() {
   const [isOnPopout, setIsOnPopout] = useState(false);
   const [selectedOldForm, setSelectedOldForm] = useState<any | null>(null);
   const [isOldFormVisible, setIsOldFormVisible] = useState(false);
+  const hasRoomsBeenFetched = useRef(false);
+
 
   //=====================================
   // VIDEO CONNECTION AND CALL LOGIC
@@ -107,14 +120,15 @@ export default function Page() {
     audioEl,
     isCallOnHold,
     activeView,
-    handleCall,
-    acceptCall,
-    declineCall,
-    endCall,
-    holdCall,
-    toggleMute,
+    // handleCall,
+    // acceptCall,
+    // declineCall,
+    // endCall,
+    // holdCall,
+    // toggleMute,
     handleLogout,
     mediaConnection,
+    remoteStream,
     setActiveView,
     isIncomingCall,
     isChatVisible,
@@ -123,11 +137,29 @@ export default function Page() {
     toggleMinimizeChat,
     initializeChat,
     messages,
-    sendMessage,
+    // sendMessage,
     isStrokeScaleVisible,
     toggleStrokeScale,
-
+    joinRoom,
+    isConnected,
+    createRoom,
+    getAvailableRooms, // <-- New function to fetch the list
+    availableRooms = [],    // <-- New state array
+    isRoomListLoading,
+    produce,
+    producerIdToAnalyze,
   } = usePeerConnection();
+
+
+  // Use the same room you join in initializeRoom()
+const roomId = "3242134";
+
+// pick the "other person" in the room
+const targetPeerId = React.useMemo(
+  () => (peerIds || []).find((id) => id && id !== currentPeerId) || "",
+  [peerIds, currentPeerId]
+);
+
 
   //=====================================
   // VIDEO STREAM HANDLING
@@ -135,11 +167,64 @@ export default function Page() {
 
   // manage remote video and audio streams
   useEffect(() => {
-    if (!isCallOnHold && videoEl.current && mediaConnection?.remoteStream && audioEl.current) { // only set up streams if not on hold and the connectio is valid
-      videoEl.current.srcObject = mediaConnection.remoteStream;
-      audioEl.current.srcObject = mediaConnection.remoteStream;
+    if (videoEl.current && remoteStream) { 
+      console.log('SETTING REMOTE STREAM');
+        // only set up streams if not on hold and the connectio is valid
+      //   // videoEl.current.srcObject = remoteStream;
+      //   // audioEl.current.srcObject = mediaConnection.remoteStream;
+        videoEl.current.srcObject = remoteStream;
     }
-  }, [isCallOnHold, mediaConnection, videoEl]);
+
+    if (isConnected) {
+      
+      console.log(initializeRoom());
+      // 1. IMMEDIATE CALL (When connecting)
+    
+      // if (getAvailableRooms) {
+      //   //getAvailableRooms();
+
+      //   // 2. POLLING (Keep the list fresh)
+      //   // Poll the server every 5 seconds (5000 ms)
+      //   const intervalId = setInterval(getAvailableRooms, 5000); 
+      // }
+    }
+  },[isConnected, currentPeerId, joinRoom]);
+
+  
+
+  
+
+  const initializeRoom = async () => {
+    try {
+      const myName = 'David' + Math.random();
+      const roomId = '3242134';
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        
+        
+        // --- OPTIONAL: Call createRoom first (if required by your logic) ---
+        // await createRoom?.(roomId, RoomClient); 
+        // console.log(`Room created/ensured: ${roomId}`);
+        
+        // 2. Call the exposed joinRoom function
+        // Arguments: name, room_id, RoomClient class
+        await joinRoom?.(myName, roomId, RoomClient);
+        
+        console.log(`Attempted to join room: ${roomId}`);
+        // The setActiveView('activeCall') logic should be handled by the successCallback 
+        // defined inside your joinRoom implementation in the hook.
+
+      } catch (e: any) {
+          console.error('Failed to join room process:', e);
+          // Display user-friendly error
+          // setError(`Failed to start call: ${e.message}`);
+      }
+
+    } catch (e) {
+        console.error("Failed to initialize room upon load.", e);
+        // The connection still works, but the room won't be usable.
+    }
+  }
 
   //=====================================
   // FILTER DROPDOWN HANDLING
@@ -148,6 +233,8 @@ export default function Page() {
   const [filterOpen, setFilterOpen] = React.useState(false);
   const [selectedFilter, setSelectedFilter] = useState("");
   const filterRef = useRef<HTMLDivElement>(null);
+
+  
 
   // close the filter when you click outside 
   useEffect(() => {
@@ -172,6 +259,8 @@ export default function Page() {
     if (value === "A-Z") { }
   }
 
+ 
+  
 
   useEffect(() => {
     if (activeView === 'strokeScale') {
@@ -235,6 +324,27 @@ export default function Page() {
     setIsOnPopout(!isOnPopout);
   };
 
+  const startPlayback = () => {
+    // if (videoEl.current) {
+    //     // This is triggered by a human click
+    //     videoEl.current.play().then(() => {
+    //       // This only runs if playback starts
+    //       console.log("Playback success (The kPlay event happened)");
+    //   }).catch(error => {
+    //       // THIS IS WHERE THE BROWSER TELLS YOU WHY IT BLOCKED THE VIDEO
+    //       console.error('PLAYBACK REJECTED:', error.name, error.message);
+          
+    //       if (error.name === 'NotAllowedError') {
+    //           // Means: No user interaction was detected (most common failure)
+    //           console.warn('REJECTION REASON: Waiting for user click to unlock media.');
+    //       } else if (error.name === 'AbortError') {
+    //           // Means: A pause/close command was issued before play could complete
+    //           console.warn('REJECTION REASON: Interrupted by another media command.');
+    //       }
+    //   });
+    // }
+  };
+
   return (
     <div className="flex h-screen bg-[#f8fafc]">
       {/*=====================================
@@ -296,9 +406,9 @@ export default function Page() {
                           if (!confirm) {
                             return;
                           }
-                          endCall();
+                          // endCall();
                         }
-                        setActiveView(item.value);
+                        // setActiveView(item.value);
                       }}
                     >
                       <item.icon className="h-5 w-5 text-blue-600" />
@@ -335,7 +445,19 @@ export default function Page() {
                 <Skeleton className="h-4 w-24" />
               )}
             </Badge>
-          </div>
+          </div>  
+          <Button
+            onClick={ 
+              produce} // <== Call the new function
+            variant="default" 
+            className="gap-2 bg-green-600 hover:bg-green-700"
+            //disabled={!!myStream} // Disable if myStream is already active
+              >
+                  <Video className="h-4 w-4" />
+                  { 'Start Video/Audio'}
+              </Button>
+        
+        {/* <button onClick={startPlayback}>Start Video</button> */}
 
           {/* logout button */}
           <Button
@@ -346,6 +468,7 @@ export default function Page() {
             <LogOut className="mr-2 h-4 w-4" />
             Sign Out
           </Button>
+
         </header>
 
 
@@ -399,7 +522,7 @@ export default function Page() {
             <CardContent>
               <NewStrokeScaleForm onCancel={() => { // clear data after cancel
                 setIsNewFormVisible(false);
-                setActiveView("strokeScale");
+                // setActiveView("strokeScale");
                 setSavedAns({});
                 setSavedPatient({ name: '', DOB: '' });
                 setIsOnPopout(false);
@@ -421,7 +544,7 @@ export default function Page() {
         {isNewFormVisible && !isNewFormMinimized && isOnPopout && (
           <NewStrokeScaleForm onCancel={() => { // clear data after cancel
             setIsNewFormVisible(false);
-            setActiveView("strokeScale");
+            // setActiveView("strokeScale");
             setSavedAns({});
             setSavedPatient({ name: '', DOB: '' });
             setIsOnPopout(false);
@@ -469,7 +592,7 @@ export default function Page() {
                       onClick={() => {
                         maxForm();
                         setIsNewFormVisible(false);
-                        setActiveView("strokeScale");
+                        // setActiveView("strokeScale");
                         setSavedAns({});
                         setSavedPatient({ name: '', DOB: '' });
                         setIsOnPopout(false);
@@ -513,91 +636,18 @@ export default function Page() {
                     <Video className="h-5 w-5" />
                     Active Consultations
                   </CardTitle>
+
+
                 </CardHeader>
 
-
+                
                 <CardContent className="p-0">
-                  {isLoading ? (
-                    <div className="space-y-4 p-6">
-                      {[1, 2, 3].map((i) => ( // 3 skeleton placeholders if data is loading
-                        <Skeleton key={i} className="h-20 w-full rounded-lg" />
-                      ))}
-                    </div>
-                    // list of available peers
-                  ) : peerIds.length > 0 ? (
-                    <div className="divide-y divide-blue-50">
-                      {peerIds.map((peerId) => (
-                        <div key={peerId} className="flex items-center justify-between p-4">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-9 w-9">
-                              <AvatarFallback>MD</AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-medium text-gray-900">{peerId}</p>
-                              <p className="text-sm text-gray-500">Cardiology</p>
-                            </div>
-                          </div>
-                          {/* action buttons */}
-                          <div className="flex gap-2">
-                            <div className="flex gap-2">
-                              {/* video call button */}
-                              <HoverCard>
-                                <HoverCardTrigger asChild>
-                                  <Button
-                                    size="sm"
-                                    onClick={() => handleCall(peerId)}
-                                    className="gap-2 bg-blue-600 hover:bg-blue-700"
-                                  >
-                                    <PhoneCall className="h-4 w-4" />
-                                    <span>Video Call</span>
-                                  </Button>
-                                </HoverCardTrigger>
-                                <HoverCardContent className="w-80">
-                                  <div className="space-y-2">
-                                    <h4 className="font-medium">Video Consultation</h4>
-                                    <p className="text-sm text-gray-600">
-                                      Start a video consultation with this specialist.
-                                    </p>
-                                  </div>
-                                </HoverCardContent>
-                                {/* chat button */}
-                              </HoverCard>
-                              <HoverCard>
-                                <HoverCardTrigger asChild>
-                                  <Button
-                                    size="sm"
-                                    onClick={() => {
-                                      initializeChat(peerId);
-                                      setCallerId(peerId);
-                                    }}
-                                    variant="outline"
-                                    className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
-                                  >
-                                    <MessageSquare className="h-4 w-4" />
-                                    <span>Chat</span>
-                                  </Button>
-                                </HoverCardTrigger>
-                                <HoverCardContent className="w-80">
-                                  <div className="space-y-2">
-                                    <h4 className="font-medium">Text Chat</h4>
-                                    <p className="text-sm text-gray-600">
-                                      Start a text conversation with this specialist.
-                                    </p>
-                                  </div>
-                                </HoverCardContent>
-                              </HoverCard>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="p-6 text-center text-gray-500">
-                      No active consultations available
-                    </div>
-                  )}
+
+
                 </CardContent>
               </Card>
+
+                      
 
               {/* chat widget in home view */}
               {isChatVisible && (
@@ -610,7 +660,7 @@ export default function Page() {
                     minimized={minimizedChat}
                     visible={isChatVisible}
                     messages={messages}
-                    sendMessage={sendMessage}
+                    // sendMessage={sendMessage}
                   />
                 </div>
               )}
@@ -628,10 +678,10 @@ export default function Page() {
                   <AlertDescription>
                     Incoming call from Dr. {callerId}
                     <div className="mt-2 flex justify-end gap-2">
-                      <Button variant="ghost" onClick={declineCall}>
+                      <Button variant="ghost" >{/*declineCall*/}
                         Decline
                       </Button>
-                      <Button onClick={acceptCall}>Accept</Button>
+                      <Button >Accept</Button>{/*onClick={acceptCall}*/}
                     </div>
                   </AlertDescription>
                 </CardContent>
@@ -645,7 +695,7 @@ export default function Page() {
               <div className={cn(
 
                 "flex gap-6 grid-cols-1",
-                (isChatVisible || isStrokeScaleVisible) ? "flex-col lg:flex-row" : "flex-col"
+                (true || true) ? "flex-col lg:flex-row" : "flex-col"
               )}>
 
                 {/* call panel */}
@@ -662,7 +712,7 @@ export default function Page() {
 
                     <CardContent className="p-4 flex-1 flex flex-col">
                       <div className="flex-1 flex items-center justify-center mb-4 min-h-0 p-2">
-                        {isCallOnHold ? (
+                        {false ? (
                           // on hold  
                           <div className="flex items-center justify-center bg-gray-100 text-gray-500 rounded-lg w-full">
 
@@ -675,10 +725,11 @@ export default function Page() {
 
                             {/* remote video stream */}
                             <video
+                              id="remoteVideo"
                               ref={videoEl}
                               autoPlay
                               playsInline
-
+                              muted
                               className="w-full h-full object-cover rounded-lg bg-black"
 
                             />
@@ -700,7 +751,7 @@ export default function Page() {
                       <div className="flex gap-2 pt-4 border-t border-blue-50 bg-white flex-wrap">
 
                         <Button
-                          onClick={endCall}
+                          // onClick={endCall}
                           variant="destructive"
                           className="gap-2"
                         >
@@ -708,14 +759,17 @@ export default function Page() {
                           End Call
                         </Button>
                         <Button
-                          onClick={holdCall}
+                          // onClick={holdCall}
                           variant="outline"
                           className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
                         >
                           {isCallOnHold ? 'Resume' : 'Hold'}
                         </Button>
+
+                        <button onClick={startPlayback}>Start Video</button>
+                        
                         <Button
-                          onClick={toggleMute}
+                          // onClick={toggleMute}
                           variant="outline"
                           className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
                         >
@@ -735,6 +789,13 @@ export default function Page() {
                         >
                           {isStrokeScaleVisible ? 'Hide Stroke Scale' : 'Show Stroke Scale'}
                         </Button>
+
+                        <AutomationControls
+                        socket={socket}
+                        roomId={roomId}
+                        targetPeerId={producerIdToAnalyze!}
+                        videoElementId="remoteVideo"
+                      />
                       </div>
                     </CardContent>
                   </Card>
@@ -756,7 +817,7 @@ export default function Page() {
                         currentPeerId={currentPeerId}
                         remotePeerId={callerId}
                         messages={messages}
-                        sendMessage={sendMessage}
+                        // sendMessage={sendMessage}
                       />
                     </CardContent>
                   </Card>

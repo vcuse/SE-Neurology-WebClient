@@ -13,19 +13,19 @@ interface CallViewChatProps {
   currentPeerId: string;
   remotePeerId: string;
   messages: Message[];
-  sendMessage: (text: string) => void;
+  // sendMessage: (text: string) => void;
 }
 
 export function CallViewChat({
   currentPeerId,
   remotePeerId,
   messages,
-  sendMessage,
+  // sendMessage,
 }: CallViewChatProps) {
   return (
     <ChatBoxCore
       messages={messages}
-      sendMessage={sendMessage}
+      // sendMessage={sendMessage}
       currentPeerId={currentPeerId}
       className="h-full"
     />
