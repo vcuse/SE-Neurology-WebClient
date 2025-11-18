@@ -29,13 +29,14 @@ export default function LoginPage() {
 
     try {
       const fetchUrl = process.env.NEXT_PUBLIC_SERVER_FETCH_URL;
-      console.log("fetch url is ", fetchUrl);
+      console.log('fetch url is ', fetchUrl);
+
       const response = await fetch(fetchUrl!, {
         method: 'POST',
-        credentials: 'include', // must be set to omit (for firefox)
+        credentials: 'include', // keep this so auth cookie is stored
         headers: {
           'Content-Type': 'application/json',
-          Action: 'login', // Either 'login' or 'create'
+          Action: action, // <-- IMPORTANT: 'login' or 'create'
         },
         body: JSON.stringify({
           username,
@@ -44,12 +45,15 @@ export default function LoginPage() {
       });
 
       const result = await response.text();
+      console.log('server response:', response.status, result);
 
       if (response.ok) {
         if (action === 'login') {
-          localStorage.setItem("peerId", username);
-          localStorage.setItem("username", username);
-          // Navigate to the user dashboard
+          // Persist username / peerId on the client
+          localStorage.setItem('peerId', username);
+          localStorage.setItem('username', username);
+          console.log("DEBUG — stored username:", localStorage.getItem("username"));
+
           console.log('Login successful:', result);
           router.push(`/users?peerId=${encodeURIComponent(username)}`);
         } else if (action === 'create') {
@@ -76,12 +80,16 @@ export default function LoginPage() {
       <Card className="w-full max-w-md z-10 bg-white/95 shadow-lg">
         <CardHeader className="border-b border-blue-100/50">
           <CardTitle className="text-2xl text-blue-900">NeuroConnect</CardTitle>
-          <CardDescription className="text-blue-700">Enter your credentials to access your account</CardDescription>
+          <CardDescription className="text-blue-700">
+            Enter your credentials to access your account
+          </CardDescription>
         </CardHeader>
         <CardContent className="p-6">
           <form onSubmit={(e) => handleSubmit(e, 'login')} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username" className="text-blue-900">Username</Label>
+              <Label htmlFor="username" className="text-blue-900">
+                Username
+              </Label>
               <Input
                 id="username"
                 placeholder="Enter your username"
@@ -93,7 +101,9 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-blue-900">Password</Label>
+              <Label htmlFor="password" className="text-blue-900">
+                Password
+              </Label>
               <Input
                 id="password"
                 type="password"

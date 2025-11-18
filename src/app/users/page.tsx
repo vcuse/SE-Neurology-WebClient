@@ -44,13 +44,14 @@ import * as mediaSoup from "mediasoup-client";
 type MenuItem = {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
-  value: 'home' | 'strokeScale';
+  value: 'home' | 'strokeScale' | 'sessions';
 };
 
 // array of current menu items in the sidebar
 const menuItems: MenuItem[] = [
   { icon: Stethoscope, label: 'Consultations', value: 'home' },
   { icon: NotebookIcon, label: 'Stroke Scale Forms', value: 'strokeScale' },
+  { icon: Video, label: 'Sessions', value: 'sessions' },
 ];
 
 //interface that stores responses
@@ -92,6 +93,7 @@ export default function Page() {
   const [isOldFormVisible, setIsOldFormVisible] = useState(false);
   const hasRoomsBeenFetched = useRef(false);
   const [currentRoomId, setCurrentRoomId] = useState<any | null>(null);
+  const [sessions, setSessions] = useState<any[]>([]);
 
   //=====================================
   // VIDEO CONNECTION AND CALL LOGIC
@@ -140,8 +142,6 @@ export default function Page() {
     isRoomListLoading,
     produce
   } = usePeerConnection();
-
-  
 
   //=====================================
   // VIDEO STREAM HANDLING
@@ -193,6 +193,14 @@ export default function Page() {
         const newRoomId = await joinRoom?.(myName, roomId, RoomClient);
         setCurrentRoomId(newRoomId);
         console.log(`Attempted to join room: ${roomId}`);
+
+        const username = localStorage.getItem("username");
+        await fetch(process.env.NEXT_PUBLIC_SERVER_FETCH_URL!, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", "Action": "createSession" },
+          body: JSON.stringify({ sessionId: roomId, username }),
+        });
 
         // The setActiveView('activeCall') logic should be handled by the successCallback 
         // defined inside your joinRoom implementation in the hook.
@@ -277,6 +285,38 @@ export default function Page() {
       setSavedForms(forms);
     } catch (error) {
       console.error("Error fetching forms:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (activeView === 'sessions') {
+      fetchSessions();
+    }
+  }, [activeView]);
+
+  const fetchSessions = async () => {
+    const username = localStorage.getItem("username"); // if you need it for scoping
+    try {
+      const resp = await fetch(process.env.NEXT_PUBLIC_SERVER_FETCH_URL!, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "Action": "getSessions",
+        },
+        body: JSON.stringify({ username }),
+      });
+
+      if (!resp.ok) throw new Error("Failed to fetch sessions");
+
+      const rows = await resp.json();
+      setSessions(rows);
+    } catch (e) {
+      console.warn("Using demo sessions until backend is ready:", e);
+      setSessions([
+        { session_id: "demo-session-1", form_date: new Date().toISOString() },
+        { session_id: "demo-session-2", form_date: new Date(Date.now() - 86400000).toISOString() },
+      ]);
     }
   };
 
@@ -495,7 +535,6 @@ export default function Page() {
           </Button>
         </header>
 
-
         {activeView === 'strokeScale' && !isNewFormVisible && (
           <div className="flex justify-between items-center px-6 pt-4">
             {/* Filter button on the left */}
@@ -697,9 +736,26 @@ export default function Page() {
                                 <HoverCardTrigger asChild>
                                   <Button
                                     size="sm"
-                                     onClick={() => {joinRoom?.('david.' + Math.random(), room_id, RoomClient);
-                                      setCurrentRoomId(room_id);
-                                     }}
+                                    onClick={async () => {
+                                      const username = localStorage.getItem("username");
+                                      try {
+                                        await fetch(process.env.NEXT_PUBLIC_SERVER_FETCH_URL!, {
+                                          method: "POST",
+                                          credentials: "include",
+                                          headers: {
+                                            "Content-Type": "application/json",
+                                            "Action": "joinSession",
+                                          },
+                                          body: JSON.stringify({ sessionId: room_id, username }),
+                                        });
+
+                                        await joinRoom?.("david." + Math.random(), room_id, RoomClient);
+                                        setCurrentRoomId(room_id);
+                                      } catch (e) {
+                                        console.error("Error joining session:", e);
+                                        alert("Could not join session. Please try again.");
+                                      }
+                                    }}
                                     className="gap-2 bg-blue-600 hover:bg-blue-700"
                                   >
                                     <PhoneCall className="h-4 w-4" />
@@ -1026,6 +1082,76 @@ export default function Page() {
             </div>
           )
           }
+
+          {/* sessions view */}
+          {activeView === 'sessions' && (
+            <div className="mx-auto max-w-2xl space-y-6">
+              <Card className="border-blue-50">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <div className="flex w-full items-center justify-between">
+                    <CardTitle className="flex items-center gap-2 text-blue-900">
+                      <Video className="h-5 w-5" />
+                      Sessions
+                    </CardTitle>
+
+                    {/* optional search to match styling */}
+                    <div className="relative w-full sm:w-auto sm:min-w-[240px]">
+                      <input
+                        type="text"
+                        placeholder="Search..."
+                        className="w-full rounded-md border border-blue-500 bg-white px-3 py-2 text-sm placeholder:test-grey-400 focus:outline-none focus:ring-2 focus:ring-blue-200 pr-10"
+                        onChange={() => {}}
+                      />
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="p-0">
+                  {sessions.length > 0 ? (
+                    sessions.map((s, idx) => (
+                      <div
+                        key={`${s.session_id || s.sessionid || idx}-${idx}`}
+                        className="border border-blue-200 rounded-md p-2 mx-4 my-2 flex items-center justify-between"
+                      >
+                        <div className="text-sm">
+                          <h2 className="text-base font-semibold text-blue-900">
+                            {s.session_id || s.sessionid || "Unknown Session"}
+                          </h2>
+                          <p className="text-gray-600">
+                            Date: {new Date(s.form_date || s.created_at || Date.now()).toLocaleString()}
+                          </p>
+                        </div>
+                        <Button
+                          className="bg-blue-600 text-white hover:bg-blue-700 h-8 px-3 text-sm"
+                          onClick={() => {
+                            // placeholder – wire up to a detail drawer/view later
+                            alert(`Open session ${s.session_id || s.sessionid}`);
+                          }}
+                        >
+                          View Session
+                        </Button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-6 text-center text-gray-500 text-sm">
+                      No sessions available
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <div className="fixed bottom-6 left-6">
+                <Button
+                  variant="outline"
+                  className="shadow-md hover:bg-blue-50 border-blue-200 text-blue-900"
+                  onClick={() => setActiveView('home')}
+                >
+                  <ChevronLeft className="mr-2 h-4 w-4" />
+                  Back to Consultations
+                </Button>
+              </div>
+            </div>
+          )}
         </div >
       </main >
     </div >
