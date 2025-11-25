@@ -53,7 +53,7 @@ export function usePeerConnection() {
   // Add this new state variable with your others
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   // UI states
-  const [activeView, setActiveView] = useState<'home' | 'strokeScale' | 'files' | 'activeCall'>('home');
+  const [activeView, setActiveView] = useState<'home' | 'strokeScale' | 'files' | 'sessions' | 'activeCall'>('home');
   const [minimizedChat, setMinimizedChat] = useState<boolean>(false);
   const [isChatVisible, setIsChatVisible] = useState<boolean>(false);
   const [isStrokeScaleVisible, setIsStrokeScaleVisible] = useState<boolean>(false);
@@ -349,7 +349,7 @@ export function usePeerConnection() {
         console.log('socket.io connected');
         // setActiveView('activeCall');
         // You can set currentPeerId here if the server returns it, or get it from socket.id
-        // setCurrentPeerId(socket.id); 
+        setCurrentPeerId(localStorage.getItem("username")!); 
     };
     const onDisconnect = () => {
         setIsConnected(false);
@@ -454,6 +454,7 @@ export function usePeerConnection() {
   // =====================================
 
   return {
+    currentPeerId,
     // ... (existing state and refs)
     joinRoom,
     socketRequestAPI,
