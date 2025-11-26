@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  basePath: '/b',
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -10,7 +11,7 @@ const nextConfig = {
     webpack: (config, { isServer, buildId, dev, config: { distDir } }) => {
       // Access your custom build target here
       const BUILD_TARGET = process.env.BUILD_TARGET || 'development';
-  
+      console.log('buildTarget is', process.env.NEXT_SOCKET_SERVER_URL);
       if (BUILD_TARGET === 'staging') {
         console.log('Applying staging-specific webpack config...');
         // e.g., add a specific plugin, or change a loader rule

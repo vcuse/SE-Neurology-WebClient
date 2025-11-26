@@ -6,7 +6,7 @@
     "dev": "next dev",
     "localbuild": "cross-env BUILD_TARGET=localdevelopment next build",
     "build": "cross-env BUILD_TARGET=production next build",
-    "start": "next start",
+    "start": "node server.cjs",
     "lint": "next lint"
   },
   "dependencies": {
@@ -21,17 +21,22 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "dotenv": "^17.2.3",
     "lucide-react": "^0.460.0",
+    "mediasoup-client": "^3.16.7",
     "next": "^15.2.4",
     "npm-check-updates": "^17.1.11",
-    "peerjs": "^1.5.4",
+    "peerjs": "^1.5.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.53.2",
     "simplex-noise": "^4.0.3",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
     "tailwind-merge": "^2.5.4",
     "tailwind-variants": "^1.0.0",
     "tailwindcss-animate": "^1.0.7",
+    "uuid": "^13.0.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

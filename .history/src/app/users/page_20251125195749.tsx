@@ -1,0 +1,1068 @@
+"use client";
+// library imports
+import React, { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Clipboard, Filter, Sliders } from "lucide-react";
+import ViewStrokeScaleForm from "../stroke-scale/view-stroke-scale-form";
+import {
+  Pause,
+  LogOut,
+  Stethoscope,
+  User2,
+  Video,
+  PhoneCall,
+  MessageSquare,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  ChevronDown,
+  Maximize2,
+  Minimize2,
+  Notebook,
+  NotebookIcon,
+  Minus,
+  Plus
+} from "lucide-react";
+// custom imports 
+import { v4 as uuidv4 } from 'uuid';
+import NewStrokeScaleForm from "@/app/stroke-scale/new-stroke-scale-form";
+import { StrokeScaleForm } from "@/components/stroke-scale/stroke-scale-form";
+import { usePeerConnection } from "@/hooks/usePeerConnection";
+import { RoomClient } from "@/hooks/roomClient";
+import { cn } from "@/lib/utils";
+import { HomeViewChat, CallViewChat } from "@/components/video-call";
+import Link from "next/link";
+import * as mediaSoup from "mediasoup-client";
+
+// type defenition for sidebar menu items 
+type MenuItem = {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: 'home' | 'strokeScale';
+};
+
+// array of current menu items in the sidebar
+const menuItems: MenuItem[] = [
+  { icon: Stethoscope, label: 'Consultations', value: 'home' },
+  { icon: NotebookIcon, label: 'Stroke Scale Forms', value: 'strokeScale' },
+];
+
+//interface that stores responses
+interface data {
+  [key: number]: number;
+}
+
+//=====================================
+// SIDEBAR BEHAVIOR
+//=====================================
+
+// sidebar expand/collapse behavior
+export default function Page() {
+  const [isSidebarExpanded, setIsSidebarExpanded] = React.useState(() => {
+    // get initial state from localStorage, default to true if not set
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('sidebarExpanded');
+      return saved !== null ? JSON.parse(saved) : true;
+    }
+    return true;
+  });
+
+  // store and persist answer data
+  const [formData, setFormData] = useState<data>({});
+
+  // save sidebar state to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('sidebarExpanded', JSON.stringify(isSidebarExpanded));
+  }, [isSidebarExpanded]);
+
+
+  const [isNewFormVisible, setIsNewFormVisible] = useState(false);
+  const [savedForms, setSavedForms] = useState<any[]>([]);
+  const [savedAns, setSavedAns] = useState<data>({}); // store answers when minimized
+  const [isNewFormMinimized, setIsNewFormMinimized] = useState(false);
+  const [savedPatient, setSavedPatient] = useState({ name: '', DOB: '' });
+  const [isOnPopout, setIsOnPopout] = useState(false);
+  const [selectedOldForm, setSelectedOldForm] = useState<any | null>(null);
+  const [isOldFormVisible, setIsOldFormVisible] = useState(false);
+  const hasRoomsBeenFetched = useRef(false);
+  const [currentRoomId, setCurrentRoomId] = useState<any | null>(null);
+
+  //=====================================
+  // VIDEO CONNECTION AND CALL LOGIC
+  //=====================================
+
+  // custom hooks
+
+  const {
+    currentPeerId,
+    peerIds,
+    error,
+    isLoading,
+    socketRequestAPI,
+    isMuted,
+    callerId,
+    setCallerId,
+    videoEl,
+    audioEl,
+    isCallOnHold,
+    activeView,
+    // handleCall,
+    // acceptCall,
+    // declineCall,
+    // endCall,
+    // holdCall,
+    // toggleMute,
+    handleLogout,
+    mediaConnection,
+    remoteStream,
+    setActiveView,
+    isIncomingCall,
+    isChatVisible,
+    minimizedChat,
+    toggleChat,
+    toggleMinimizeChat,
+    initializeChat,
+    messages,
+    // sendMessage,
+    isStrokeScaleVisible,
+    toggleStrokeScale,
+    joinRoom,
+    isConnected,
+    createRoom,
+    // getAvailableRooms, // <-- New function to fetch the list
+    availableRooms = [],    // <-- New state array
+    isRoomListLoading,
+    produce
+  } = usePeerConnection();
+
+
+
+  //=====================================
+  // VIDEO STREAM HANDLING
+  //=====================================
+
+  // manage remote video and audio streams
+  useEffect(() => {
+    if (videoEl.current && videoEl.current?.srcObject == undefined && remoteStream) {
+      console.log('SETTING REMOTE STREAM');
+      // only set up streams if not on hold and the connectio is valid
+      //   // videoEl.current.srcObject = remoteStream;
+      //   // audioEl.current.srcObject = mediaConnection.remoteStream;
+      videoEl.current.srcObject = remoteStream;
+    }
+
+    if (isConnected) {
+
+      // console.log(initializeRoom());
+      // 1. IMMEDIATE CALL (When connecting)
+
+      // if (getAvailableRooms) {
+      //   //getAvailableRooms();
+
+      //   // 2. POLLING (Keep the list fresh)
+      //   // Poll the server every 5 seconds (5000 ms)
+      //   const intervalId = setInterval(getAvailableRooms, 5000); 
+      // }
+    }
+  }, [isConnected, currentPeerId, joinRoom]);
+
+
+
+
+
+  const initializeRoom = async () => {
+    try {
+      const myName = 'David' + Math.random();
+      const roomId: string = uuidv4();
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+
+
+        // --- OPTIONAL: Call createRoom first (if required by your logic) ---
+        // await createRoom?.(roomId, RoomClient); 
+        // console.log(`Room created/ensured: ${roomId}`);
+
+        // 2. Call the exposed joinRoom function
+        // Arguments: name, room_id, RoomClient class
+        const newRoomId = await joinRoom?.(myName, roomId, RoomClient);
+        setCurrentRoomId(newRoomId);
+        console.log(`Attempted to join room: ${roomId}`);
+
+        // The setActiveView('activeCall') logic should be handled by the successCallback 
+        // defined inside your joinRoom implementation in the hook.
+
+      } catch (e: any) {
+        console.error('Failed to join room process:', e);
+        // Display user-friendly error
+        // setError(`Failed to start call: ${e.message}`);
+      }
+
+    } catch (e) {
+      console.error("Failed to initialize room upon load.", e);
+      // The connection still works, but the room won't be usable.
+    }
+  }
+
+  //=====================================
+  // FILTER DROPDOWN HANDLING
+  //=====================================
+
+  const [filterOpen, setFilterOpen] = React.useState(false);
+  const [selectedFilter, setSelectedFilter] = useState("");
+  const filterRef = useRef<HTMLDivElement>(null);
+
+
+
+  // close the filter when you click outside 
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent): void {
+      if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
+        setFilterOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [filterRef]);
+
+  // filtering handler (not yet implemented)
+  const handleFilterChange = (value: string) => {
+    setSelectedFilter(value);
+    setFilterOpen(false);
+
+    if (value === "date") { }
+
+    if (value === "A-Z") { }
+  }
+
+  useEffect(() => {
+    if (activeView === 'strokeScale') {
+      fetchSavedForms();
+    }
+  }, [activeView]);
+
+  useEffect(() => {
+    const handleBeforeUnload = async (e: BeforeUnloadEvent) => {
+      if (currentRoomId && activeView === 'activeCall') {
+        await fetch(`${process.env.NEXT_PUBLIC_SERVER_FETCH_URL}/end-consultation`, {
+          method: 'POST',
+          keepalive: true,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({ roomId: currentRoomId }),
+        });
+      }
+    };
+
+    window.addEventListener('beforeUnload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeUnload', handleBeforeUnload);
+    };
+  }, [currentRoomId, activeView]);
+
+  useEffect(() => {
+    return () => {
+      if (currentRoomId && activeView === 'activeCall') {
+        await fetch(`${process.env.NEXT_PUBLIC_SERVER_FETCH_URL}/end-consultation`, {
+          method: 'POST',
+          keepalive: true,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({ roomId: currentRoomId }),
+        });
+      }
+    }
+  })
+
+  const fetchSavedForms = async () => {
+    const username = localStorage.getItem("username");
+    if (!username) {
+      alert("Username missing. Please log in again.");
+      return;
+    }
+
+    try {
+      const response = await fetch(process.env.NEXT_PUBLIC_SERVER_FETCH_URL!, {
+        method: "POST",
+        credentials: 'include', // must be set to omit (for firefox),
+        headers: {
+          "Content-Type": "application/json",
+          "Action": "getUsersForms",
+        },
+        body: JSON.stringify({ username }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch forms");
+      }
+
+      const forms = await response.json();
+      setSavedForms(forms);
+    } catch (error) {
+      console.error("Error fetching forms:", error);
+    }
+  };
+
+  //=====================================
+  // MAIN RENDER
+  //=====================================
+
+
+  // updates form data
+  const handleDataChange = (formData: data) => {
+    setFormData(formData);
+    setSavedAns(formData);
+  }
+
+  const handlePatientChange = (name: string, DOB: string) => {
+    setSavedPatient({ name, DOB });
+  }
+
+  const minForm = () => {
+    setIsNewFormMinimized(true);
+  }
+
+  const maxForm = () => {
+    setIsNewFormMinimized(false);
+  }
+
+  const togglePopout = () => {
+    setIsOnPopout(!isOnPopout);
+  };
+
+  // Function to handle the form submission network request
+  const onSubmitForm = async (payload: { [key: string]: number | string | null }, action: string): Promise<any> => {
+    console.log("SUBMITTING FORM", payload);
+    try {
+      return await socketRequestAPI!("CREATEFORM", { payload });
+      console.log('SUCCESS');
+
+    } catch (error) {
+      console.log('FAILURE');
+      return 'FAILURE';
+    }
+    // try {
+
+
+    //     // Parse the response body as JSON
+    //     const responseData = await response.json(); 
+
+    //     if (!response.ok) {
+    //         // Throw an error if the HTTP status code indicates a failure
+    //         throw new Error(responseData.message || response.statusText || `Server returned error status ${response.status}`);
+    //     }
+
+    //     // Return the parsed data (expected to contain { success: boolean, formId: number, ... })
+    //     return responseData; 
+    // } catch (error) {
+    //     console.error("Network or Submission Error:", error);
+    //     // Return a structured error response that the form component can handle
+    //     return { success: false, message: (error as Error).message || "A network error occurred." };
+    // }
+  }
+
+  const startPlayback = () => {
+    // if (videoEl.current) {
+    //     // This is triggered by a human click
+    //     videoEl.current.play().then(() => {
+    //       // This only runs if playback starts
+    //       console.log("Playback success (The kPlay event happened)");
+    //   }).catch(error => {
+    //       // THIS IS WHERE THE BROWSER TELLS YOU WHY IT BLOCKED THE VIDEO
+    //       console.error('PLAYBACK REJECTED:', error.name, error.message);
+
+    //       if (error.name === 'NotAllowedError') {
+    //           // Means: No user interaction was detected (most common failure)
+    //           console.warn('REJECTION REASON: Waiting for user click to unlock media.');
+    //       } else if (error.name === 'AbortError') {
+    //           // Means: A pause/close command was issued before play could complete
+    //           console.warn('REJECTION REASON: Interrupted by another media command.');
+    //       }
+    //   });
+    // }
+  };
+
+  return (
+    <div className="flex h-screen bg-[#f8fafc]">
+      {/*=====================================
+        Collapsible Sidebar 
+        =====================================*/}
+      <div className={cn(
+        "transition-all duration-300 ease-in-out border-r border-gray-100 bg-white",
+        isSidebarExpanded ? "w-[280px]" : "w-[80px]"
+      )}>
+        {/*logo styling*/}
+        <div className="relative p-4">
+          <div className={cn(
+            "flex items-center pb-6",
+            isSidebarExpanded ? "gap-3" : "justify-center"
+          )}>
+            <Avatar className="h-8 w-8">
+              <AvatarFallback>NC</AvatarFallback>
+            </Avatar>
+            {isSidebarExpanded && (
+              <h1 className="text-lg font-semibold text-blue-900">
+                NeuroConnect
+              </h1>
+            )}
+          </div>
+
+          {/*toggle sidebar*/}
+          <Button
+            variant="secondary"
+            size="sm"
+            className="absolute -right-4 top-6 h-8 w-8 rounded-full border border-gray-200 bg-white p-0 shadow-sm hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors"
+            onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
+          >
+            {isSidebarExpanded ?
+              <ChevronLeft className="h-5 w-5" /> : // collapse symbol
+              <ChevronRight className="h-5 w-5" /> // expand symbol
+            }
+          </Button>
+
+          {/*navigation sidebar*/}
+          <nav className="space-y-1">
+            {menuItems.map((item) => {
+              const isForms = item.value === 'strokeScale';
+
+              return (
+                <HoverCard key={item.value}>
+                  <HoverCardTrigger asChild>
+                    <Button
+                      key={item.value}
+                      variant={activeView === item.value ? "secondary" : "ghost"} // highlights active view
+                      className={cn(
+                        "w-full",
+                        isSidebarExpanded ? "justify-start gap-3 px-3" : "p-0", // expand/change layout
+                        activeView === item.value && "bg-blue-100 text-blue-900 hover:bg-blue-200"
+                      )}
+                      // handle when trying to change view while on an active call
+                      onClick={() => {
+                        if (isForms && activeView === 'activeCall') {
+                          const confirm = window.confirm("Clicking this will end the current call. Do you wish to continue?");
+                          if (!confirm) {
+                            return;
+                          }
+                          // endCall();
+                        }
+                        setActiveView(item.value);
+                      }}
+                    >
+                      <item.icon className="h-5 w-5 text-blue-600" />
+                      {isSidebarExpanded && <span>{item.label}</span>}
+                    </Button>
+                  </HoverCardTrigger>
+
+                  {/* shows tooltip if the sidebar is collapsed*/}
+                  {!isSidebarExpanded && (
+                    <HoverCardContent side="right" className="w-auto text-sm px-2 py-1">
+                      {item.label}
+                    </HoverCardContent>
+                  )}
+                </HoverCard>
+              );
+            })}
+          </nav>
+        </div>
+      </div >
+
+      {/*=====================================
+        MAIN AREA 
+        =====================================*/}
+      <main className="flex-1 overflow-hidden">
+        {/*header bar at top*/}
+        <header className="flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4">
+          <div className="flex items-center gap-2">
+            {/* shows the user's ID*/}
+            <Badge variant="outline" className="border-blue-100 bg-blue-50 text-blue-900">
+              <User2 className="mr-2 h-4 w-4" />
+              {currentPeerId ? (
+                <span className="font-mono text-sm">{currentPeerId}</span>
+              ) : (
+                <Skeleton className="h-4 w-24" />
+              )}
+            </Badge>
+          </div>
+          <Button
+            onClick={initializeRoom
+            } // <== Call the new function
+            variant="default"
+            className="gap-2 bg-green-600 hover:bg-green-700"
+          //disabled={!!myStream} // Disable if myStream is already active
+          >
+            <Video className="h-4 w-4" />
+            {'Create a room/session!'}
+          </Button>
+
+          <Button
+            onClick={
+              produce} // <== Call the new function
+            variant="default"
+            className="gap-2 bg-green-600 hover:bg-green-700"
+          //disabled={!!myStream} // Disable if myStream is already active
+          >
+            <Video className="h-4 w-4" />
+            {'Start Video'}
+          </Button>
+
+          {/* <button onClick={startPlayback}>Start Video</button> */}
+
+          {/* logout button */}
+          <Button
+            onClick={handleLogout}
+            variant="ghost"
+            className="text-red-600 hover:bg-red-50"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Sign Out
+          </Button>
+        </header>
+
+
+        {activeView === 'strokeScale' && !isNewFormVisible && (
+          <div className="flex justify-between items-center px-6 pt-4">
+            {/* Filter button on the left */}
+
+            <div ref={filterRef} className="relative">
+              <Button
+                variant="outline"
+                size="sm"
+                className="p-2"
+                onClick={() => setFilterOpen(open => !open)}
+              >
+                <Filter className="mr-2 h-4 w-4" />
+              </Button>
+
+              {/* dropdown menu */}
+              {filterOpen && (
+                <div className="absolute top-full left-0 mt-1 z-50 w-64 rounded-md border border-gray-200 bg-white shadow-lg">
+                  <select
+                    value={selectedFilter}
+                    onChange={(e) => handleFilterChange(e.target.value)}
+                    className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-200 pr-10"
+                  >
+                    <option value="" disabled>Select Filter</option>
+                    <option value="date">Sort by Date</option>
+                    <option value="A-Z">Sort A-Z</option>
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {/* Search + New Form on the right */}
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                className="bg-blue-600 text-white hover:bg-blue-700"
+                onClick={() => setIsNewFormVisible(true)}
+              >
+                + New Form
+              </Button>
+            </div>
+          </div>
+        )}
+
+
+        {/* renders new regular form */}
+        {isNewFormVisible && !isNewFormMinimized && !isOnPopout && (
+          <Card className="border-blue-50">
+            <CardContent>
+              <NewStrokeScaleForm onCancel={() => {
+                setIsNewFormVisible(false);
+                // setActiveView("strokeScale");
+                setSavedAns({});
+                setSavedPatient({ name: '', DOB: '' });
+                setIsOnPopout(false);
+
+              }}
+
+                onMinimize={minForm}
+                initialData={savedAns}
+                onDataChange={handleDataChange}
+                onPatientChange={handlePatientChange}
+                initialPatient={savedPatient}
+                onTogglePopout={togglePopout}
+                onSubmitForm={onSubmitForm} currentFormId={null} setCurrentFormId={function (id: number): void {
+                  throw new Error("Function not implemented.");
+                }} currentSessionId={currentRoomId} />
+            </CardContent>
+          </Card>
+        )}
+
+
+        {/* renders popout form */}
+        {isNewFormVisible && !isNewFormMinimized && isOnPopout && (
+          <NewStrokeScaleForm onCancel={() => {
+            setIsNewFormVisible(false);
+            // setActiveView("strokeScale");
+            setSavedAns({});
+            setSavedPatient({ name: '', DOB: '' });
+            setIsOnPopout(false);
+          }}
+
+            onMinimize={minForm}
+            initialData={savedAns}
+            onDataChange={handleDataChange}
+            onPatientChange={handlePatientChange}
+            initialPatient={savedPatient}
+            onTogglePopout={togglePopout}
+            isPopout={true}
+            onSubmitForm={onSubmitForm} currentFormId={null} setCurrentFormId={function (id: number): void {
+              throw new Error("Function not implemented.");
+            }} currentSessionId={currentRoomId} />
+        )}
+
+        {/* minimized form */}
+        {isNewFormVisible && isNewFormMinimized && (
+          <div className="fixed bottom-6 right-6 z-50">
+            {/*form card*/}
+            <Card className="w-96 border-blue-200 shadow-lg">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  {/*form title*/}
+                  <div className="flex items-center gap-2">
+                    <Notebook className="h-5 w-5 text-blue-600"></Notebook>
+                    <span className="font-medium text-blue-900">New NIH Stroke Scale Form </span>
+                  </div>
+                  <div className="flex gap-2">
+
+                    {/*reopen form button*/}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={maxForm}
+                      className="border-blue-200 text-red-600 hover:bg-blue-50"
+                      title="Reopen"
+                    >{/*plus symbol */}
+                      <Plus className="h-4 w-4" />
+                    </Button>
+
+                    {/*close form button*/}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        maxForm();
+                        setIsNewFormVisible(false);
+                        // setActiveView("strokeScale");
+                        setSavedAns({});
+                        setSavedPatient({ name: '', DOB: '' });
+                        setIsOnPopout(false);
+                      }}
+                      className="border-blue-200 text-red-600 hover:bg-red-50"
+                      title="Close"
+                    >
+                      X
+                    </Button>
+                  </div>
+                </div>
+                <p className="">Patient: {savedPatient.name || 'not entered'}</p>
+                <p className="">DOB: {savedPatient.DOB || 'not entered'}</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+
+        {/*=====================================
+            DIFFERENT ACTIVE VIEWS
+          =====================================*/}
+
+        {/* home view (available consultations) */}
+        <div className="h-[calc(100vh-80px)] overflow-y-auto p-6">
+          {activeView === 'home' && (
+            <div className="mx-auto max-w-4xl space-y-6">
+
+              {/* alert if error */}
+              {error && (
+                <Alert variant="destructive">
+                  <AlertTitle>Connection Error</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              {/* active consultations card */}
+              <Card className="border-blue-50 bg-white shadow-sm">
+                <CardHeader className="border-b border-blue-50">
+                  <CardTitle className="flex items-center gap-2 text-blue-900">
+                    <Video className="h-5 w-5" />
+                    Active Consultations
+                  </CardTitle>
+                </CardHeader>
+
+
+                <CardContent className="p-0">
+                  {isLoading ? (
+                    <div className="space-y-4 p-6">
+                      {[1, 2, 3].map((i) => ( // 3 skeleton placeholders if data is loading
+                        <Skeleton key={i} className="h-20 w-full rounded-lg" />
+                      ))}
+                    </div>
+                    // list of available peers
+                  ) : availableRooms.length > 0 ? (
+                    <div className="divide-y divide-blue-50">
+                      {availableRooms.map((room_id) => (
+                        <div key={room_id} className="flex items-center justify-between p-4">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-9 w-9">
+                              <AvatarFallback>MD</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium text-gray-900">{room_id}</p>
+                              <p className="text-sm text-gray-500">Cardiology</p>
+                            </div>
+                          </div>
+                          {/* action buttons */}
+                          <div className="flex gap-2">
+                            <div className="flex gap-2">
+                              {/* video call button */}
+                              <HoverCard>
+                                <HoverCardTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => {
+                                      joinRoom?.('david.' + Math.random(), room_id, RoomClient);
+                                      setCurrentRoomId(room_id);
+                                    }}
+                                    className="gap-2 bg-blue-600 hover:bg-blue-700"
+                                  >
+                                    <PhoneCall className="h-4 w-4" />
+                                    <span>Video Call</span>
+                                  </Button>
+                                </HoverCardTrigger>
+                                <HoverCardContent className="w-80">
+                                  <div className="space-y-2">
+                                    <h4 className="font-medium">Video Consultation</h4>
+                                    <p className="text-sm text-gray-600">
+                                      Start a video consultation with this specialist.
+                                    </p>
+                                  </div>
+                                </HoverCardContent>
+                                {/* chat button */}
+                              </HoverCard>
+                              <HoverCard>
+                                <HoverCardTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    // onClick={() => {
+                                    //   initializeChat(peerId);
+                                    //   setCallerId(peerId);
+                                    // }}
+                                    variant="outline"
+                                    className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
+                                  >
+                                    <MessageSquare className="h-4 w-4" />
+                                    <span>Chat</span>
+                                  </Button>
+                                </HoverCardTrigger>
+                                <HoverCardContent className="w-80">
+                                  <div className="space-y-2">
+                                    <h4 className="font-medium">Text Chat</h4>
+                                    <p className="text-sm text-gray-600">
+                                      Start a text conversation with this specialist.
+                                    </p>
+                                  </div>
+                                </HoverCardContent>
+                              </HoverCard>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-6 text-center text-gray-500">
+                      No active consultations available
+                    </div>
+                  )}
+                </CardContent>
+
+
+              </Card>
+
+              {/* chat widget in home view */}
+              {isChatVisible && (
+                <div className="fixed bottom-6 right-6 w-[350px] z-50">
+                  <HomeViewChat
+                    currentPeerId={currentPeerId}
+                    remotePeerId={callerId}
+                    onClose={toggleChat}
+                    onMinimize={toggleMinimizeChat}
+                    minimized={minimizedChat}
+                    visible={isChatVisible}
+                    messages={messages}
+                  // sendMessage={sendMessage}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* incoming call popup */}
+          {isIncomingCall && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+              <Card className="w-full max-w-md border-blue-50 bg-white shadow-sm">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-blue-900">Incoming Call</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <AlertDescription>
+                    Incoming call from Dr. {callerId}
+                    <div className="mt-2 flex justify-end gap-2">
+                      <Button variant="ghost" >{/*declineCall*/}
+                        Decline
+                      </Button>
+                      <Button >Accept</Button>{/*onClick={acceptCall}*/}
+                    </div>
+                  </AlertDescription>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* active call view */}
+          {activeView === 'activeCall' && (
+            <div className="h-[calc(100vh-140px)] overflow-y-auto p-0">
+              <div className={cn(
+
+                "flex gap-6 grid-cols-1",
+                (true || true) ? "flex-col lg:flex-row" : "flex-col"
+              )}>
+
+                {/* call panel */}
+                <div className="flex-1 min-w-0">
+                  <Card className="h-full flex flex-col overflow-hidden border-blue-50">
+                    <CardHeader className="border-b border-blue-50 bg-blue-50 p-4 flex-shrink-0">
+
+                      <CardTitle className="flex items-center gap-2 text-blue-900">
+                        <PhoneCall className="h-5 w-5" />
+                        Ongoing Consultation
+                      </CardTitle>
+                    </CardHeader>
+
+
+                    <CardContent className="p-4 flex-1 flex flex-col">
+                      <div className="flex-1 flex items-center justify-center mb-4 min-h-0 p-2">
+                        {false ? (
+                          // on hold  
+                          <div className="flex items-center justify-center bg-gray-100 text-gray-500 rounded-lg w-full">
+
+                            <Pause className="h-12 w-12" />
+                          </div>
+                        ) : (
+                          // active call
+
+                          <div className="w-full max-w-[800px] aspect-[900/570] mx-auto" style={{ maxHeight: 'calc(100vh - 160px)' }}>
+
+                            {/* remote video stream */}
+                            <video
+                              ref={videoEl}
+                              autoPlay
+                              playsInline
+                              muted
+                              className="w-full h-full object-cover rounded-lg bg-black"
+
+                            />
+                            {/* remote audio stream */}
+                            <audio
+                              ref={audioEl}
+                              autoPlay
+                              playsInline
+                              className="hidden" // hide the audio player controls
+                            />
+
+                          </div>
+
+                        )}
+                      </div>
+
+                      {/* call control buttons */}
+
+                      <div className="flex gap-2 pt-4 border-t border-blue-50 bg-white flex-wrap">
+
+                        <Button
+                          // onClick={endCall}
+                          variant="destructive"
+                          className="gap-2"
+                        >
+                          <PhoneCall className="h-4 w-4" />
+                          End Call
+                        </Button>
+                        <Button
+                          // onClick={holdCall}
+                          variant="outline"
+                          className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
+                        >
+                          {isCallOnHold ? 'Resume' : 'Hold'}
+                        </Button>
+
+                        <button onClick={startPlayback}>Start Video</button>
+
+                        <Button
+                          // onClick={toggleMute}
+                          variant="outline"
+                          className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
+                        >
+                          {isMuted ? 'Unmute' : 'Mute'}
+                        </Button>
+                        <Button
+                          onClick={toggleChat}
+                          variant="outline"
+                          className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
+                        >
+                          {isChatVisible ? 'Hide Chat' : 'Show Chat'}
+                        </Button>
+                        <Button
+                          onClick={toggleStrokeScale}
+                          variant="outline"
+                          className="gap-2 border-blue-200 text-blue-900 hover:bg-blue-50"
+                        >
+                          {isStrokeScaleVisible ? 'Hide Stroke Scale' : 'Show Stroke Scale'}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* chat panel during video call */}
+                {isChatVisible && (
+
+                  <Card className="border-blue-50 w-full lg:w-[400px] h-[675px] flex-shrink-0 flex flex-col">
+                    <CardHeader className="border-b border-blue-50 bg-blue-50 p-4 flex-shrink-0">
+
+                      <CardTitle className="flex items-center gap-2 text-blue-900">
+                        <MessageSquare className="h-5 w-5" />
+                        Chat
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0 flex-1 overflow-hidden">
+                      <CallViewChat
+                        currentPeerId={currentPeerId}
+                        remotePeerId={callerId}
+                        messages={messages}
+                      // sendMessage={sendMessage}
+                      />
+                    </CardContent>
+                  </Card>
+                )}
+                {/* stroke assessment scale during video call */}
+                {isStrokeScaleVisible && (
+
+                  <Card className="border-blue-50 w-full lg:w-[400px] h-[675px] flex-shrink-0 flex flex-col">
+                    <CardHeader className="border-b border-blue-50 bg-blue-50 p-4 flex-shrink-0">
+
+                      <CardTitle className="flex items-center gap-2 text-blue-900">
+                        <Stethoscope className="h-5 w-5" />
+                        Stroke Scale Assessment
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0 flex-1 overflow-y-auto">
+                      <NewStrokeScaleForm // recieve form data and update parent state
+                        onCancel={toggleStrokeScale}
+                        initialData={formData}
+                        onDataChange={handleDataChange}
+                        onSubmitForm={onSubmitForm} currentFormId={null} setCurrentFormId={function (id: number): void {
+                          throw new Error("Function not implemented.");
+                        }} currentSessionId={currentRoomId} />
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* stroke scale forms view */}
+          {activeView === 'strokeScale' && (
+            <div className="mx-auto max-w-2xl space-y-6">
+              <Card className="border-blue-50">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <div className="flex w-full items-center justify-between">
+                    <CardTitle className="flex items-center gap-2 text-blue-900"> <Clipboard className="h-5 w-5" />
+                      Stroke Scale Forms
+                    </CardTitle>
+
+                    {/* search bar*/}
+                    <div className="relative w-full sm:w-auto sm:min-w-[240px]">
+                      <input type="text"
+                        placeholder="Search..."
+                        className="w-full rounded-md border border-blue-500 bg-white px-3 py-2 text-sm placeholder:test-grey-400 focus:outline-none focus:ring-2 focus:ring-blue-200 pr-10"
+                        onChange={(e) => {
+                          {/* logic not yet implemented */ }
+
+                        }}
+                      />
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="p-0">
+                  {savedForms.length > 0 ? (
+                    savedForms.map((form, index) => (
+                      <div
+                        key={index}
+                        className="border border-blue-200 rounded-md p-2 mx-4 my-2 flex items-center justify-between"
+                      >
+                        <div className="text-sm">
+                          <h2 className="text-base font-semibold text-blue-900">{form.patient_name}</h2>
+                          <p className="text-gray-600">DOB: {form.patient_dob || "N/A"}</p>
+                          <p className="text-gray-600">Date: {form.form_date}</p>
+                        </div>
+                        <Button
+                          className="bg-blue-600 text-white hover:bg-blue-700 h-8 px-3 text-sm"
+                          onClick={() => {
+                            setSelectedOldForm(form);
+                            setIsOldFormVisible(true);
+                          }}
+                        >
+                          View Form
+                        </Button>
+                      </div>
+                    ))
+                  ) : (
+
+                    <div className="p-6 text-center text-gray-500 text-sm">
+                      No forms available
+                    </div>
+                  )}
+                </CardContent>
+
+                {isOldFormVisible && selectedOldForm && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div className="relative">
+                      <ViewStrokeScaleForm
+                        form={selectedOldForm}
+                        onBack={() => {
+                          setIsOldFormVisible(false);
+                          setSelectedOldForm(null);
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+              </Card>
+
+              {/* button that takes you back to consultations / home page */}
+              <div className="fixed bottom-6 left-6">
+                <Button variant="outline" className="shadow-md hover:bg-blue-50 border-blue-200 text-blue-900"
+                  onClick={() => setActiveView('home')}><ChevronLeft className="mr-2 h-4 w-4" />
+                  Back to Consultations</Button>
+              </div>
+            </div>
+          )
+          }
+        </div >
+      </main >
+    </div >
+  );
+}

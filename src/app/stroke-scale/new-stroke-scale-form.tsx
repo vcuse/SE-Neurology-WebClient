@@ -1,6 +1,6 @@
 "use client";
 //library imports 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react"; // Added useMemo
 //custom imports 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,10 @@ interface NewStrokeScaleFormProps { // defines props for the form
   initialPatient?: { name: string, DOB: string };
   isPopout?: boolean;
   onTogglePopout?: () => void;
+  onSubmitForm: (payload: { [key: string]: number | string | null }, action: string) => Promise<any>; // New prop
+  currentFormId: number | null; // For subsequent updates
+  setCurrentFormId: (id: number) => void; // To store the generated ID
+  currentSessionId: number | null; // From the container
 }
 
 type StrokeScaleFormData = { [key: number]: number }; // maps question index to score
@@ -40,6 +44,26 @@ type StrokeScaleQuestion = {
 // MAIN COMPONENT
 //===================================
 
+// This maps the client's question index (0-14) to the PostgreSQL column name.
+const dbColumnMap: { [key: number]: string } = {
+  0: "item_1a_loc_level",
+  1: "item_1b_loc_commands",
+  2: "item_1c_loc_best_gaze",
+  3: "item_2_best_motor_gaze",
+  4: "item_3_visual",
+  5: "item_4_facial_palsy",
+  6: "item_5_left_arm_motor",
+  7: "item_6_right_arm_motor",
+  8: "item_7_left_leg_motor",
+  9: "item_8_right_leg_motor",
+  10: "item_9_ataxia",
+  11: "item_10_sensory",
+  12: "item_11_language",
+  13: "item_12_dysarthria",
+  14: "item_13_extinction_inattention",
+};
+
+
 export default function NewStrokeScaleForm({
   onMinimize,
   onCancel,
@@ -48,7 +72,11 @@ export default function NewStrokeScaleForm({
   onPatientChange,
   initialPatient = { name: '', DOB: '' },
   isPopout = false,
-  onTogglePopout
+  onTogglePopout,
+  onSubmitForm,
+  currentFormId,
+  setCurrentFormId,
+  currentSessionId
 }: NewStrokeScaleFormProps) {
 
   // tracks options selected 
@@ -62,6 +90,23 @@ export default function NewStrokeScaleForm({
   const [dob, setDob] = useState(initialPatient.DOB);
   const [message, setMessage] = useState<string | null>(null);
   const [activeForm, setActiveForm] = useState<any | null>(null);
+  const [isSaving, setIsSaving] = useState(false); // New state to prevent double clicks
+
+  // --- NEW: Real-time calculation of total score ---
+  const { totalScore, selectedItemsCount } = useMemo(() => {
+    let total = 0;
+    let count = 0;
+    
+    selectedOptions.forEach((selectedOptionIndex, questionIndex) => {
+      if (selectedOptionIndex !== null) {
+        // Find the score for the selected option. 
+        const score = strokeScaleQuestions[questionIndex].options[selectedOptionIndex]?.score || 0;
+        total += score;
+        count++;
+      }
+    });
+    return { totalScore: total, selectedItemsCount: count };
+  }, [selectedOptions]);
 
   // when data changes, calculate score
   useEffect(() => {
@@ -90,59 +135,67 @@ export default function NewStrokeScaleForm({
 
   // handle saving the form
   const handleSave = async () => {
-    const formatter = new Intl.DateTimeFormat("en-US", {
-      month: "2-digit",
-      day: "2-digit",
-      year: "numeric",
+    if (isSaving) return;
+    setIsSaving(true);
+    setMessage(null);
+
+    // 1. Build the dynamic, database-friendly payload
+    const formItemPayload: { [key: string]: number | string | null } = {};
+    const username = localStorage.getItem("username") ?? "unknown";
+
+    // Required Admin Fields
+    formItemPayload['username'] = username;
+    formItemPayload['patient_name'] = patientName; // Using name as a mock MRN
+    formItemPayload['sessionid'] = currentSessionId;
+    formItemPayload['form_id'] = crypto.randomUUID();
+    
+    // Score fields
+    selectedOptions.forEach((selectedOptionIndex, questionIndex) => {
+      // Only include scored items in the payload
+      if (selectedOptionIndex !== null) { 
+          const score = strokeScaleQuestions[questionIndex].options[selectedOptionIndex].score;
+          const dbColumn = dbColumnMap[questionIndex];
+
+          if (dbColumn) {
+              formItemPayload[dbColumn] = score;
+          } 
+      }
     });
 
-    const today = formatter.format(new Date());
-    const dobFormatted = dob;
-    const username = localStorage.getItem("peerId") ?? "unknown"; // get peerID if it exists else use unknown
-
-    // builds a string of scores
-    const resultsString = selectedOptions
-      .map((index, qIdx) => {
-        if (index === null) return "9"; // return 9 if unanswered 
-        const score = strokeScaleQuestions[qIdx].options[index]?.score; // retrieve the score 
-        return score !== undefined ? String(score) : "9"; // convert score to string, or 9 if unanswered 
-      })
-      .join(""); // join all scores into one string
-
-
-    // object to send to the server
-    const payload = {
-      patientName,
-      patientDob: dobFormatted,
-      formDate: today,
-      results: resultsString,
-      username,
-    };
-
-    // sends payload to the server
     try {
-      console.log("fetch url is",process.env.NEXT_PUBLIC_SERVER_FETCH_URL! );
-      const response = await fetch(process.env.NEXT_PUBLIC_SERVER_FETCH_URL!, {
-        method: "POST",
-        credentials: 'include', // must be set to omit (for firefox)
-        headers: {
-          "Content-Type": "application/json",
-          "Action": "submitStrokeScale",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (response.ok) {
-        alert("Form saved.");
-        window.location.reload();
-      } else {
-        // FAILURE: Show error
-        alert("Error saving form. Please try again.");
-      }
+        let response;
+        if (currentFormId === null) {
+            // --- ACTION 1: CREATE (Initial Save) ---
+            const actionHeader = "start_new_nihss_form";
+            setMessage("Starting new assessment...");
+            response = await onSubmitForm(formItemPayload, actionHeader);
+            console.log('response to formsubmissionwas', response);
+            if (response.response === 'SUCCESS') {
+                // Store the ID returned by the server for all future updates
+                // setCurrentFormId(response.formId);
+                setMessage(`Succesfully created and submitted form`);
+            } else {
+                throw new Error(response.message || "Failed to create form.");
+            }
+        } else {
+            // --- ACTION 2: UPDATE (Saving Draft) ---
+            const actionHeader = "save_nihss_draft";
+            formItemPayload['form_id'] = currentFormId; // Add the required ID for WHERE clause
+            setMessage("Saving draft...");
+            response = await onSubmitForm(formItemPayload, actionHeader);
+            
+            if (response.success) {
+                setMessage(`Draft saved successfully. Total Score: ${totalScore}`);
+            } else {
+                throw new Error(response.message || "Failed to save draft.");
+            }
+        }
+        
     } catch (error) {
-      console.error("Save error:", error);
-      alert("Error saving form.");
-      onCancel?.(); // still allow cancel
+        console.error("Save error:", error);
+        setMessage(`Error: ${(error as Error).message}. Check console.`);
+    } finally {
+        setIsSaving(false);
     }
   };
 
@@ -252,7 +305,7 @@ export default function NewStrokeScaleForm({
             {/* patient name input field */}
             <input
               type="text"
-              placeholder="Patient Name"
+              placeholder="Patient Name (e.g. John Doe)"
               value={patientName}
               className="w-full rounded-md border px-3 py-2 text-sm border-gray-300"
               onChange={(e) => handleNameChange(e.target.value)}
@@ -265,9 +318,30 @@ export default function NewStrokeScaleForm({
               onChange={(e) => handleDOBChange(e.target.value)}
               className="w-full rounded-md border px-3 py-2 text-sm border-gray-300"
             />
-            {/* current date */}
-            <p className="text-sm text-gray-500 text-center">
-              Date: {new Date().toLocaleDateString("en-US")}
+            
+            {/* Display status messages */}
+            {message && (
+                <p className={cn("text-sm text-center font-medium", message.includes("Error") ? "text-red-600" : "text-blue-700")}>
+                    {message}
+                </p>
+            )}
+            
+            {/* New: Total Score Display */}
+            <div className="flex justify-between items-center mt-2 p-2 bg-blue-100 rounded-md border border-blue-200">
+                <p className="text-sm font-semibold text-blue-900">
+                    Current NIHSS Score:
+                </p>
+                <span className="text-lg font-bold text-blue-800">
+                    {totalScore}
+                </span>
+            </div>
+            
+            <p className="text-xs text-gray-500 text-center">
+              Form Status: {currentFormId ? `Draft (ID: ${currentFormId})` : "New Assessment"}
+              {/* Show items assessed for completeness context */}
+              <span className="ml-2 font-semibold text-gray-700">
+                ({selectedItemsCount} of {strokeScaleQuestions.length} Items Assessed)
+              </span>
             </p>
           </div>
         </CardHeader>
@@ -330,8 +404,16 @@ export default function NewStrokeScaleForm({
 
         {/* Bottom sticky save/cancel */}
         <div className="sticky bottom-0 bg-white border-t border-blue-50 flex justify-center gap-4 p-4">
-          <Button className="bg-green-600 text-white hover:bg-green-700" onClick={handleSave}>Save</Button>
-          <Button className="bg-red-600 text-white hover:bg-red-700" onClick={() => onCancel?.()}>Cancel</Button>
+          <Button 
+              className="bg-green-600 text-white hover:bg-green-700" 
+              onClick={handleSave}
+              disabled={isSaving}
+          >
+              {isSaving ? "Saving..." : "Save Assessment"}
+          </Button>
+          <Button className="bg-red-600 text-white hover:bg-red-700" onClick={() => onCancel?.()} disabled={isSaving}>
+              Cancel
+          </Button>
         </div>
       </Card>
     );
@@ -420,9 +502,29 @@ export default function NewStrokeScaleForm({
               onChange={(e) => handleDOBChange(e.target.value)}
               className="w-full rounded-md border px-3 py-2 text-sm border-gray-300"
             />
-            {/* current date */}
-            <p className="text-sm text-gray-500 text-center">
-              Date: {new Date().toLocaleDateString("en-US")}
+             {/* Display status messages */}
+            {message && (
+                <p className={cn("text-sm text-center font-medium", message.includes("Error") ? "text-red-600" : "text-blue-700")}>
+                    {message}
+                </p>
+            )}
+
+            {/* Total Score Display */}
+            <div className="flex justify-between items-center mt-2 p-2 bg-blue-100 rounded-md border border-blue-200">
+                <p className="text-sm font-semibold text-blue-900">
+                    Current NIHSS Score:
+                </p>
+                <span className="text-lg font-bold text-blue-800">
+                    {totalScore}
+                </span>
+            </div>
+            
+            <p className="text-xs text-gray-500 text-center">
+              Form Status: {currentFormId ? `Draft (ID: ${currentFormId})` : "New Assessment"}
+              {/* Show items assessed for completeness context */}
+              <span className="ml-2 font-semibold text-gray-700">
+                ({selectedItemsCount} of {strokeScaleQuestions.length} Items Assessed)
+              </span>
             </p>
           </div>
         </CardHeader>
@@ -485,8 +587,16 @@ export default function NewStrokeScaleForm({
 
         {/* Bottom sticky save/cancel */}
         <div className="sticky bottom-0 bg-white border-t border-blue-50 flex justify-center gap-4 p-4">
-          <Button className="bg-green-600 text-white hover:bg-green-700" onClick={handleSave}>Save</Button>
-          <Button className="bg-red-600 text-white hover:bg-red-700" onClick={() => onCancel?.()}>Cancel</Button>
+          <Button 
+              className="bg-green-600 text-white hover:bg-green-700" 
+              onClick={handleSave}
+              disabled={isSaving}
+          >
+              {isSaving ? "Saving..." : "Save Assessment"}
+          </Button>
+          <Button className="bg-red-600 text-white hover:bg-red-700" onClick={() => onCancel?.()} disabled={isSaving}>
+              Cancel
+          </Button>
         </div>
       </Card>
     </div>
@@ -686,4 +796,3 @@ export const strokeScaleQuestions = [
     ]
   }
 ];
-

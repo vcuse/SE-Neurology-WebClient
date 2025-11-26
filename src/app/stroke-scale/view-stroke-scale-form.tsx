@@ -12,22 +12,62 @@ type Props = {
 };
 
 export default function ViewStrokeScaleForm({ form, onBack }: Props) {
+
+  const NIHSS_ORDERED_KEYS = [
+    "item_1a_loc_level",
+    "item_1b_loc_commands",
+    "item_1c_loc_best_gaze",
+    "item_2_best_motor_gaze",
+    "item_3_visual",
+    "item_4_facial_palsy",
+    "item_5_left_arm_motor",
+    "item_6_right_arm_motor",
+    "item_7_left_leg_motor",
+    "item_8_right_leg_motor",
+    "item_9_ataxia",
+    "item_10_sensory",
+    "item_11_language",
+    "item_12_dysarthria",
+    "item_13_extinction_inattention"
+];
+
+
+  console.log("form example", form);
   const [isEditing, setIsEditing] = useState(false);
   const [patientName, setPatientName] = useState(form.patient_name);
   const [dob, setDob] = useState(form.patient_dob);
+  const totalScore = form.total_nihss_score;
   const [originalPatientName] = useState(form.patient_name);
   const [originalDOB] = useState(form.patient_dob);
-  const convertResultsToOptions = (results: string) =>
-    results.split("").map((char, i) => {
-      const score = parseInt(char);
+  const convertResultsToOptions = (results: number[]) =>
+    results.map((char, i) => {
+      const score = char;
+      console.log('score value is', char);
       const idx = strokeScaleQuestions[i].options.findIndex((opt) => opt.score === score);
       return idx !== -1 ? idx : null;
     });
-  const originalOptions = convertResultsToOptions(form.results);
+    const orderedScores = NIHSS_ORDERED_KEYS.map(key => { 
+      const score = form[key];
+  
+      if (true) {
+          // Replace null with 0 for summation/reporting purposes
+          return score === null ? -1 : score;
+      } else {
+          // Keep nulls for fidelity (useful if you need to know which items were skipped)
+          return score; 
+      }
+  });
+  
+  const originalOptions = convertResultsToOptions(orderedScores);
   const [originalSelectedOptions] = useState<(number | null)[]>(originalOptions);
+  
+  
   const [selectedOptions, setSelectedOptions] = useState<(number | null)[]>(
-    convertResultsToOptions(form.results)
+    convertResultsToOptions(orderedScores)
   );
+  
+
+
 
   const handleUpdate = async () => {
     const resultsString = selectedOptions
@@ -121,6 +161,16 @@ export default function ViewStrokeScaleForm({ form, onBack }: Props) {
             />
             <p className="text-sm text-gray-500 text-center">Date: {form.form_date}</p>
           </div>
+
+          {/* New: Total Score Display */}
+          <div className="flex justify-between items-center mt-2 p-2 bg-blue-100 rounded-md border border-blue-200">
+                <p className="text-sm font-semibold text-blue-900">
+                    Current NIHSS Score:
+                </p>
+                <span className="text-lg font-bold text-blue-800">
+                    {totalScore}
+                </span>
+            </div>
         </CardHeader>
 
         <CardContent className="flex-1 overflow-y-auto bg-gray-50 p-4 min-h-0">
