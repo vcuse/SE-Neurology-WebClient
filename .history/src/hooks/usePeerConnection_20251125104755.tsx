@@ -325,25 +325,24 @@ export function usePeerConnection() {
       return 'FAILED TO JOIN';
     }
   };
+const leaveRoom = async () => {
+      try {
+        await socketRequestAPI("exitRoom", {});
 
-  const leaveRoom = async () => {
-    try {
-      await socketRequestAPI("exitRoom", {});
+        if (rcRef.current) {
+          rcRef.current = null;
+        }
 
-      if (rcRef.current) {
-        rcRef.current = null;
+        setActiveView('home');
+        setRemoteStream(null);
+        setCallerId('');
+
+        console.log('Successfully left room');
+      } catch (err) {
+        console.error('Error leaving room:', err);
+        setError('Failed to leave room');
       }
-
-      setActiveView('home');
-      setRemoteStream(null);
-      setCallerId('');
-
-      console.log('Successfully left room');
-    } catch (err) {
-      console.error('Error leaving room:', err);
-      setError('Failed to leave room');
-    }
-  };
+    };
 
   // Add a useEffect to listen for the connection event
   useEffect(() => {

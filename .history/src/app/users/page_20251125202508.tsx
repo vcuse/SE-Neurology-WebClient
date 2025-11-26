@@ -138,8 +138,7 @@ export default function Page() {
     // getAvailableRooms, // <-- New function to fetch the list
     availableRooms = [],    // <-- New state array
     isRoomListLoading,
-    produce,
-    leaveRoom
+    produce
   } = usePeerConnection();
 
 
@@ -520,7 +519,7 @@ export default function Page() {
           //disabled={!!myStream} // Disable if myStream is already active
           >
             <Video className="h-4 w-4" />
-            {'Create a room/session!!'}
+            {'Create a room/session!'}
           </Button>
 
           <Button

@@ -138,8 +138,7 @@ export default function Page() {
     // getAvailableRooms, // <-- New function to fetch the list
     availableRooms = [],    // <-- New state array
     isRoomListLoading,
-    produce,
-    leaveRoom
+    produce
   } = usePeerConnection();
 
 
@@ -251,56 +250,62 @@ export default function Page() {
 
   // In page.tsx - Update both useEffect hooks
 
-  useEffect(() => {
-    const handleBeforeUnload = async (e: BeforeUnloadEvent) => {
-      if (currentRoomId && activeView === 'activeCall') {
-        // Use the existing leaveRoom function
+useEffect(() => {
+  const handleBeforeUnload = async (e: BeforeUnloadEvent) => {
+    if (currentRoomId && activeView === 'activeCall') {
+      // First: Disconnect from the room via socket
+      if (socketRequestAPI) {
         try {
-          await leaveRoom?.();
+          // Use socketRequestAPI to leave the room
+          await socketRequestAPI('LEAVE_ROOM', { roomId: currentRoomId });
         } catch (error) {
           console.error('Failed to leave room via socket:', error);
         }
-
-        // Also notify backend via HTTP (as backup)
-        await fetch(`${process.env.NEXT_PUBLIC_SERVER_FETCH_URL}/end-consultation`, {
-          method: 'POST',
-          keepalive: true,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({ roomId: currentRoomId }),
-        });
       }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [currentRoomId, activeView, leaveRoom]); // Add leaveRoom to dependencies
-
-
-  useEffect(() => {
-    return () => {
-      if (currentRoomId && activeView === 'activeCall') {
-        // Use existing leaveRoom function
-        leaveRoom?.().catch(error => console.error('Failed to leave room:', error));
-
-        // HTTP backup
-        fetch(`${process.env.NEXT_PUBLIC_SERVER_FETCH_URL}/end-consultation`, {
-          method: 'POST',
-          keepalive: true,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({ roomId: currentRoomId }),
-        }).catch(error => console.error('Failed to end consultation:', error));
-      }
+      
+      // Second: Notify backend via HTTP (as backup)
+      await fetch(`${process.env.NEXT_PUBLIC_SERVER_FETCH_URL}/end-consultation`, {
+        method: 'POST',
+        keepalive: true,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ roomId: currentRoomId }),
+      });
     }
-  }, [currentRoomId, activeView, leaveRoom]); // Add leaveRoom to dependencies
+  };
+
+  window.addEventListener('beforeunload', handleBeforeUnload);
+  
+  return () => {
+    window.removeEventListener('beforeunload', handleBeforeUnload);
+  };
+}, [currentRoomId, activeView, socketRequestAPI]);
+
+
+useEffect(() => {
+  return () => {
+    if (currentRoomId && activeView === 'activeCall') {
+      // Try socket first
+      if (socketRequestAPI) {
+        socketRequestAPI('LEAVE_ROOM', { roomId: currentRoomId })
+          .catch(error => console.error('Failed to leave room:', error));
+      }
+      
+      // Then HTTP as backup
+      fetch(`${process.env.NEXT_PUBLIC_SERVER_FETCH_URL}/end-consultation`, {
+        method: 'POST',
+        keepalive: true,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ roomId: currentRoomId }),
+      }).catch(error => console.error('Failed to end consultation:', error));
+    }
+  }
+}, [currentRoomId, activeView, socketRequestAPI]);
 
 
   const fetchSavedForms = async () => {
@@ -520,7 +525,7 @@ export default function Page() {
           //disabled={!!myStream} // Disable if myStream is already active
           >
             <Video className="h-4 w-4" />
-            {'Create a room/session!!'}
+            {'Create a room/session!'}
           </Button>
 
           <Button

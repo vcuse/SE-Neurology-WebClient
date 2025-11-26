@@ -9,7 +9,7 @@ import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/h
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Clipboard, Filter, Sliders } from "lucide-react";
-import ViewStrokeScaleForm from "../stroke-scale/view-stroke-scale-form";
+import ViewStrokeScaleForm from "../stroke-scale/view-stroke-scale-form"; 
 import {
   Pause,
   LogOut,
@@ -38,7 +38,7 @@ import { RoomClient } from "@/hooks/roomClient";
 import { cn } from "@/lib/utils";
 import { HomeViewChat, CallViewChat } from "@/components/video-call";
 import Link from "next/link";
-import * as mediaSoup from "mediasoup-client";
+import * as mediaSoup from "mediasoup-client"; 
 
 // type defenition for sidebar menu items 
 type MenuItem = {
@@ -138,11 +138,10 @@ export default function Page() {
     // getAvailableRooms, // <-- New function to fetch the list
     availableRooms = [],    // <-- New state array
     isRoomListLoading,
-    produce,
-    leaveRoom
+    produce
   } = usePeerConnection();
 
-
+  
 
   //=====================================
   // VIDEO STREAM HANDLING
@@ -150,19 +149,19 @@ export default function Page() {
 
   // manage remote video and audio streams
   useEffect(() => {
-    if (videoEl.current && videoEl.current?.srcObject == undefined && remoteStream) {
+    if (videoEl.current && videoEl.current?.srcObject == undefined && remoteStream) { 
       console.log('SETTING REMOTE STREAM');
-      // only set up streams if not on hold and the connectio is valid
+        // only set up streams if not on hold and the connectio is valid
       //   // videoEl.current.srcObject = remoteStream;
       //   // audioEl.current.srcObject = mediaConnection.remoteStream;
-      videoEl.current.srcObject = remoteStream;
+        videoEl.current.srcObject = remoteStream;
     }
 
     if (isConnected) {
-
+      
       // console.log(initializeRoom());
       // 1. IMMEDIATE CALL (When connecting)
-
+    
       // if (getAvailableRooms) {
       //   //getAvailableRooms();
 
@@ -171,11 +170,11 @@ export default function Page() {
       //   const intervalId = setInterval(getAvailableRooms, 5000); 
       // }
     }
-  }, [isConnected, currentPeerId, joinRoom]);
+  },[isConnected, currentPeerId, joinRoom]);
 
+  
 
-
-
+  
 
   const initializeRoom = async () => {
     try {
@@ -183,12 +182,12 @@ export default function Page() {
       const roomId: string = uuidv4();
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-
-
+        
+        
         // --- OPTIONAL: Call createRoom first (if required by your logic) ---
         // await createRoom?.(roomId, RoomClient); 
         // console.log(`Room created/ensured: ${roomId}`);
-
+        
         // 2. Call the exposed joinRoom function
         // Arguments: name, room_id, RoomClient class
         const newRoomId = await joinRoom?.(myName, roomId, RoomClient);
@@ -199,14 +198,14 @@ export default function Page() {
         // defined inside your joinRoom implementation in the hook.
 
       } catch (e: any) {
-        console.error('Failed to join room process:', e);
-        // Display user-friendly error
-        // setError(`Failed to start call: ${e.message}`);
+          console.error('Failed to join room process:', e);
+          // Display user-friendly error
+          // setError(`Failed to start call: ${e.message}`);
       }
 
     } catch (e) {
-      console.error("Failed to initialize room upon load.", e);
-      // The connection still works, but the room won't be usable.
+        console.error("Failed to initialize room upon load.", e);
+        // The connection still works, but the room won't be usable.
     }
   }
 
@@ -218,7 +217,7 @@ export default function Page() {
   const [selectedFilter, setSelectedFilter] = useState("");
   const filterRef = useRef<HTMLDivElement>(null);
 
-
+  
 
   // close the filter when you click outside 
   useEffect(() => {
@@ -243,65 +242,14 @@ export default function Page() {
     if (value === "A-Z") { }
   }
 
+ 
+  
+
   useEffect(() => {
     if (activeView === 'strokeScale') {
       fetchSavedForms();
     }
   }, [activeView]);
-
-  // In page.tsx - Update both useEffect hooks
-
-  useEffect(() => {
-    const handleBeforeUnload = async (e: BeforeUnloadEvent) => {
-      if (currentRoomId && activeView === 'activeCall') {
-        // Use the existing leaveRoom function
-        try {
-          await leaveRoom?.();
-        } catch (error) {
-          console.error('Failed to leave room via socket:', error);
-        }
-
-        // Also notify backend via HTTP (as backup)
-        await fetch(`${process.env.NEXT_PUBLIC_SERVER_FETCH_URL}/end-consultation`, {
-          method: 'POST',
-          keepalive: true,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({ roomId: currentRoomId }),
-        });
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [currentRoomId, activeView, leaveRoom]); // Add leaveRoom to dependencies
-
-
-  useEffect(() => {
-    return () => {
-      if (currentRoomId && activeView === 'activeCall') {
-        // Use existing leaveRoom function
-        leaveRoom?.().catch(error => console.error('Failed to leave room:', error));
-
-        // HTTP backup
-        fetch(`${process.env.NEXT_PUBLIC_SERVER_FETCH_URL}/end-consultation`, {
-          method: 'POST',
-          keepalive: true,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({ roomId: currentRoomId }),
-        }).catch(error => console.error('Failed to end consultation:', error));
-      }
-    }
-  }, [currentRoomId, activeView, leaveRoom]); // Add leaveRoom to dependencies
-
 
   const fetchSavedForms = async () => {
     const username = localStorage.getItem("username");
@@ -362,25 +310,25 @@ export default function Page() {
   // Function to handle the form submission network request
   const onSubmitForm = async (payload: { [key: string]: number | string | null }, action: string): Promise<any> => {
     console.log("SUBMITTING FORM", payload);
-    try {
-      return await socketRequestAPI!("CREATEFORM", { payload });
+    try{
+      return await socketRequestAPI!("CREATEFORM", {payload});
       console.log('SUCCESS');
-
-    } catch (error) {
+      
+    }catch(error){
       console.log('FAILURE');
       return 'FAILURE';
     }
     // try {
-
-
+        
+        
     //     // Parse the response body as JSON
     //     const responseData = await response.json(); 
-
+        
     //     if (!response.ok) {
     //         // Throw an error if the HTTP status code indicates a failure
     //         throw new Error(responseData.message || response.statusText || `Server returned error status ${response.status}`);
     //     }
-
+        
     //     // Return the parsed data (expected to contain { success: boolean, formId: number, ... })
     //     return responseData; 
     // } catch (error) {
@@ -399,7 +347,7 @@ export default function Page() {
     //   }).catch(error => {
     //       // THIS IS WHERE THE BROWSER TELLS YOU WHY IT BLOCKED THE VIDEO
     //       console.error('PLAYBACK REJECTED:', error.name, error.message);
-
+          
     //       if (error.name === 'NotAllowedError') {
     //           // Means: No user interaction was detected (most common failure)
     //           console.warn('REJECTION REASON: Waiting for user click to unlock media.');
@@ -511,30 +459,30 @@ export default function Page() {
                 <Skeleton className="h-4 w-24" />
               )}
             </Badge>
-          </div>
+          </div> 
           <Button
-            onClick={initializeRoom
-            } // <== Call the new function
-            variant="default"
+            onClick={ initializeRoom
+              } // <== Call the new function
+            variant="default" 
             className="gap-2 bg-green-600 hover:bg-green-700"
-          //disabled={!!myStream} // Disable if myStream is already active
-          >
-            <Video className="h-4 w-4" />
-            {'Create a room/session!!'}
-          </Button>
+            //disabled={!!myStream} // Disable if myStream is already active
+              >
+                  <Video className="h-4 w-4" />
+                  { 'Create a room/session'}
+              </Button>
 
           <Button
-            onClick={
+            onClick={ 
               produce} // <== Call the new function
-            variant="default"
+            variant="default" 
             className="gap-2 bg-green-600 hover:bg-green-700"
-          //disabled={!!myStream} // Disable if myStream is already active
-          >
-            <Video className="h-4 w-4" />
-            {'Start Video'}
-          </Button>
-
-          {/* <button onClick={startPlayback}>Start Video</button> */}
+            //disabled={!!myStream} // Disable if myStream is already active
+              >
+                  <Video className="h-4 w-4" />
+                  { 'Start Video'}
+              </Button>
+        
+        {/* <button onClick={startPlayback}>Start Video</button> */}
 
           {/* logout button */}
           <Button
@@ -603,17 +551,17 @@ export default function Page() {
                 setSavedPatient({ name: '', DOB: '' });
                 setIsOnPopout(false);
 
-              }}
+              } }
 
-                onMinimize={minForm}
-                initialData={savedAns}
-                onDataChange={handleDataChange}
-                onPatientChange={handlePatientChange}
-                initialPatient={savedPatient}
-                onTogglePopout={togglePopout}
-                onSubmitForm={onSubmitForm} currentFormId={null} setCurrentFormId={function (id: number): void {
-                  throw new Error("Function not implemented.");
-                }} currentSessionId={currentRoomId} />
+              onMinimize={minForm}
+              initialData={savedAns}
+              onDataChange={handleDataChange}
+              onPatientChange={handlePatientChange}
+              initialPatient={savedPatient}
+              onTogglePopout={togglePopout}
+              onSubmitForm={onSubmitForm} currentFormId={null} setCurrentFormId={function (id: number): void {
+                throw new Error("Function not implemented.");
+              } } currentSessionId={currentRoomId}              />
             </CardContent>
           </Card>
         )}
@@ -627,18 +575,18 @@ export default function Page() {
             setSavedAns({});
             setSavedPatient({ name: '', DOB: '' });
             setIsOnPopout(false);
-          }}
+          } }
 
-            onMinimize={minForm}
-            initialData={savedAns}
-            onDataChange={handleDataChange}
-            onPatientChange={handlePatientChange}
-            initialPatient={savedPatient}
-            onTogglePopout={togglePopout}
-            isPopout={true}
-            onSubmitForm={onSubmitForm} currentFormId={null} setCurrentFormId={function (id: number): void {
-              throw new Error("Function not implemented.");
-            }} currentSessionId={currentRoomId} />
+          onMinimize={minForm}
+          initialData={savedAns}
+          onDataChange={handleDataChange}
+          onPatientChange={handlePatientChange}
+          initialPatient={savedPatient}
+          onTogglePopout={togglePopout}
+          isPopout={true}
+          onSubmitForm={onSubmitForm} currentFormId={null} setCurrentFormId={function (id: number): void {
+            throw new Error("Function not implemented.");
+          } } currentSessionId={currentRoomId}          />
         )}
 
         {/* minimized form */}
@@ -719,7 +667,7 @@ export default function Page() {
                   </CardTitle>
                 </CardHeader>
 
-
+                
                 <CardContent className="p-0">
                   {isLoading ? (
                     <div className="space-y-4 p-6">
@@ -749,10 +697,9 @@ export default function Page() {
                                 <HoverCardTrigger asChild>
                                   <Button
                                     size="sm"
-                                    onClick={() => {
-                                      joinRoom?.('david.' + Math.random(), room_id, RoomClient);
+                                     onClick={() => {joinRoom?.('david.' + Math.random(), room_id, RoomClient);
                                       setCurrentRoomId(room_id);
-                                    }}
+                                     }}
                                     className="gap-2 bg-blue-600 hover:bg-blue-700"
                                   >
                                     <PhoneCall className="h-4 w-4" />
@@ -819,7 +766,7 @@ export default function Page() {
                     minimized={minimizedChat}
                     visible={isChatVisible}
                     messages={messages}
-                  // sendMessage={sendMessage}
+                    // sendMessage={sendMessage}
                   />
                 </div>
               )}
@@ -925,7 +872,7 @@ export default function Page() {
                         </Button>
 
                         <button onClick={startPlayback}>Start Video</button>
-
+                        
                         <Button
                           // onClick={toggleMute}
                           variant="outline"
@@ -968,7 +915,7 @@ export default function Page() {
                         currentPeerId={currentPeerId}
                         remotePeerId={callerId}
                         messages={messages}
-                      // sendMessage={sendMessage}
+                        // sendMessage={sendMessage}
                       />
                     </CardContent>
                   </Card>
@@ -991,7 +938,7 @@ export default function Page() {
                         onDataChange={handleDataChange}
                         onSubmitForm={onSubmitForm} currentFormId={null} setCurrentFormId={function (id: number): void {
                           throw new Error("Function not implemented.");
-                        }} currentSessionId={currentRoomId} />
+                        } } currentSessionId={currentRoomId}                      />
                     </CardContent>
                   </Card>
                 )}

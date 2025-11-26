@@ -16,7 +16,7 @@ interface Message {
   id: string;
   sender: string;
   text: string;
-  timestamp: Date;
+  timestamp: Date;const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
 }
 interface SocketRequest {
   request: (type: string, data?: any) => Promise<any>;
@@ -53,7 +53,7 @@ export function usePeerConnection() {
   // Add this new state variable with your others
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   // UI states
-  const [activeView, setActiveView] = useState<'home' | 'strokeScale' | 'files' | 'sessions' | 'activeCall'>('home');
+  const [activeView, setActiveView] = useState<'home' | 'strokeScale' | 'files' | 'activeCall'>('home');
   const [minimizedChat, setMinimizedChat] = useState<boolean>(false);
   const [isChatVisible, setIsChatVisible] = useState<boolean>(false);
   const [isStrokeScaleVisible, setIsStrokeScaleVisible] = useState<boolean>(false);
@@ -326,25 +326,6 @@ export function usePeerConnection() {
     }
   };
 
-  const leaveRoom = async () => {
-    try {
-      await socketRequestAPI("exitRoom", {});
-
-      if (rcRef.current) {
-        rcRef.current = null;
-      }
-
-      setActiveView('home');
-      setRemoteStream(null);
-      setCallerId('');
-
-      console.log('Successfully left room');
-    } catch (err) {
-      console.error('Error leaving room:', err);
-      setError('Failed to leave room');
-    }
-  };
-
   // Add a useEffect to listen for the connection event
   useEffect(() => {
     //todo: change to use env variable
@@ -368,7 +349,7 @@ export function usePeerConnection() {
       console.log('socket.io connected');
       // setActiveView('activeCall');
       // You can set currentPeerId here if the server returns it, or get it from socket.id
-      setCurrentPeerId(localStorage.getItem("username")!);
+      // setCurrentPeerId(socket.id); 
     };
     const onDisconnect = () => {
       setIsConnected(false);
@@ -473,7 +454,6 @@ export function usePeerConnection() {
   // =====================================
 
   return {
-    currentPeerId,
     // ... (existing state and refs)
     joinRoom,
     socketRequestAPI,
@@ -493,7 +473,6 @@ export function usePeerConnection() {
     // ... (other exposed methods)
     isStrokeScaleVisible,
     toggleStrokeScale,
-    leaveRoom
   };
 
 

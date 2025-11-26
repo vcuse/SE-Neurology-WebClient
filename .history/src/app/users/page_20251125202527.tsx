@@ -520,7 +520,7 @@ export default function Page() {
           //disabled={!!myStream} // Disable if myStream is already active
           >
             <Video className="h-4 w-4" />
-            {'Create a room/session!!'}
+            {'Create a room/session!'}
           </Button>
 
           <Button

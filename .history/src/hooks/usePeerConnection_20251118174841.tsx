@@ -40,6 +40,7 @@ export function usePeerConnection() {
   const [peerIds, setPeerIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [activeRoomID, setActiveRoomID] = useState<string | null>(null);
 
   // call management states
   const [isMuted, setIsMuted] = useState<boolean>(false);
@@ -53,7 +54,7 @@ export function usePeerConnection() {
   // Add this new state variable with your others
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   // UI states
-  const [activeView, setActiveView] = useState<'home' | 'strokeScale' | 'files' | 'sessions' | 'activeCall'>('home');
+  const [activeView, setActiveView] = useState<'home' | 'strokeScale' | 'files' | 'activeCall'>('home');
   const [minimizedChat, setMinimizedChat] = useState<boolean>(false);
   const [isChatVisible, setIsChatVisible] = useState<boolean>(false);
   const [isStrokeScaleVisible, setIsStrokeScaleVisible] = useState<boolean>(false);
@@ -252,7 +253,7 @@ export function usePeerConnection() {
    */
   const joinRoom = async (name: string, room_id: string, roomClientClass: any): Promise<string> => {
 
-
+    setActiveRoomID(room_id);
     if (rcRef.current /* && rcRef.current.isOpen() */) {
       console.log('Already connected to a room');
       return 'FAILED TO JOIN';
@@ -310,12 +311,6 @@ export function usePeerConnection() {
       );
       console.log('after creating newRC')
       rcRef.current = newRc;
-
-
-
-
-
-
       console.log('at rc ref.current');
       return room_id;
 
@@ -327,23 +322,22 @@ export function usePeerConnection() {
   };
 
   const leaveRoom = async () => {
-    try {
-      await socketRequestAPI("exitRoom", {});
+    if (!activeRoomID || !null) {
+      return;
+    }
 
-      if (rcRef.current) {
+    try {
+      await socketRequestAPI("LEAVEROOM", { roomId: activeRoomID });
+      if (rcRef.current?.close) rcRef.current?.close(); {
         rcRef.current = null;
       }
 
-      setActiveView('home');
-      setRemoteStream(null);
-      setCallerId('');
+      setActiveRoomID(null);
+setacti
+    } catch {
 
-      console.log('Successfully left room');
-    } catch (err) {
-      console.error('Error leaving room:', err);
-      setError('Failed to leave room');
     }
-  };
+  }
 
   // Add a useEffect to listen for the connection event
   useEffect(() => {
@@ -368,7 +362,7 @@ export function usePeerConnection() {
       console.log('socket.io connected');
       // setActiveView('activeCall');
       // You can set currentPeerId here if the server returns it, or get it from socket.id
-      setCurrentPeerId(localStorage.getItem("username")!);
+      // setCurrentPeerId(socket.id); 
     };
     const onDisconnect = () => {
       setIsConnected(false);
@@ -473,7 +467,6 @@ export function usePeerConnection() {
   // =====================================
 
   return {
-    currentPeerId,
     // ... (existing state and refs)
     joinRoom,
     socketRequestAPI,
@@ -493,7 +486,6 @@ export function usePeerConnection() {
     // ... (other exposed methods)
     isStrokeScaleVisible,
     toggleStrokeScale,
-    leaveRoom
   };
 
 

@@ -326,25 +326,6 @@ export function usePeerConnection() {
     }
   };
 
-  const leaveRoom = async () => {
-    try {
-      await socketRequestAPI("exitRoom", {});
-
-      if (rcRef.current) {
-        rcRef.current = null;
-      }
-
-      setActiveView('home');
-      setRemoteStream(null);
-      setCallerId('');
-
-      console.log('Successfully left room');
-    } catch (err) {
-      console.error('Error leaving room:', err);
-      setError('Failed to leave room');
-    }
-  };
-
   // Add a useEffect to listen for the connection event
   useEffect(() => {
     //todo: change to use env variable
@@ -493,7 +474,7 @@ export function usePeerConnection() {
     // ... (other exposed methods)
     isStrokeScaleVisible,
     toggleStrokeScale,
-    leaveRoom
+    leaveRoom,
   };
 
 
