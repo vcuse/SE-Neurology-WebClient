@@ -463,8 +463,8 @@ export class RoomClient {
                 elem.srcObject = stream;
                 elem.id = consumer.id;
                 console.log('received audio and setting up');
-                
-                
+                elem.autoplay = true;
+                this.remoteStreamCallback(stream);
                 this.remoteAudioEl?.appendChild(elem);
             }
 

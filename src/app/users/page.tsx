@@ -519,7 +519,7 @@ export default function Page() {
             //disabled={!!myStream} // Disable if myStream is already active
               >
                   <Video className="h-4 w-4" />
-                  { 'Start Video'}
+                  { 'Start Audio'}
               </Button>
         
         {/* <button onClick={startPlayback}>Start Video</button> */}
@@ -739,15 +739,15 @@ export default function Page() {
                                     onClick={async () => {
                                       const username = localStorage.getItem("username");
                                       try {
-                                        await fetch(process.env.NEXT_PUBLIC_SERVER_FETCH_URL!, {
-                                          method: "POST",
-                                          credentials: "include",
-                                          headers: {
-                                            "Content-Type": "application/json",
-                                            "Action": "joinSession",
-                                          },
-                                          body: JSON.stringify({ sessionId: room_id, username }),
-                                        });
+                                        // await fetch(process.env.NEXT_PUBLIC_SERVER_FETCH_URL!, {
+                                        //   method: "POST",
+                                        //   credentials: "include",
+                                        //   headers: {
+                                        //     "Content-Type": "application/json",
+                                        //     "Action": "joinSession",
+                                        //   },
+                                        //   body: JSON.stringify({ sessionId: room_id, username }),
+                                        // });
 
                                         await joinRoom?.("david." + Math.random(), room_id, RoomClient);
                                         setCurrentRoomId(room_id);
