@@ -47,7 +47,7 @@ export default function ViewStrokeScaleForm({ form, onBack }: Props) {
       return idx !== -1 ? idx : null;
     });
     const orderedScores = NIHSS_ORDERED_KEYS.map(key => { 
-      const score = form.items[key];
+      const score = form[key];
   
       if (true) {
           // Replace null with 0 for summation/reporting purposes
