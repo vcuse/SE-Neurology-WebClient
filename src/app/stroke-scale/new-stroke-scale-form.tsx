@@ -166,7 +166,7 @@ export default function NewStrokeScaleForm({
           // --- ACTION 2: NEW FORM ---
           const actionHeader = "submitStrokeScale";
           setMessage("Submitting assessment...");
-          const created = await onSubmitForm(formItemPayload, "start_new_nihss_form");
+          const created = await onSubmitForm(formItemPayload, "submitStrokeScale");
 
           // server should return the created form id (string uuid)
           const returnedId = created.form_id ?? created.formId ?? created.id;

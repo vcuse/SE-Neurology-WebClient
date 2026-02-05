@@ -114,7 +114,7 @@ export default function ViewStrokeScaleForm({ form, onBack }: Props) {
         "Action": "deleteForm",
       },
       body: JSON.stringify({
-        form_id: form.form_id,
+        form_id: form.formId,
         username: localStorage.getItem("username"),
       }),
     });
