@@ -150,6 +150,7 @@ export default function NewStrokeScaleForm({
     }
     formItemPayload["patient_dob"] = dob || null;
     formItemPayload["total_nihss_score"] = totalScore;  
+
     
     // Score fields
     selectedOptions.forEach((selectedOptionIndex, questionIndex) => {
@@ -165,6 +166,7 @@ export default function NewStrokeScaleForm({
         if (currentFormId === null) {
           // --- ACTION 2: NEW FORM ---
           const actionHeader = "submitStrokeScale";
+          formItemPayload["form_date"] = new Date().toISOString();
           setMessage("Submitting assessment...");
           const created = await onSubmitForm(formItemPayload, "submitStrokeScale");
 
@@ -173,7 +175,8 @@ export default function NewStrokeScaleForm({
           if (!returnedId) throw new Error("Server did not return form_id.");
 
           setCurrentFormId(returnedId);
-          setMessage("Saved successfully.");
+          alert("Form saved.");
+          window.location.reload();
         } else {
             // --- ACTION 2: UPDATE FORM ---
             const actionHeader = "updateForm";

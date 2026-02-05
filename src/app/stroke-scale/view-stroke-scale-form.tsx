@@ -59,8 +59,18 @@ export default function ViewStrokeScaleForm({ form, onBack }: Props) {
     convertResultsToOptions(orderedScores)
   );
   
+  const displayDate =
+    form.formDate ??
+    form.form_date ??
+    null;
 
-
+  const formattedDate = displayDate
+    ? new Date(displayDate).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : "—";
 
   const handleUpdate = async () => {
 
@@ -156,7 +166,7 @@ export default function ViewStrokeScaleForm({ form, onBack }: Props) {
                 isEditing ? "border-gray-300 bg-white" : "border-gray-300 bg-gray-100"
               )}
             />
-            <p className="text-sm text-gray-500 text-center">Date: {form.form_date}</p>
+            <p className="text-sm text-gray-500 text-center">Date: {formattedDate}</p>
           </div>
 
           {/* New: Total Score Display */}
