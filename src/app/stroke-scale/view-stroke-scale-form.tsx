@@ -34,29 +34,22 @@ export default function ViewStrokeScaleForm({ form, onBack }: Props) {
 
   console.log("form example", form);
   const [isEditing, setIsEditing] = useState(false);
-  const [patientName, setPatientName] = useState(form.patient_name);
-  const [dob, setDob] = useState(form.patient_dob);
-  const totalScore = form.total_nihss_score;
+  const [patientName, setPatientName] = useState(form.patient_name ?? form.patientName ?? "");
+  const [dob, setDob] = useState(form.patient_dob ?? form.patientDob ?? "");
+  const totalScore = form.total_nihss_score ?? form.totalNihssScore ?? 0;
   const [originalPatientName] = useState(form.patient_name);
   const [originalDOB] = useState(form.patient_dob);
-  const convertResultsToOptions = (results: number[]) =>
-    results.map((char, i) => {
-      const score = char;
-      console.log('score value is', char);
+  const convertResultsToOptions = (results: (number | null)[]) =>
+    results.map((score, i) => {
+      if (score === null) return null;
       const idx = strokeScaleQuestions[i].options.findIndex((opt) => opt.score === score);
       return idx !== -1 ? idx : null;
     });
-    const orderedScores = NIHSS_ORDERED_KEYS.map(key => { 
-      const score = form[key];
-  
-      if (true) {
-          // Replace null with 0 for summation/reporting purposes
-          return score === null ? -1 : score;
-      } else {
-          // Keep nulls for fidelity (useful if you need to know which items were skipped)
-          return score; 
-      }
-  });
+
+    const orderedScores = NIHSS_ORDERED_KEYS.map((key) => {
+      const score = form.items?.[key] ?? form[key] ?? null;
+      return score;
+    });
   
   const originalOptions = convertResultsToOptions(orderedScores);
   const [originalSelectedOptions] = useState<(number | null)[]>(originalOptions);
@@ -70,18 +63,19 @@ export default function ViewStrokeScaleForm({ form, onBack }: Props) {
 
 
   const handleUpdate = async () => {
-    const resultsString = selectedOptions
-      .map((opt, i) => (opt !== null ? strokeScaleQuestions[i].options[opt].score : "9"))
-      .join("");
 
-    const payload = {
-      patientName: patientName,
-      patientDob: dob,
-      formDate: form.form_date,
-      results: resultsString,
-      id: form.id,
+    const payload: any = {
       username: localStorage.getItem("username"),
+      form_id: form.form_id ?? form.formId,
+      patient_name: patientName,
+      patient_dob: dob || null,
     };
+
+    // map selected options -> DB columns
+    NIHSS_ORDERED_KEYS.forEach((key, i) => {
+      const optIdx = selectedOptions[i];
+      payload[key] = optIdx !== null ? strokeScaleQuestions[i].options[optIdx].score : null;
+    });
 
     try {
       const res = await fetch(process.env.NEXT_PUBLIC_SERVER_FETCH_URL!, {
@@ -91,7 +85,10 @@ export default function ViewStrokeScaleForm({ form, onBack }: Props) {
           "Content-Type": "application/json",
           "Action": "updateForm",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          form_id: form.form_id ?? form.formId,
+          username: localStorage.getItem("username"),
+        }),
       });
 
       if (res.ok) {
@@ -117,7 +114,7 @@ export default function ViewStrokeScaleForm({ form, onBack }: Props) {
         "Action": "deleteForm",
       },
       body: JSON.stringify({
-        id: form.id,
+        form_id: form.form_id,
         username: localStorage.getItem("username"),
       }),
     });
