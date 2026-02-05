@@ -32,7 +32,6 @@ import {
 // custom imports 
 import { v4 as uuidv4 } from 'uuid';
 import NewStrokeScaleForm from "@/app/stroke-scale/new-stroke-scale-form";
-import { StrokeScaleForm } from "@/components/stroke-scale/stroke-scale-form";
 import { usePeerConnection } from "@/hooks/usePeerConnection";
 import { RoomClient } from "@/hooks/roomClient";
 import { cn } from "@/lib/utils";
@@ -94,6 +93,7 @@ export default function Page() {
   const hasRoomsBeenFetched = useRef(false);
   const [currentRoomId, setCurrentRoomId] = useState<any | null>(null);
   const [sessions, setSessions] = useState<any[]>([]);
+  const [currentFormId, setCurrentFormId] = useState<string | null>(null);
 
   //=====================================
   // VIDEO CONNECTION AND CALL LOGIC
@@ -191,7 +191,7 @@ export default function Page() {
         // 2. Call the exposed joinRoom function
         // Arguments: name, room_id, RoomClient class
         const newRoomId = await joinRoom?.(myName, roomId, RoomClient);
-        setCurrentRoomId(newRoomId);
+        setCurrentRoomId(!newRoomId);
         console.log(`Attempted to join room: ${roomId}`);
 
         const username = localStorage.getItem("username");
@@ -348,35 +348,29 @@ export default function Page() {
   };
 
   // Function to handle the form submission network request
-  const onSubmitForm = async (payload: { [key: string]: number | string | null }, action: string): Promise<any> => {
-    console.log("SUBMITTING FORM", payload);
-    try{
-      return await socketRequestAPI!("CREATEFORM", {payload});
-      console.log('SUCCESS');
-      
-    }catch(error){
-      console.log('FAILURE');
-      return 'FAILURE';
+  const onSubmitForm = async (
+    payload: { [key: string]: number | string | null | object },
+    action: string
+  ): Promise<any> => {
+    const res = await fetch(process.env.NEXT_PUBLIC_SERVER_FETCH_URL!, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        "Action": action,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const text = await res.text();
+    let data: any;
+    try { data = JSON.parse(text); } catch { data = { message: text }; }
+
+    if (!res.ok) {
+      throw new Error(data?.message || text || `Request failed (${res.status})`);
     }
-    // try {
-        
-        
-    //     // Parse the response body as JSON
-    //     const responseData = await response.json(); 
-        
-    //     if (!response.ok) {
-    //         // Throw an error if the HTTP status code indicates a failure
-    //         throw new Error(responseData.message || response.statusText || `Server returned error status ${response.status}`);
-    //     }
-        
-    //     // Return the parsed data (expected to contain { success: boolean, formId: number, ... })
-    //     return responseData; 
-    // } catch (error) {
-    //     console.error("Network or Submission Error:", error);
-    //     // Return a structured error response that the form component can handle
-    //     return { success: false, message: (error as Error).message || "A network error occurred." };
-    // }
-  }
+    return data;
+  };
 
   const startPlayback = () => {
     // if (videoEl.current) {
@@ -570,7 +564,12 @@ export default function Page() {
               <Button
                 size="sm"
                 className="bg-blue-600 text-white hover:bg-blue-700"
-                onClick={() => setIsNewFormVisible(true)}
+                onClick={() => {
+                  setCurrentFormId(null);
+                  setSavedAns({});
+                  setSavedPatient({ name: "", DOB: "" });
+                  setIsNewFormVisible(true);
+                }}
               >
                 + New Form
               </Button>
@@ -589,7 +588,7 @@ export default function Page() {
                 setSavedAns({});
                 setSavedPatient({ name: '', DOB: '' });
                 setIsOnPopout(false);
-
+                setCurrentFormId(null);
               } }
 
               onMinimize={minForm}
@@ -598,9 +597,11 @@ export default function Page() {
               onPatientChange={handlePatientChange}
               initialPatient={savedPatient}
               onTogglePopout={togglePopout}
-              onSubmitForm={onSubmitForm} currentFormId={null} setCurrentFormId={function (id: number): void {
-                throw new Error("Function not implemented.");
-              } } currentSessionId={currentRoomId}              />
+              onSubmitForm={onSubmitForm}
+              currentFormId={currentFormId}
+              setCurrentFormId={setCurrentFormId}
+              currentSessionId={currentRoomId}   
+              />
             </CardContent>
           </Card>
         )}
@@ -623,9 +624,8 @@ export default function Page() {
           initialPatient={savedPatient}
           onTogglePopout={togglePopout}
           isPopout={true}
-          onSubmitForm={onSubmitForm} currentFormId={null} setCurrentFormId={function (id: number): void {
-            throw new Error("Function not implemented.");
-          } } currentSessionId={currentRoomId}          />
+          onSubmitForm={onSubmitForm} currentFormId={null} setCurrentFormId={setCurrentFormId}
+          currentSessionId={currentRoomId}          />
         )}
 
         {/* minimized form */}
@@ -992,9 +992,8 @@ export default function Page() {
                         onCancel={toggleStrokeScale}
                         initialData={formData}
                         onDataChange={handleDataChange}
-                        onSubmitForm={onSubmitForm} currentFormId={null} setCurrentFormId={function (id: number): void {
-                          throw new Error("Function not implemented.");
-                        } } currentSessionId={currentRoomId}                      />
+                        onSubmitForm={onSubmitForm} currentFormId={null} setCurrentFormId={setCurrentFormId}
+                        currentSessionId={currentRoomId}                      />
                     </CardContent>
                   </Card>
                 )}

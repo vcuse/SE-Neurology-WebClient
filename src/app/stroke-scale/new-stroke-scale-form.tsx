@@ -21,9 +21,9 @@ interface NewStrokeScaleFormProps { // defines props for the form
   isPopout?: boolean;
   onTogglePopout?: () => void;
   onSubmitForm: (payload: { [key: string]: number | string | null }, action: string) => Promise<any>; // New prop
-  currentFormId: number | null; // For subsequent updates
-  setCurrentFormId: (id: number) => void; // To store the generated ID
-  currentSessionId: number | null; // From the container
+  currentFormId: string | null; // For subsequent updates
+  setCurrentFormId: (id: string | null) => void; // To store the generated ID
+  currentSessionId: string | null; // From the container
 }
 
 type StrokeScaleFormData = { [key: number]: number }; // maps question index to score
@@ -89,7 +89,6 @@ export default function NewStrokeScaleForm({
   const [patientName, setPatientName] = useState(initialPatient.name);
   const [dob, setDob] = useState(initialPatient.DOB);
   const [message, setMessage] = useState<string | null>(null);
-  const [activeForm, setActiveForm] = useState<any | null>(null);
   const [isSaving, setIsSaving] = useState(false); // New state to prevent double clicks
 
   // --- NEW: Real-time calculation of total score ---
@@ -146,49 +145,50 @@ export default function NewStrokeScaleForm({
     // Required Admin Fields
     formItemPayload['username'] = username;
     formItemPayload['patient_name'] = patientName; // Using name as a mock MRN
-    formItemPayload['sessionid'] = currentSessionId;
-    formItemPayload['form_id'] = crypto.randomUUID();
+    if (currentSessionId) {
+      formItemPayload["session_id"] = currentSessionId;
+    }
+    formItemPayload["patient_dob"] = dob || null;
+    formItemPayload["total_nihss_score"] = totalScore;  
+
     
     // Score fields
     selectedOptions.forEach((selectedOptionIndex, questionIndex) => {
-      // Only include scored items in the payload
-      if (selectedOptionIndex !== null) { 
-          const score = strokeScaleQuestions[questionIndex].options[selectedOptionIndex].score;
-          const dbColumn = dbColumnMap[questionIndex];
-
-          if (dbColumn) {
-              formItemPayload[dbColumn] = score;
-          } 
+      if (selectedOptionIndex !== null) {
+        const score = strokeScaleQuestions[questionIndex].options[selectedOptionIndex].score;
+        const dbColumn = dbColumnMap[questionIndex];
+        if (dbColumn) formItemPayload[dbColumn] = score;
       }
     });
 
     try {
         let response;
         if (currentFormId === null) {
-            // --- ACTION 1: CREATE (Initial Save) ---
-            const actionHeader = "start_new_nihss_form";
-            setMessage("Starting new assessment...");
-            response = await onSubmitForm(formItemPayload, actionHeader);
-            console.log('response to formsubmissionwas', response);
-            if (response.response === 'SUCCESS') {
-                // Store the ID returned by the server for all future updates
-                // setCurrentFormId(response.formId);
-                setMessage(`Succesfully created and submitted form`);
-            } else {
-                throw new Error(response.message || "Failed to create form.");
-            }
+          // --- ACTION 2: NEW FORM ---
+          const actionHeader = "submitStrokeScale";
+          formItemPayload["form_date"] = new Date().toISOString();
+          setMessage("Submitting assessment...");
+          const created = await onSubmitForm(formItemPayload, "submitStrokeScale");
+
+          // server should return the created form id (string uuid)
+          const returnedId = created.form_id ?? created.formId ?? created.id;
+          if (!returnedId) throw new Error("Server did not return form_id.");
+
+          setCurrentFormId(returnedId);
+          alert("Form saved.");
+          window.location.reload();
         } else {
-            // --- ACTION 2: UPDATE (Saving Draft) ---
-            const actionHeader = "save_nihss_draft";
-            formItemPayload['form_id'] = currentFormId; // Add the required ID for WHERE clause
-            setMessage("Saving draft...");
+            // --- ACTION 2: UPDATE FORM ---
+            const actionHeader = "updateForm";
+            formItemPayload['form_id'] = currentFormId; 
+            formItemPayload['username'] = username; // Add the required ID for WHERE clause
+            setMessage("Updating Form...");
             response = await onSubmitForm(formItemPayload, actionHeader);
             
-            if (response.success) {
-                setMessage(`Draft saved successfully. Total Score: ${totalScore}`);
-            } else {
-                throw new Error(response.message || "Failed to save draft.");
+            if (response?.success === false) {
+              throw new Error(response.message || "Failed to save draft.");
             }
+            setMessage(`Form updated. Total Score: ${totalScore}`);
         }
         
     } catch (error) {
